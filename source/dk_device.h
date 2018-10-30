@@ -4,10 +4,16 @@
 class tag_DkDevice
 {
 	DkDeviceMaker m_maker;
+	mutable NvAddressSpace m_addrSpace;
+	bool m_didLibInit;
 public:
 
-	constexpr tag_DkDevice(DkDeviceMaker const& m) noexcept : m_maker{m} { }
+	constexpr tag_DkDevice(DkDeviceMaker const& m) noexcept : m_maker{m}, m_addrSpace{}, m_didLibInit{} { }
 	constexpr DkDeviceMaker const& getMaker() const noexcept { return m_maker; }
+	constexpr NvAddressSpace *getAddrSpace() const noexcept { return &m_addrSpace; }
+
+	DkResult initialize() noexcept;
+	~tag_DkDevice();
 
 	void raiseError(const char* context, DkResult result) const
 	{

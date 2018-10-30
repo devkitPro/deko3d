@@ -1,4 +1,5 @@
 #include "dk_device.h"
+#include "nv/map.h"
 
 namespace
 {
@@ -18,6 +19,58 @@ namespace
 	{
 		free(mem);
 	}
+
+	Result nvLibInit()
+	{
+		Result res;
+		res = nvInitialize();
+		if (R_SUCCEEDED(res))
+		{
+			res = nvInfoInit();
+			if (R_SUCCEEDED(res))
+			{
+				res = nvFenceInit();
+				if (R_SUCCEEDED(res))
+					res = nvMapInit();
+				if (R_FAILED(res))
+					nvInfoExit();
+			}
+			if (R_FAILED(res))
+				nvExit();
+		}
+		return res;
+	}
+
+	void nvLibExit()
+	{
+		nvMapExit();
+		nvFenceExit();
+		nvInfoExit();
+		nvExit();
+	}
+}
+
+DkResult tag_DkDevice::initialize()
+{
+	if (R_FAILED(nvLibInit()))
+		return DkResult_Fail;
+	m_didLibInit = true;
+
+	if (R_FAILED(nvAddressSpaceCreate(&m_addrSpace)))
+		return DkResult_Fail;
+
+	// TODO: Create address space region for code segment
+	// TODO: Create memblock for queries
+
+	return DkResult_Success;
+}
+
+tag_DkDevice::~tag_DkDevice()
+{
+	if (!m_didLibInit) return;
+
+	nvAddressSpaceClose(&m_addrSpace); // does nothing if uninitialized
+	nvLibExit();
 }
 
 DkDevice dkDeviceCreate(DkDeviceMaker const* maker)
@@ -27,7 +80,18 @@ DkDevice dkDeviceCreate(DkDeviceMaker const* maker)
 	if (!m.cbAlloc) m.cbAlloc = defaultAllocFunc;
 	if (!m.cbFree)  m.cbFree  = defaultFreeFunc;
 
-	return new(m) tag_DkDevice(m);
+	DkDevice dev = new(m) tag_DkDevice(m);
+	if (dev)
+	{
+		DkResult res = dev->initialize();
+		if (res != DkResult_Success)
+		{
+			delete dev;
+			dev = nullptr;
+			m.cbError(m.userData, DK_FUNC_ERROR_CONTEXT, res);
+		}
+	}
+	return dev;
 }
 
 void dkDeviceDestroy(DkDevice obj)
