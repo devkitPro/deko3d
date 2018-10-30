@@ -47,6 +47,15 @@ namespace dk
 		DK_OPAQUE_COMMON_MEMBERS(Device);
 	};
 
+	struct MemBlock : public detail::Handle<::DkMemBlock>
+	{
+		DK_OPAQUE_COMMON_MEMBERS(MemBlock);
+		void* getCpuAddr();
+		DkGpuAddr getGpuAddr();
+		DkResult flushCpuCache(uint32_t offset, uint32_t size);
+		DkResult invalidateCpuCache(uint32_t offset, uint32_t size);
+	};
+
 	struct DeviceMaker : public ::DkDeviceMaker
 	{
 		DeviceMaker() noexcept : DkDeviceMaker{} { ::dkDeviceMakerDefaults(this); }
@@ -57,7 +66,15 @@ namespace dk
 		Device create();
 	};
 
-	using UniqueDevice = detail::UniqueHandle<Device>;
+	struct MemBlockMaker : public ::DkMemBlockMaker
+	{
+		MemBlockMaker(DkDevice device, uint32_t size) noexcept : DkMemBlockMaker{} { ::dkMemBlockMakerDefaults(this, device, size); }
+		MemBlockMaker(MemBlockMaker&) = default;
+		MemBlockMaker(MemBlockMaker&&) = default;
+		MemBlockMaker& setFlags(uint32_t flags) noexcept { this->flags = flags; return *this; }
+		MemBlockMaker& setStorage(void* storage) noexcept { this->storage = storage; return *this; }
+		MemBlock create();
+	};
 
 	inline Device DeviceMaker::create()
 	{
@@ -69,4 +86,36 @@ namespace dk
 		::dkDeviceDestroy(*this);
 	}
 
+	inline MemBlock MemBlockMaker::create()
+	{
+		return MemBlock{::dkMemBlockCreate(this)};
+	}
+
+	inline void MemBlock::destroy()
+	{
+		::dkMemBlockDestroy(*this);
+	}
+
+	inline void* MemBlock::getCpuAddr()
+	{
+		return ::dkMemBlockGetCpuAddr(*this);
+	}
+
+	inline DkGpuAddr MemBlock::getGpuAddr()
+	{
+		return ::dkMemBlockGetGpuAddr(*this);
+	}
+
+	inline DkResult MemBlock::flushCpuCache(uint32_t offset, uint32_t size)
+	{
+		return ::dkMemBlockFlushCpuCache(*this, offset, size);
+	}
+
+	inline DkResult MemBlock::invalidateCpuCache(uint32_t offset, uint32_t size)
+	{
+		return ::dkMemBlockInvalidateCpuCache(*this, offset, size);
+	}
+
+	using UniqueDevice = detail::UniqueHandle<Device>;
+	using UniqueMemBlock = detail::UniqueHandle<MemBlock>;
 }
