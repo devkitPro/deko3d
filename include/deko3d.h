@@ -36,6 +36,8 @@ typedef enum
 	DkResult_MisalignedData,
 } DkResult;
 
+#define DK_GPU_ADDR_INVALID (~0ULL)
+
 typedef uint64_t DkGpuAddr;
 typedef void (*DkErrorFunc)(void* userData, const char* context, DkResult result);
 typedef DkResult (*DkAllocFunc)(void* userData, size_t alignment, size_t size, void** out);

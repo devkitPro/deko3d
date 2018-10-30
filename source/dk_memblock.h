@@ -7,9 +7,16 @@ class tag_DkMemBlock : public DkObjBase
 	mutable NvMap m_mapObj;
 	uint32_t m_flags;
 	void* m_ownedMem;
+	DkGpuAddr m_gpuAddrPitch;
+	DkGpuAddr m_gpuAddrSwizzled;
+	DkGpuAddr m_gpuAddrCompressed;
 
 public:
-	constexpr tag_DkMemBlock(DkDevice dev) noexcept : DkObjBase{dev}, m_mapObj{}, m_flags{}, m_ownedMem{} { }
+	constexpr tag_DkMemBlock(DkDevice dev) noexcept : DkObjBase{dev},
+		m_mapObj{}, m_flags{}, m_ownedMem{},
+		m_gpuAddrPitch{DK_GPU_ADDR_INVALID},
+		m_gpuAddrSwizzled{DK_GPU_ADDR_INVALID},
+		m_gpuAddrCompressed{DK_GPU_ADDR_INVALID} { }
 
 	DkResult initialize(uint32_t flags, void* storage, uint32_t size) noexcept;
 	~tag_DkMemBlock();
@@ -29,4 +36,7 @@ public:
 	uint32_t getHandle() const noexcept { return m_mapObj.handle; }
 	uint32_t getSize() const noexcept { return m_mapObj.size; }
 	void* getCpuAddr() const noexcept { return isCpuNoAccess() ? nullptr : nvMapGetCpuAddr(&m_mapObj); }
+	DkGpuAddr getGpuAddrPitch() const noexcept { return m_gpuAddrPitch; }
+	DkGpuAddr getGpuAddrSwizzled() const noexcept { return m_gpuAddrSwizzled; }
+	DkGpuAddr getGpuAddrCompressed() const noexcept { return m_gpuAddrCompressed; }
 };
