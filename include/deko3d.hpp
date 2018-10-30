@@ -19,6 +19,7 @@ namespace dk
 			constexpr Handle(T handle) noexcept : m_handle{handle} { }
 			constexpr operator T() const noexcept { return m_handle; }
 			constexpr operator bool() const noexcept { return m_handle != nullptr; }
+			constexpr bool operator !() const noexcept { return m_handle == nullptr; }
 		};
 
 		template <typename T>
@@ -34,12 +35,16 @@ namespace dk
 		};
 	}
 
-	using Result = ::DkResult;
+#define DK_OPAQUE_COMMON_MEMBERS(_name) \
+	constexpr _name() noexcept : Handle{} { } \
+	constexpr _name(std::nullptr_t arg) noexcept : Handle{arg} { } \
+	constexpr _name(::Dk##_name arg) noexcept : Handle{arg} { } \
+	_name& operator=(std::nullptr_t) noexcept { _clear(); return *this; } \
+	void destroy()
 
 	struct Device : public detail::Handle<::DkDevice>
 	{
-		Device& operator=(std::nullptr_t) noexcept { _clear(); return *this; }
-		void destroy();
+		DK_OPAQUE_COMMON_MEMBERS(Device);
 	};
 
 	struct DeviceMaker : public ::DkDeviceMaker

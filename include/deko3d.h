@@ -22,15 +22,18 @@ DK_DECL_OPAQUE(DkImage);
 DK_DECL_OPAQUE(DkImageView);
 DK_DECL_OPAQUE(DkImagePool);
 DK_DECL_OPAQUE(DkSampler);
+DK_DECL_OPAQUE(DkSamplerPool);
 DK_DECL_OPAQUE(DkCmdBuf);
 DK_DECL_OPAQUE(DkWindow);
 
 typedef enum
 {
-	DkResult_Success = 0,
-	DkResult_Fail = 1,
-	DkResult_NotImplemented = 2,
-	DkResult_OutOfMemory = 3,
+	DkResult_Success,
+	DkResult_Fail,
+	DkResult_NotImplemented,
+	DkResult_OutOfMemory,
+	DkResult_MisalignedSize,
+	DkResult_MisalignedData,
 } DkResult;
 
 typedef void (*DkErrorFunc)(void* userData, const char* context, DkResult result);
