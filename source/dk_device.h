@@ -1,16 +1,24 @@
 #pragma once
 #include "dk_private.h"
 
+struct DkGpuInfo
+{
+	u32 bigPageSize;
+	u32 zcullCtxSize;
+};
+
 class tag_DkDevice
 {
 	DkDeviceMaker m_maker;
 	mutable NvAddressSpace m_addrSpace;
+	DkGpuInfo m_gpuInfo;
 	bool m_didLibInit;
 public:
 
-	constexpr tag_DkDevice(DkDeviceMaker const& m) noexcept : m_maker{m}, m_addrSpace{}, m_didLibInit{} { }
+	constexpr tag_DkDevice(DkDeviceMaker const& m) noexcept : m_maker{m}, m_addrSpace{}, m_gpuInfo{}, m_didLibInit{} { }
 	constexpr DkDeviceMaker const& getMaker() const noexcept { return m_maker; }
 	constexpr NvAddressSpace *getAddrSpace() const noexcept { return &m_addrSpace; }
+	constexpr DkGpuInfo const& getGpuInfo() const noexcept { return m_gpuInfo; }
 
 	DkResult initialize() noexcept;
 	~tag_DkDevice();

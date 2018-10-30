@@ -56,6 +56,10 @@ DkResult tag_DkDevice::initialize()
 		return DkResult_Fail;
 	m_didLibInit = true;
 
+	auto gpuChars = nvInfoGetGpuCharacteristics();
+	m_gpuInfo.bigPageSize = gpuChars->big_page_size;
+	m_gpuInfo.zcullCtxSize = nvInfoGetZcullCtxSize();
+
 	if (R_FAILED(nvAddressSpaceCreate(&m_addrSpace)))
 		return DkResult_Fail;
 
