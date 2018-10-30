@@ -1,0 +1,7 @@
+.*/
+lib/
+debug/
+release/
+
+~*
+*.bz2
