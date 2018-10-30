@@ -1,6 +1,6 @@
 #include "dk_memblock.h"
 
-DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage)
+DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size)
 {
 	uint32_t cpuAccess = (flags >> DkMemBlockFlags_CpuAccessShift) & DkMemAccess_Mask;
 	uint32_t gpuAccess = (flags >> DkMemBlockFlags_GpuAccessShift) & DkMemAccess_Mask;
@@ -15,7 +15,27 @@ DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage)
 	flags |= gpuAccess << DkMemBlockFlags_GpuAccessShift;
 	m_flags = flags;
 
+	if (!storage)
+	{
+		m_ownedMem = allocMem(size, DK_MEMBLOCK_ALIGNMENT);
+		if (!m_ownedMem)
+			return DkResult_OutOfMemory;
+		storage = m_ownedMem;
+	}
+
+	if (R_FAILED(nvMapAlloc(&m_mapObj, storage, size, 0x20000, NvKind_Pitch, isCpuCached())))
+		return DkResult_Fail;
+
+	// TODO: map to address space
+
 	return DkResult_Success;
+}
+
+tag_DkMemBlock::~tag_DkMemBlock()
+{
+	nvMapFree(&m_mapObj); // does nothing if uninitialized
+	if (m_ownedMem)
+		freeMem(m_ownedMem);
 }
 
 DkMemBlock dkMemBlockCreate(DkMemBlockMaker const* maker)
@@ -28,10 +48,10 @@ DkMemBlock dkMemBlockCreate(DkMemBlockMaker const* maker)
 		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
 	else
 #endif
-	obj = new(maker->device) tag_DkMemBlock(maker->device, maker->size);
+	obj = new(maker->device) tag_DkMemBlock(maker->device);
 	if (obj)
 	{
-		DkResult res = obj->initialize(maker->flags, maker->storage);
+		DkResult res = obj->initialize(maker->flags, maker->storage, maker->size);
 		if (res != DkResult_Success)
 		{
 			delete obj;
@@ -49,7 +69,7 @@ void dkMemBlockDestroy(DkMemBlock obj)
 
 void* dkMemBlockGetCpuAddr(DkMemBlock obj)
 {
-	return nullptr;
+	return obj->getCpuAddr();
 }
 
 DkGpuAddr dkMemBlockGetGpuAddr(DkMemBlock obj)
