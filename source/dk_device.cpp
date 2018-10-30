@@ -42,7 +42,7 @@ void* DkObjBase::operator new(size_t size, DkDevice device)
 
 void DkObjBase::operator delete(void* ptr)
 {
-	return tag_DkDevice::operator delete(ptr);
+	static_cast<DkObjBase*>(ptr)->freeMem(ptr);
 }
 
 void DkObjBase::raiseError(DkDevice device, const char* context, DkResult result)
