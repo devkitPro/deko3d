@@ -34,3 +34,28 @@ void dkDeviceDestroy(DkDevice obj)
 {
 	delete obj;
 }
+
+void* DkObjBase::operator new(size_t size, DkDevice device)
+{
+	return tag_DkDevice::operator new(size, device->getMaker());
+}
+
+void DkObjBase::operator delete(void* ptr)
+{
+	return tag_DkDevice::operator delete(ptr);
+}
+
+void DkObjBase::raiseError(DkDevice device, const char* context, DkResult result)
+{
+	device->raiseError(context, result);
+}
+
+void* DkObjBase::allocMem(size_t size, size_t alignment) const noexcept
+{
+	return m_device->allocMem(size, alignment);
+}
+
+void DkObjBase::freeMem(void* mem) const noexcept
+{
+	return m_device->freeMem(mem);
+}

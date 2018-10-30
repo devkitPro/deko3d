@@ -12,3 +12,25 @@
 #endif
 
 #define DK_FUNC_ERROR_CONTEXT DK_ERROR_CONTEXT(__func__)
+
+class DkObjBase
+{
+	DkDevice m_device;
+
+	void* operator new(size_t size); // private, so that it can't be used
+public:
+	constexpr DkObjBase(DkDevice device) noexcept : m_device{device} { }
+	constexpr DkDevice getDevice() const noexcept { return m_device; }
+
+	void* operator new(size_t size, DkDevice device) noexcept;
+	void operator delete(void* ptr) noexcept;
+
+	static void raiseError(DkDevice device, const char* context, DkResult result);
+	void raiseError(const char* context, DkResult result) const
+	{
+		raiseError(m_device, context, result);
+	}
+
+	void* allocMem(size_t size, size_t alignment = __STDCPP_DEFAULT_NEW_ALIGNMENT__) const noexcept;
+	void freeMem(void* ptr) const noexcept;
+};
