@@ -22,7 +22,7 @@ VERSION	:=	$(DEKO3D_MAJOR).$(DEKO3D_MINOR).$(DEKO3D_PATCH)
 # INCLUDES is a list of directories containing header files
 #---------------------------------------------------------------------------------
 #BUILD		:=	build
-SOURCES		:=	source
+SOURCES		:=	source source/nv
 DATA		:=	data
 INCLUDES	:=	include
 
