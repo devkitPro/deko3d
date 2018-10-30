@@ -2,7 +2,7 @@
 
 namespace
 {
-	void defaultErrorFunc(void* userdata, DkResult result)
+	void defaultErrorFunc(void* userdata, const char* context, DkResult result)
 	{
 		fatalSimple(MAKERESULT(359, result));
 	}
