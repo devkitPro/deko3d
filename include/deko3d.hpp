@@ -33,27 +33,42 @@ namespace dk
 				if (*this) T::destroy();
 			}
 		};
+
+		template <typename T>
+		struct Opaque : protected T
+		{
+			constexpr Opaque() noexcept : T{} { }
+		};
 	}
 
-#define DK_OPAQUE_COMMON_MEMBERS(_name) \
+#define DK_HANDLE_COMMON_MEMBERS(_name) \
 	constexpr _name() noexcept : Handle{} { } \
 	constexpr _name(std::nullptr_t arg) noexcept : Handle{arg} { } \
 	constexpr _name(::Dk##_name arg) noexcept : Handle{arg} { } \
 	_name& operator=(std::nullptr_t) noexcept { _clear(); return *this; } \
 	void destroy()
 
+#define DK_OPAQUE_COMMON_MEMBERS(_name) \
+	constexpr _name() noexcept : Opaque{} { }
+
 	struct Device : public detail::Handle<::DkDevice>
 	{
-		DK_OPAQUE_COMMON_MEMBERS(Device);
+		DK_HANDLE_COMMON_MEMBERS(Device);
 	};
 
 	struct MemBlock : public detail::Handle<::DkMemBlock>
 	{
-		DK_OPAQUE_COMMON_MEMBERS(MemBlock);
+		DK_HANDLE_COMMON_MEMBERS(MemBlock);
 		void* getCpuAddr();
 		DkGpuAddr getGpuAddr();
 		DkResult flushCpuCache(uint32_t offset, uint32_t size);
 		DkResult invalidateCpuCache(uint32_t offset, uint32_t size);
+	};
+
+	struct Fence : public detail::Opaque<::DkFence>
+	{
+		DK_OPAQUE_COMMON_MEMBERS(Fence);
+		DkResult wait(int64_t timeout_ns = -1);
 	};
 
 	struct DeviceMaker : public ::DkDeviceMaker
@@ -114,6 +129,11 @@ namespace dk
 	inline DkResult MemBlock::invalidateCpuCache(uint32_t offset, uint32_t size)
 	{
 		return ::dkMemBlockInvalidateCpuCache(*this, offset, size);
+	}
+
+	inline DkResult Fence::wait(int64_t timeout_ns)
+	{
+		return ::dkFenceWait(this, timeout_ns);
 	}
 
 	using UniqueDevice = detail::UniqueHandle<Device>;

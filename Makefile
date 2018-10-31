@@ -37,7 +37,7 @@ CFLAGS	:=	-g -Wall -Werror -save-temps \
 			$(ARCH) \
 			$(BUILD_CFLAGS)
 
-CFLAGS	+=	$(INCLUDE) -D__SWITCH__
+CFLAGS	+=	$(INCLUDE) -D__SWITCH__ -DDK_NO_OPAQUE_DUMMY
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++17
 

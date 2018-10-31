@@ -13,6 +13,10 @@
 
 #define DK_FUNC_ERROR_CONTEXT DK_ERROR_CONTEXT(__func__)
 
+#define DK_OPAQUE_CHECK(_typename) \
+	static_assert(_size_##_typename >= sizeof(_typename), "Invalid size"); \
+	static_assert(_align_##_typename >= alignof(_typename), "Invalid alignment")
+
 class DkObjBase
 {
 	DkDevice m_device;

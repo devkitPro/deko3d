@@ -3,6 +3,7 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
+#include <stdalign.h>
 
 #if __cplusplus >= 201402L
 #define DK_CONSTEXPR constexpr
@@ -10,21 +11,34 @@
 #define DK_CONSTEXPR static inline
 #endif
 
-#define DK_DECL_OPAQUE(_typename) \
+#define DK_DECL_HANDLE(_typename) \
 	typedef struct tag_##_typename *_typename
 
-DK_DECL_OPAQUE(DkDevice);
-DK_DECL_OPAQUE(DkMemBlock);
-DK_DECL_OPAQUE(DkFence);
-DK_DECL_OPAQUE(DkQueue);
-DK_DECL_OPAQUE(DkShader);
-DK_DECL_OPAQUE(DkImage);
-DK_DECL_OPAQUE(DkImageView);
-DK_DECL_OPAQUE(DkImagePool);
-DK_DECL_OPAQUE(DkSampler);
-DK_DECL_OPAQUE(DkSamplerPool);
-DK_DECL_OPAQUE(DkCmdBuf);
-DK_DECL_OPAQUE(DkWindow);
+#ifndef DK_NO_OPAQUE_DUMMY
+#define DK_DECL_OPAQUE(_typename, _align, _size) \
+	typedef struct _typename \
+	{ \
+		alignas(_align) uint8_t _storage[_size]; \
+	} _typename
+#else
+#define DK_DECL_OPAQUE(_typename, _align, _size) \
+	struct _typename; /* forward declaration */ \
+	constexpr unsigned _align_##_typename = _align; \
+	constexpr unsigned _size_##_typename = _size
+#endif
+
+DK_DECL_HANDLE(DkDevice);
+DK_DECL_HANDLE(DkMemBlock);
+DK_DECL_OPAQUE(DkFence, 8, 40);
+DK_DECL_HANDLE(DkQueue);
+DK_DECL_HANDLE(DkShader);
+DK_DECL_HANDLE(DkImage);
+DK_DECL_HANDLE(DkImageView);
+DK_DECL_HANDLE(DkImagePool);
+DK_DECL_HANDLE(DkSampler);
+DK_DECL_HANDLE(DkSamplerPool);
+DK_DECL_HANDLE(DkCmdBuf);
+DK_DECL_HANDLE(DkWindow);
 
 typedef enum
 {
@@ -34,6 +48,7 @@ typedef enum
 	DkResult_OutOfMemory,
 	DkResult_MisalignedSize,
 	DkResult_MisalignedData,
+	DkResult_Timeout,
 } DkResult;
 
 #define DK_GPU_ADDR_INVALID (~0ULL)
@@ -119,6 +134,8 @@ void* dkMemBlockGetCpuAddr(DkMemBlock obj);
 DkGpuAddr dkMemBlockGetGpuAddr(DkMemBlock obj);
 DkResult dkMemBlockFlushCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size);
 DkResult dkMemBlockInvalidateCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size);
+
+DkResult dkFenceWait(DkFence* obj, int64_t timeout_ns);
 
 #ifdef __cplusplus
 }
