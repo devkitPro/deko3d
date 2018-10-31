@@ -60,7 +60,7 @@ DkResult tag_DkDevice::initialize()
 	m_gpuInfo.bigPageSize = gpuChars->big_page_size;
 	m_gpuInfo.zcullCtxSize = nvInfoGetZcullCtxSize();
 
-	if (R_FAILED(nvAddressSpaceCreate(&m_addrSpace)))
+	if (R_FAILED(nvAddressSpaceCreate(&m_addrSpace, m_gpuInfo.bigPageSize)))
 		return DkResult_Fail;
 
 	// TODO: Create address space region for code segment

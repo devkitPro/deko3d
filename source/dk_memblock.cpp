@@ -30,12 +30,9 @@ DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size
 
 	if (!isGpuNoAccess())
 	{
-		uint32_t aligned_size = (getSize() + bigPageSize - 1) &~ (bigPageSize - 1);
-
 		// Create pitch mapping (TODO: use fixed mapping for DkMemBlockFlags_Code)
-		if (R_FAILED(nvioctlNvhostAsGpu_MapBufferEx(getDevice()->getAddrSpace()->fd,
-			isGpuCached() ? NvMapBufferFlags_IsCacheable : 0, NvKind_Pitch,
-			getHandle(), bigPageSize, 0, aligned_size, 0, &m_gpuAddrPitch)))
+		if (R_FAILED(nvAddressSpaceMap(getDevice()->getAddrSpace(),
+			getHandle(), isGpuCached(), NvKind_Pitch, &m_gpuAddrPitch)))
 			return DkResult_Fail;
 
 		// TODO: create swizzled/compressed mappings for DkMemBlockFlags_Image
@@ -47,7 +44,7 @@ DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size
 tag_DkMemBlock::~tag_DkMemBlock()
 {
 	if (m_gpuAddrPitch != DK_GPU_ADDR_INVALID)
-		nvAddressSpaceUnmapBuffer(getDevice()->getAddrSpace(), m_gpuAddrPitch);
+		nvAddressSpaceUnmap(getDevice()->getAddrSpace(), m_gpuAddrPitch);
 
 	nvMapFree(&m_mapObj); // does nothing if uninitialized
 	if (m_ownedMem)
