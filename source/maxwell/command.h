@@ -5,6 +5,12 @@
 namespace maxwell
 {
 
+template <uint32_t... values>
+using u32_seq = std::integer_sequence<uint32_t, values...>;
+
+template <uint32_t value>
+using make_u32_seq = std::make_integer_sequence<uint32_t, value>;
+
 union CmdWord
 {
 	uint32_t i;
@@ -32,13 +38,9 @@ struct CmdList
 	template <typename... Targs>
 	constexpr CmdList(Targs&&... args) noexcept : raw{CmdWord{args}...} { }
 
-	template <uint32_t sizeA, uint32_t... idxA, uint32_t... idxB>
-	explicit constexpr CmdList(CmdList<sizeA>&& a, CmdList<size-sizeA>&& b, std::integer_sequence<uint32_t, idxA...>, std::integer_sequence<uint32_t, idxB...>) :
-		raw{ std::move(a.raw[idxA])..., std::move(b.raw[idxB])... } { }
-
 	template <uint32_t sizeA>
-	explicit constexpr CmdList(CmdList<sizeA>&& a, CmdList<size-sizeA>&& b) :
-		CmdList{ std::move(a), std::move(b), std::make_integer_sequence<uint32_t, sizeA>{}, std::make_integer_sequence<uint32_t, size-sizeA>{} } { }
+	explicit constexpr CmdList(CmdList<sizeA>&& a, CmdList<size-sizeA>&& b) noexcept :
+		CmdList{ std::move(a), std::move(b), make_u32_seq<sizeA>{}, make_u32_seq<size-sizeA>{} } { }
 
 	constexpr CmdList& copyTo(CmdWord* p) const noexcept
 	{
@@ -49,6 +51,11 @@ struct CmdList
 	{
 		return *reinterpret_cast<CmdList*>(p) = std::move(*this);
 	}
+
+private:
+	template <uint32_t sizeA, uint32_t... idxA, uint32_t... idxB>
+	explicit constexpr CmdList(CmdList<sizeA>&& a, CmdList<size-sizeA>&& b, u32_seq<idxA...>, u32_seq<idxB...>) noexcept :
+		raw{ std::move(a.raw[idxA])..., std::move(b.raw[idxB])... } { }
 };
 
 template <uint32_t sizeA, uint32_t sizeB>
@@ -79,7 +86,7 @@ constexpr uint32_t MakeCmdHeader(SubmissionMode mode, uint16_t arg, uint8_t subc
 template <typename... Targs>
 constexpr auto MakeCmd(uint32_t header, Targs&&... args)
 {
-	return CmdList<1+sizeof...(args)>{ header, args... };
+	return CmdList<1+sizeof...(args)>{ header, std::forward<Targs>(args)... };
 }
 
 constexpr auto MakeInlineCmd(uint8_t subchannel, uint16_t method, uint16_t arg)
@@ -90,19 +97,19 @@ constexpr auto MakeInlineCmd(uint8_t subchannel, uint16_t method, uint16_t arg)
 template <typename... Targs>
 constexpr auto MakeIncreasingCmd(uint8_t subchannel, uint16_t method, Targs&&... args)
 {
-	return MakeCmd(MakeCmdHeader(Increasing, sizeof...(args), subchannel, method), args...);
+	return MakeCmd(MakeCmdHeader(Increasing, sizeof...(args), subchannel, method), std::forward<Targs>(args)...);
 }
 
 template <typename... Targs>
 constexpr auto MakeNonIncreasingCmd(uint8_t subchannel, uint16_t method, Targs&&... args)
 {
-	return MakeCmd(MakeCmdHeader(NonIncreasing, sizeof...(args), subchannel, method), args...);
+	return MakeCmd(MakeCmdHeader(NonIncreasing, sizeof...(args), subchannel, method), std::forward<Targs>(args)...);
 }
 
 template <typename... Targs>
 constexpr auto MakeIncreaseOnceCmd(uint8_t subchannel, uint16_t method, Targs&&... args)
 {
-	return MakeCmd(MakeCmdHeader(IncreaseOnce, sizeof...(args), subchannel, method), args...);
+	return MakeCmd(MakeCmdHeader(IncreaseOnce, sizeof...(args), subchannel, method), std::forward<Targs>(args)...);
 }
 
 }
