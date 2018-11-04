@@ -39,6 +39,18 @@ CFLAGS	:=	-g -Wall -Werror -save-temps \
 
 CFLAGS	+=	$(INCLUDE) -D__SWITCH__ -DDK_NO_OPAQUE_DUMMY
 
+# Extra optimizations for the Release build. This list is equivalent to -O3,
+# with opts that hurt code size (i.e. aggressive loop unrolling) disabled.
+EXTRAOPT	=	-fpredictive-commoning \
+				-fgcse-after-reload \
+				-ftree-loop-distribution \
+				-ftree-loop-distribute-patterns \
+				-ftree-vectorize \
+				-floop-interchange \
+				-fsplit-paths \
+				-fvect-cost-model=cheap \
+				-ftree-partial-pre
+
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++17
 
 ASFLAGS	:=	-g $(ARCH)
@@ -115,14 +127,14 @@ debug:
 
 lib/libdeko3d.a : lib release $(SOURCES) $(INCLUDES)
 	@$(MAKE) BUILD=release OUTPUT=$(CURDIR)/$@ \
-	BUILD_CFLAGS="-DNDEBUG=1 -O2" \
+	BUILD_CFLAGS="-DNDEBUG=1 -O2 $(EXTRAOPT)" \
 	DEPSDIR=$(CURDIR)/release \
 	--no-print-directory -C release \
 	-f $(CURDIR)/Makefile
 
 lib/libdeko3dd.a : lib debug $(SOURCES) $(INCLUDES)
 	@$(MAKE) BUILD=debug OUTPUT=$(CURDIR)/$@ \
-	BUILD_CFLAGS="-DDEBUG=1 -Og" \
+	BUILD_CFLAGS="-DDEBUG=1 -O2" \
 	DEPSDIR=$(CURDIR)/debug \
 	--no-print-directory -C debug \
 	-f $(CURDIR)/Makefile
