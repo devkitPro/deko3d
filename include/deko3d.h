@@ -30,6 +30,7 @@
 DK_DECL_HANDLE(DkDevice);
 DK_DECL_HANDLE(DkMemBlock);
 DK_DECL_OPAQUE(DkFence, 8, 40);
+DK_DECL_HANDLE(DkCmdBuf);
 DK_DECL_HANDLE(DkQueue);
 DK_DECL_HANDLE(DkShader);
 DK_DECL_HANDLE(DkImage);
@@ -37,26 +38,29 @@ DK_DECL_HANDLE(DkImageView);
 DK_DECL_HANDLE(DkImagePool);
 DK_DECL_HANDLE(DkSampler);
 DK_DECL_HANDLE(DkSamplerPool);
-DK_DECL_HANDLE(DkCmdBuf);
 DK_DECL_HANDLE(DkWindow);
 
 typedef enum
 {
 	DkResult_Success,
 	DkResult_Fail,
-	DkResult_NotImplemented,
+	DkResult_Timeout,
 	DkResult_OutOfMemory,
+	DkResult_NotImplemented,
 	DkResult_MisalignedSize,
 	DkResult_MisalignedData,
-	DkResult_Timeout,
+	DkResult_BadInput,
+	DkResult_BadMemFlags,
 } DkResult;
 
 #define DK_GPU_ADDR_INVALID (~0ULL)
 
 typedef uint64_t DkGpuAddr;
+typedef uintptr_t DkCmdList;
 typedef void (*DkErrorFunc)(void* userData, const char* context, DkResult result);
 typedef DkResult (*DkAllocFunc)(void* userData, size_t alignment, size_t size, void** out);
 typedef void (*DkFreeFunc)(void* userData, void* mem);
+typedef void (*DkCmdBufAddMemFunc)(void* userData, DkCmdBuf cmdbuf, size_t minReqSize);
 
 enum
 {
@@ -82,6 +86,7 @@ DK_CONSTEXPR void dkDeviceMakerDefaults(DkDeviceMaker* maker)
 }
 
 #define DK_MEMBLOCK_ALIGNMENT 0x1000
+#define DK_CMDMEM_ALIGNMENT 4
 
 enum
 {
@@ -121,6 +126,20 @@ DK_CONSTEXPR void dkMemBlockMakerDefaults(DkMemBlockMaker* maker, DkDevice devic
 	maker->storage = nullptr;
 }
 
+typedef struct DkCmdBufMaker
+{
+	DkDevice device;
+	void* userData;
+	DkCmdBufAddMemFunc cbAddMem;
+} DkCmdBufMaker;
+
+DK_CONSTEXPR void dkCmdBufMakerDefaults(DkCmdBufMaker* maker, DkDevice device)
+{
+	maker->device = device;
+	maker->userData = nullptr;
+	maker->cbAddMem = nullptr;
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -136,6 +155,13 @@ DkResult dkMemBlockFlushCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size)
 DkResult dkMemBlockInvalidateCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size);
 
 DkResult dkFenceWait(DkFence* obj, int64_t timeout_ns);
+
+DkCmdBuf dkCmdBufCreate(DkCmdBufMaker const* maker);
+void dkCmdBufDestroy(DkCmdBuf obj);
+void dkCmdBufAddMemory(DkCmdBuf obj, DkMemBlock mem, uint32_t offset, uint32_t size);
+DkCmdList dkCmdBufFinishList(DkCmdBuf obj);
+void dkCmdBufWaitFence(DkCmdBuf obj, DkFence* fence);
+void dkCmdBufSignalFence(DkCmdBuf obj, DkFence* fence, bool flush);
 
 #ifdef __cplusplus
 }

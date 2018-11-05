@@ -71,6 +71,15 @@ namespace dk
 		DkResult wait(int64_t timeout_ns = -1);
 	};
 
+	struct CmdBuf : public detail::Handle<::DkCmdBuf>
+	{
+		DK_HANDLE_COMMON_MEMBERS(CmdBuf);
+		void addMemory(DkMemBlock mem, uint32_t offset, uint32_t size);
+		DkCmdList finishList();
+		void waitFence(DkFence& fence);
+		void signalFence(DkFence& fence, bool flush = false);
+	};
+
 	struct DeviceMaker : public ::DkDeviceMaker
 	{
 		DeviceMaker() noexcept : DkDeviceMaker{} { ::dkDeviceMakerDefaults(this); }
@@ -92,6 +101,14 @@ namespace dk
 		MemBlockMaker& setFlags(uint32_t flags) noexcept { this->flags = flags; return *this; }
 		MemBlockMaker& setStorage(void* storage) noexcept { this->storage = storage; return *this; }
 		MemBlock create();
+	};
+
+	struct CmdBufMaker : public ::DkCmdBufMaker
+	{
+		CmdBufMaker(DkDevice device) noexcept : DkCmdBufMaker{} { ::dkCmdBufMakerDefaults(this, device); }
+		CmdBufMaker& setUserData(void* userData) noexcept { this->userData = userData; return *this; }
+		CmdBufMaker& setCbAddMem(DkCmdBufAddMemFunc cbAddMem) noexcept { this->cbAddMem = cbAddMem; return *this; }
+		CmdBuf create();
 	};
 
 	inline Device DeviceMaker::create()
@@ -139,6 +156,37 @@ namespace dk
 		return ::dkFenceWait(this, timeout_ns);
 	}
 
+	inline CmdBuf CmdBufMaker::create()
+	{
+		return CmdBuf{::dkCmdBufCreate(this)};
+	}
+
+	inline void CmdBuf::destroy()
+	{
+		::dkCmdBufDestroy(*this);
+	}
+
+	inline void CmdBuf::addMemory(DkMemBlock mem, uint32_t offset, uint32_t size)
+	{
+		::dkCmdBufAddMemory(*this, mem, offset, size);
+	}
+
+	inline DkCmdList CmdBuf::finishList()
+	{
+		return ::dkCmdBufFinishList(*this);
+	}
+
+	inline void CmdBuf::waitFence(DkFence& fence)
+	{
+		return ::dkCmdBufWaitFence(*this, &fence);
+	}
+
+	inline void CmdBuf::signalFence(DkFence& fence, bool flush)
+	{
+		return ::dkCmdBufSignalFence(*this, &fence, flush);
+	}
+
 	using UniqueDevice = detail::UniqueHandle<Device>;
 	using UniqueMemBlock = detail::UniqueHandle<MemBlock>;
+	using UniqueCmdBuf = detail::UniqueHandle<CmdBuf>;
 }
