@@ -35,7 +35,7 @@ namespace dk
 		};
 
 		template <typename T>
-		struct Opaque : protected T
+		struct Opaque : public T
 		{
 			constexpr Opaque() noexcept : T{} { }
 		};
@@ -77,6 +77,9 @@ namespace dk
 		DeviceMaker(DeviceMaker&) = default;
 		DeviceMaker(DeviceMaker&&) = default;
 		DeviceMaker& setUserData(void* userData) noexcept { this->userData = userData; return *this; }
+		DeviceMaker& setCbError(DkErrorFunc cbError) noexcept { this->cbError = cbError; return *this; }
+		DeviceMaker& setCbAlloc(DkAllocFunc cbAlloc) noexcept { this->cbAlloc = cbAlloc; return *this; }
+		DeviceMaker& setCbFree(DkFreeFunc cbFree) noexcept { this->cbFree = cbFree; return *this; }
 		DeviceMaker& setFlags(uint32_t flags) noexcept { this->flags = flags; return *this; }
 		Device create();
 	};
