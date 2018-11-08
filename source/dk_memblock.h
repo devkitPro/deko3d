@@ -1,6 +1,5 @@
 #pragma once
 #include "dk_private.h"
-#include "nv/map.h"
 
 class tag_DkMemBlock : public DkObjBase
 {

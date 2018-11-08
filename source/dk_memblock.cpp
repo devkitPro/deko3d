@@ -25,7 +25,7 @@ DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size
 	}
 
 	uint32_t bigPageSize = getDevice()->getGpuInfo().bigPageSize;
-	if (R_FAILED(nvMapAlloc(&m_mapObj, storage, size, bigPageSize, NvKind_Pitch, isCpuCached())))
+	if (R_FAILED(nvMapCreate(&m_mapObj, storage, size, bigPageSize, NvKind_Pitch, isCpuCached())))
 		return DkResult_Fail;
 
 	if (!isGpuNoAccess())
