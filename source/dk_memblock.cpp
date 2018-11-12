@@ -46,7 +46,7 @@ tag_DkMemBlock::~tag_DkMemBlock()
 	if (m_gpuAddrPitch != DK_GPU_ADDR_INVALID)
 		nvAddressSpaceUnmap(getDevice()->getAddrSpace(), m_gpuAddrPitch);
 
-	nvMapFree(&m_mapObj); // does nothing if uninitialized
+	nvMapClose(&m_mapObj); // does nothing if uninitialized
 	if (m_ownedMem)
 		freeMem(m_ownedMem);
 }

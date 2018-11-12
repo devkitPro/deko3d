@@ -25,14 +25,14 @@ namespace
 		res = nvInitialize();
 		if (R_SUCCEEDED(res))
 		{
-			res = nvInfoInit();
+			res = nvGpuInit();
 			if (R_SUCCEEDED(res))
 			{
 				res = nvFenceInit();
 				if (R_SUCCEEDED(res))
 					res = nvMapInit();
 				if (R_FAILED(res))
-					nvInfoExit();
+					nvGpuExit();
 			}
 			if (R_FAILED(res))
 				nvExit();
@@ -44,7 +44,7 @@ namespace
 	{
 		nvMapExit();
 		nvFenceExit();
-		nvInfoExit();
+		nvGpuExit();
 		nvExit();
 	}
 }
@@ -55,9 +55,9 @@ DkResult tag_DkDevice::initialize()
 		return DkResult_Fail;
 	m_didLibInit = true;
 
-	auto gpuChars = nvInfoGetGpuCharacteristics();
+	auto gpuChars = nvGpuGetCharacteristics();
 	m_gpuInfo.bigPageSize = gpuChars->big_page_size;
-	m_gpuInfo.zcullCtxSize = nvInfoGetZcullCtxSize();
+	m_gpuInfo.zcullCtxSize = nvGpuGetZcullCtxSize();
 
 	if (R_FAILED(nvAddressSpaceCreate(&m_addrSpace, m_gpuInfo.bigPageSize)))
 		return DkResult_Fail;
