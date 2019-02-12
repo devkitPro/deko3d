@@ -190,7 +190,7 @@ CtrlCmdHeader* tag_DkCmdBuf::appendCtrlCmd(size_t size)
 DkCmdBuf dkCmdBufCreate(DkCmdBufMaker const* maker)
 {
 	DkCmdBuf obj = nullptr;
-	obj = new(maker->device) tag_DkCmdBuf(maker);
+	obj = new(maker->device) tag_DkCmdBuf(*maker);
 	return obj;
 }
 

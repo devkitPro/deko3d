@@ -24,8 +24,8 @@ class tag_DkCmdBuf : public DkObjBase
 	DkGpuAddr m_cmdStartIova;
 	maxwell::CmdWord *m_cmdStart, *m_cmdPos, *m_cmdEnd;
 public:
-	constexpr tag_DkCmdBuf(DkCmdBufMaker const* maker) noexcept : DkObjBase{maker->device},
-		m_userData{maker->userData}, m_cbAddMem{maker->cbAddMem},
+	constexpr tag_DkCmdBuf(DkCmdBufMaker const& maker) noexcept : DkObjBase{maker.device},
+		m_userData{maker.userData}, m_cbAddMem{maker.cbAddMem},
 		m_ctrlChunkFirst{}, m_ctrlChunkCur{}, m_ctrlGpfifo{}, m_ctrlPos{}, m_ctrlEnd{},
 		m_cmdStartIova{}, m_cmdStart{}, m_cmdPos{}, m_cmdEnd{} { }
 	~tag_DkCmdBuf();

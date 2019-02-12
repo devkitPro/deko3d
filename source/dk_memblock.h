@@ -30,7 +30,7 @@ public:
 	constexpr bool isGpuUncached() const noexcept { return getGpuAccess() == DkMemAccess_Uncached; }
 	constexpr bool isGpuCached() const noexcept { return getGpuAccess() == DkMemAccess_Cached; }
 	constexpr bool isCode() const noexcept { return (m_flags & DkMemBlockFlags_Code) != 0; }
-	constexpr bool isImage() const noexcept { return (m_flags & DkMemBlockFlags_Code) != 0; }
+	constexpr bool isImage() const noexcept { return (m_flags & DkMemBlockFlags_Image) != 0; }
 
 	uint32_t getHandle() const noexcept { return m_mapObj.handle; }
 	uint32_t getSize() const noexcept { return m_mapObj.size; }
