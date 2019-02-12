@@ -51,6 +51,7 @@ typedef enum
 	DkResult_MisalignedData,
 	DkResult_BadInput,
 	DkResult_BadMemFlags,
+	DkResult_BadState,
 } DkResult;
 
 #define DK_GPU_ADDR_INVALID (~0ULL)
@@ -140,6 +141,16 @@ DK_CONSTEXPR void dkCmdBufMakerDefaults(DkCmdBufMaker* maker, DkDevice device)
 	maker->cbAddMem = nullptr;
 }
 
+typedef struct DkQueueMaker
+{
+	DkDevice device;
+} DkQueueMaker;
+
+DK_CONSTEXPR void dkQueueMakerDefaults(DkQueueMaker* maker, DkDevice device)
+{
+	maker->device = device;
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -162,6 +173,15 @@ void dkCmdBufAddMemory(DkCmdBuf obj, DkMemBlock mem, uint32_t offset, uint32_t s
 DkCmdList dkCmdBufFinishList(DkCmdBuf obj);
 void dkCmdBufWaitFence(DkCmdBuf obj, DkFence* fence);
 void dkCmdBufSignalFence(DkCmdBuf obj, DkFence* fence, bool flush);
+
+DkQueue dkQueueCreate(DkQueueMaker const* maker);
+void dkQueueDestroy(DkQueue obj);
+bool dkQueueIsInErrorState(DkQueue obj);
+void dkQueueWaitFence(DkQueue obj, DkFence* fence);
+void dkQueueSignalFence(DkQueue obj, DkFence* fence, bool flush);
+void dkQueueSubmitCommands(DkQueue obj, DkCmdList cmds);
+void dkQueueFlush(DkQueue obj);
+void dkQueuePresent(DkQueue obj, DkWindow window, int imageSlot);
 
 #ifdef __cplusplus
 }

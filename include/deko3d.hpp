@@ -80,6 +80,17 @@ namespace dk
 		void signalFence(DkFence& fence, bool flush = false);
 	};
 
+	struct Queue : public detail::Handle<::DkQueue>
+	{
+		DK_HANDLE_COMMON_MEMBERS(Queue);
+		bool isInErrorState();
+		void waitFence(DkFence& fence);
+		void signalFence(DkFence& fence, bool flush = false);
+		void submitCommands(DkCmdList cmds);
+		void flush();
+		void present(DkWindow window, int imageSlot);
+	};
+
 	struct DeviceMaker : public ::DkDeviceMaker
 	{
 		DeviceMaker() noexcept : DkDeviceMaker{} { ::dkDeviceMakerDefaults(this); }
@@ -109,6 +120,12 @@ namespace dk
 		CmdBufMaker& setUserData(void* userData) noexcept { this->userData = userData; return *this; }
 		CmdBufMaker& setCbAddMem(DkCmdBufAddMemFunc cbAddMem) noexcept { this->cbAddMem = cbAddMem; return *this; }
 		CmdBuf create();
+	};
+
+	struct QueueMaker : public ::DkQueueMaker
+	{
+		QueueMaker(DkDevice device) noexcept : DkQueueMaker{} { ::dkQueueMakerDefaults(this, device); }
+		Queue create();
 	};
 
 	inline Device DeviceMaker::create()
@@ -186,7 +203,43 @@ namespace dk
 		return ::dkCmdBufSignalFence(*this, &fence, flush);
 	}
 
+	inline Queue QueueMaker::create()
+	{
+		return Queue{::dkQueueCreate(this)};
+	}
+
+	inline bool Queue::isInErrorState()
+	{
+		return ::dkQueueIsInErrorState(*this);
+	}
+
+	inline void Queue::waitFence(DkFence& fence)
+	{
+		::dkQueueWaitFence(*this, &fence);
+	}
+
+	inline void Queue::signalFence(DkFence& fence, bool flush)
+	{
+		::dkQueueSignalFence(*this, &fence, flush);
+	}
+
+	inline void Queue::submitCommands(DkCmdList cmds)
+	{
+		::dkQueueSubmitCommands(*this, cmds);
+	}
+
+	inline void Queue::flush()
+	{
+		::dkQueueFlush(*this);
+	}
+
+	inline void Queue::present(DkWindow window, int imageSlot)
+	{
+		::dkQueuePresent(*this, window, imageSlot);
+	}
+
 	using UniqueDevice = detail::UniqueHandle<Device>;
 	using UniqueMemBlock = detail::UniqueHandle<MemBlock>;
 	using UniqueCmdBuf = detail::UniqueHandle<CmdBuf>;
+	using UniqueQueue = detail::UniqueHandle<Queue>;
 }

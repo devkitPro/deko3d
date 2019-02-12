@@ -36,6 +36,13 @@ DkCmdList tag_DkCmdBuf::finishList()
 {
 	// Sign off any remaining GPU commands
 	signOffGpfifoEntry();
+#ifdef DEBUG
+	if (!m_ctrlChunkCur)
+	{
+		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
+		return 0;
+	}
+#endif
 
 	// Finish the list with a return command (uses reserved ctrl space)
 	auto* retCmd = static_cast<CtrlCmdHeader*>(m_ctrlPos);
