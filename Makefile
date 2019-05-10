@@ -74,6 +74,7 @@ export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+MMEFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.mme)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 
 #---------------------------------------------------------------------------------
@@ -94,6 +95,10 @@ export OFILES_BIN	:=	$(addsuffix .o,$(BINFILES))
 export OFILES_SRC	:=	$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
 export OFILES 	:=	$(OFILES_BIN) $(OFILES_SRC)
 export HFILES	:=	$(addsuffix .h,$(subst .,_,$(BINFILES)))
+ifneq ($(strip $(MMEFILES)),)
+export HFILES	+=	mme_macros.h
+export MMEFILES
+endif
 
 export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
@@ -155,6 +160,10 @@ DEPENDS	:=	$(OFILES:.o=.d)
 $(OUTPUT)	:	$(OFILES)
 
 $(OFILES_SRC)	: $(HFILES)
+
+mme_macros.h : $(MMEFILES)
+	@echo $(notdir $@)
+	@dekomme -o $@ $^
 
 #---------------------------------------------------------------------------------
 %_bin.h %.bin.o	:	%.bin

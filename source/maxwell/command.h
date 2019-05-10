@@ -64,6 +64,18 @@ constexpr auto operator +(CmdList<sizeA>&& a, CmdList<sizeB>&& b)
 	return CmdList<sizeA+sizeB>{ std::move(a), std::move(b) };
 }
 
+template <uint32_t... idx>
+constexpr CmdList<sizeof...(idx)> CmdsFromArray(uint32_t const (&cmds)[sizeof...(idx)], u32_seq<idx...>)
+{
+	return CmdList<sizeof...(idx)>{ cmds[idx]... };
+}
+
+template <uint32_t size>
+constexpr CmdList<size> CmdsFromArray(uint32_t const (&cmds)[size])
+{
+	return CmdsFromArray(cmds, make_u32_seq<size>{});
+}
+
 enum SubmissionMode : uint32_t
 {
 	Increasing       = 1,
