@@ -154,3 +154,49 @@ void tag_DkQueue::flush()
 		m_cmdBuf.flushGpfifoEntries();
 	}
 }
+
+DkQueue dkQueueCreate(DkQueueMaker const* maker)
+{
+	DkQueue obj = nullptr;
+	obj = new(maker->device) tag_DkQueue(maker->device);
+	if (obj)
+	{
+		// TODO: initialize
+	}
+	return obj;
+}
+
+void dkQueueDestroy(DkQueue obj)
+{
+	delete obj;
+}
+
+bool dkQueueIsInErrorState(DkQueue obj)
+{
+	return false; // TODO
+}
+
+void dkQueueWaitFence(DkQueue obj, DkFence* fence)
+{
+	// TODO
+}
+
+void dkQueueSignalFence(DkQueue obj, DkFence* fence, bool flush)
+{
+	// TODO
+}
+
+void dkQueueSubmitCommands(DkQueue obj, DkCmdList cmds)
+{
+	obj->submitCommands(cmds);
+}
+
+void dkQueueFlush(DkQueue obj)
+{
+	obj->flush();
+}
+
+void dkQueuePresent(DkQueue obj, DkWindow window, int imageSlot)
+{
+	// TODO
+}

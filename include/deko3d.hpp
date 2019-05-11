@@ -208,6 +208,11 @@ namespace dk
 		return Queue{::dkQueueCreate(this)};
 	}
 
+	inline void Queue::destroy()
+	{
+		::dkQueueDestroy(*this);
+	}
+
 	inline bool Queue::isInErrorState()
 	{
 		return ::dkQueueIsInErrorState(*this);

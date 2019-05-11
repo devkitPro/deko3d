@@ -5,6 +5,9 @@ using namespace maxwell;
 
 tag_DkCmdBuf::~tag_DkCmdBuf()
 {
+	if (m_hasFlushFunc)
+		return;
+
 	CtrlMemChunk *cur, *next;
 	for (cur = m_ctrlChunkFirst; cur; cur = next)
 	{
