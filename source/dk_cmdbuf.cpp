@@ -27,7 +27,8 @@ void tag_DkCmdBuf::addMemory(DkMemBlock mem, uint32_t offset, uint32_t size)
 #endif
 	signOffGpfifoEntry();
 	m_cmdStartIova = mem->getGpuAddrPitch() + offset;
-	m_cmdStart = (CmdWord*)((char*)mem->getCpuAddr() + offset);
+	m_cmdChunkStart = (CmdWord*)((char*)mem->getCpuAddr() + offset);
+	m_cmdStart = m_cmdChunkStart;
 	m_cmdPos = m_cmdStart;
 	m_cmdEnd = m_cmdStart + size / sizeof(CmdWord);
 }
@@ -76,25 +77,23 @@ CmdWord* tag_DkCmdBuf::requestCmdMem(uint32_t size)
 
 bool tag_DkCmdBuf::appendRawGpfifoEntry(DkGpuAddr iova, uint32_t numCmds, uint32_t flags)
 {
-	bool didIt = false;
-
 	if (m_ctrlGpfifo)
 	{
-		if (flags == CtrlCmdGpfifoEntry::AutoKick)
+		if (flags == CtrlCmdGpfifoEntry::AutoKick && m_ctrlGpfifo->arg)
 		{
 			// Try to coalesce this entry onto the last one, if possible
 			auto* lastEntry = reinterpret_cast<CtrlCmdGpfifoEntry*>(m_ctrlGpfifo+1) + m_ctrlGpfifo->arg - 1;
 			DkGpuAddr lastEntryEnd = lastEntry->iova + lastEntry->numCmds*sizeof(CmdWord);
-			if (lastEntry->flags == flags && lastEntryEnd == iova)
+			if (lastEntryEnd == iova)
 			{
 				// Success - all we need to do is update the number of commands
 				lastEntry->numCmds += numCmds;
-				lastEntry->flags = flags;
-				didIt = true;
+				lastEntry->flags |= CtrlCmdGpfifoEntry::AutoKick;
+				return true;
 			}
 		}
 		// If above failed, see if we have enough space to append a new entry
-		if (!didIt && getCtrlSpaceFree() >= sizeof(CtrlCmdGpfifoEntry))
+		if (getCtrlSpaceFree() >= sizeof(CtrlCmdGpfifoEntry))
 		{
 			// We can append the entry
 			CtrlCmdGpfifoEntry* entry = static_cast<CtrlCmdGpfifoEntry*>(m_ctrlPos);
@@ -103,27 +102,39 @@ bool tag_DkCmdBuf::appendRawGpfifoEntry(DkGpuAddr iova, uint32_t numCmds, uint32
 			entry->numCmds = numCmds;
 			entry->flags = flags;
 			m_ctrlPos = entry+1;
-			didIt = true;
+			return true;
 		}
 	}
 
-	if (!didIt)
+	if (m_hasFlushFunc)
 	{
-		// We need to do it the hard way and create a new Gpfifo command
-		m_ctrlGpfifo = appendCtrlCmd(sizeof(CtrlCmdHeader) + sizeof(CtrlCmdGpfifoEntry));
-		if (m_ctrlGpfifo) // above already errored out if this failed
-		{
-			m_ctrlGpfifo->type = CtrlCmdHeader::GpfifoList;
-			m_ctrlGpfifo->arg = 1;
-			CtrlCmdGpfifoEntry* entry = reinterpret_cast<CtrlCmdGpfifoEntry*>(m_ctrlGpfifo+1);
-			entry->iova = iova;
-			entry->numCmds = numCmds;
-			entry->flags = flags;
-			didIt = true;
-		}
+		// Flush the gpfifo entries directly using the provided callback
+		CtrlCmdGpfifoEntry* entries = reinterpret_cast<CtrlCmdGpfifoEntry*>(m_ctrlGpfifo+1);
+		m_flushFunc(m_flushFuncData, entries, m_ctrlGpfifo->arg);
+
+		// Clear the gpfifo entry list and append this one
+		m_ctrlGpfifo->arg = 1;
+		entries->iova = iova;
+		entries->numCmds = numCmds;
+		entries->flags = flags;
+		m_ctrlPos = entries+1;
+		return true;
 	}
 
-	return didIt;
+	// We need to do it the hard way and create a new Gpfifo command
+	m_ctrlGpfifo = appendCtrlCmd(sizeof(CtrlCmdHeader) + sizeof(CtrlCmdGpfifoEntry));
+	if (m_ctrlGpfifo) // above already errored out if this failed
+	{
+		m_ctrlGpfifo->type = CtrlCmdHeader::GpfifoList;
+		m_ctrlGpfifo->arg = 1;
+		CtrlCmdGpfifoEntry* entry = reinterpret_cast<CtrlCmdGpfifoEntry*>(m_ctrlGpfifo+1);
+		entry->iova = iova;
+		entry->numCmds = numCmds;
+		entry->flags = flags;
+		return true;
+	}
+
+	return false;
 }
 
 CtrlCmdHeader* tag_DkCmdBuf::appendCtrlCmd(size_t size)
@@ -161,11 +172,9 @@ CtrlCmdHeader* tag_DkCmdBuf::appendCtrlCmd(size_t size)
 			if (nextChunk) // above already errored out if this failed
 			{
 				// Initialize and append it to the list of chunks
-				if (m_ctrlChunkCur)
-					m_ctrlChunkCur->m_next = nextChunk;
-				else
-					m_ctrlChunkFirst = nextChunk;
-				nextChunk->m_next = nullptr;
+				CtrlMemChunk*& insertionPoint = m_ctrlChunkCur ? m_ctrlChunkCur->m_next : m_ctrlChunkFirst;
+				nextChunk->m_next = insertionPoint;
+				insertionPoint = nextChunk;
 				nextChunk->m_size = reqSize;
 			}
 		}
