@@ -7,6 +7,7 @@
 
 class tag_DkQueue : public DkObjBase
 {
+	static constexpr uint32_t s_numReservedWords = 12;
 	static constexpr size_t s_maxQueuedGpfifoEntries = 64;
 	static constexpr uint32_t s_numFences = 16;
 
@@ -52,7 +53,7 @@ class tag_DkQueue : public DkObjBase
 
 public:
 	constexpr tag_DkQueue(DkDevice dev) : DkObjBase{dev},
-		m_workBufMemBlock{dev}, m_cmdBuf{{dev,this,_addMemFunc}},
+		m_workBufMemBlock{dev}, m_cmdBuf{{dev,this,_addMemFunc},s_numReservedWords},
 		m_cmdBufCtrlHeader{}, m_gpfifoEntries{},
 		m_cmdBufRing{}, m_cmdBufFlushThreshold{}, m_cmdBufPerFenceSliceSize{},
 		m_fenceRing{s_numFences}, m_fences{}, m_fenceCmdOffsets{}

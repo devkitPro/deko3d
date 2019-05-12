@@ -44,9 +44,8 @@ void tag_DkQueue::flushRing()
 	while (!m_fenceRing.reserve(id, 1))
 		waitFenceRing();
 
-	// TODO:
-	// - Unlock cmdbuf reserved space
-	// - fenceSync() (generates cmds)
+	m_cmdBuf.unlockReservedWords();
+	// TODO: signalFence() (generates cmds)
 	m_fenceCmdOffsets[id] = getCmdOffset();
 	m_fenceRing.updateProducer(id+1);
 }

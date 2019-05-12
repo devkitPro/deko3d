@@ -33,7 +33,7 @@ void tag_DkCmdBuf::addMemory(DkMemBlock mem, uint32_t offset, uint32_t size)
 	m_cmdChunkStart = (CmdWord*)((char*)mem->getCpuAddr() + offset);
 	m_cmdStart = m_cmdChunkStart;
 	m_cmdPos = m_cmdStart;
-	m_cmdEnd = m_cmdStart + size / sizeof(CmdWord);
+	m_cmdEnd = m_cmdStart + size / sizeof(CmdWord) - m_numReservedWords;
 }
 
 DkCmdList tag_DkCmdBuf::finishList()
@@ -69,7 +69,7 @@ CmdWord* tag_DkCmdBuf::requestCmdMem(uint32_t size)
 		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_OutOfMemory);
 		return nullptr;
 	}
-	m_cbAddMem(m_userData, this, size*sizeof(CmdWord));
+	m_cbAddMem(m_userData, this, (size+m_numReservedWords)*sizeof(CmdWord));
 	if ((m_cmdPos + size) >= m_cmdEnd)
 	{
 		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_OutOfMemory);

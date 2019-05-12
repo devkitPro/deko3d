@@ -19,6 +19,8 @@ class tag_DkCmdBuf : public DkObjBase
 
 	void* m_userData;
 	DkCmdBufAddMemFunc m_cbAddMem;
+
+	uint32_t m_numReservedWords;
 	bool m_hasFlushFunc;
 
 	union
@@ -38,8 +40,8 @@ class tag_DkCmdBuf : public DkObjBase
 	DkGpuAddr m_cmdStartIova;
 	maxwell::CmdWord *m_cmdChunkStart, *m_cmdStart, *m_cmdPos, *m_cmdEnd;
 public:
-	constexpr tag_DkCmdBuf(DkCmdBufMaker const& maker) noexcept : DkObjBase{maker.device},
-		m_userData{maker.userData}, m_cbAddMem{maker.cbAddMem}, m_hasFlushFunc{false},
+	constexpr tag_DkCmdBuf(DkCmdBufMaker const& maker, uint32_t rw = 0) noexcept : DkObjBase{maker.device},
+		m_userData{maker.userData}, m_cbAddMem{maker.cbAddMem}, m_numReservedWords{rw}, m_hasFlushFunc{false},
 		m_ctrlChunkFirst{}, m_ctrlChunkCur{}, m_ctrlGpfifo{}, m_ctrlPos{}, m_ctrlEnd{},
 		m_cmdStartIova{}, m_cmdChunkStart{}, m_cmdStart{}, m_cmdPos{}, m_cmdEnd{} { }
 	~tag_DkCmdBuf();
@@ -52,6 +54,11 @@ public:
 		m_ctrlGpfifo = mem;
 		m_ctrlPos = m_ctrlGpfifo+1;
 		m_ctrlEnd = (char*)m_ctrlPos + maxEntries*sizeof(CtrlCmdGpfifoEntry);
+	}
+
+	void unlockReservedWords()
+	{
+		m_cmdEnd += m_numReservedWords;
 	}
 
 	void addMemory(DkMemBlock mem, uint32_t offset, uint32_t size);
