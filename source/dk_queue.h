@@ -11,6 +11,13 @@ class tag_DkQueue : public DkObjBase
 	static constexpr size_t s_maxQueuedGpfifoEntries = 64;
 	static constexpr uint32_t s_numFences = 16;
 
+	enum
+	{
+		Uninitialized = 0,
+		Healthy = 1,
+		Error = 2,
+	} m_state;
+
 	NvGpuChannel m_gpuChannel;
 	tag_DkMemBlock m_cmdBufMemBlock;
 	tag_DkMemBlock m_workBufMemBlock;
@@ -32,7 +39,7 @@ class tag_DkQueue : public DkObjBase
 
 	void addCmdMemory(size_t minReqSize) noexcept;
 	bool waitFenceRing(bool peek = false) noexcept;
-	void flushRing() noexcept;
+	void flushRing(bool fenceFlush = false) noexcept;
 
 	void onCmdBufAddMem(size_t minReqSize) noexcept;
 	void appendGpfifoEntries(CtrlCmdGpfifoEntry const* entries, uint32_t numEntries) noexcept;
@@ -63,7 +70,7 @@ class tag_DkQueue : public DkObjBase
 
 public:
 	constexpr tag_DkQueue(DkQueueMaker const& maker) : DkObjBase{maker.device},
-		m_gpuChannel{},
+		m_state{Uninitialized}, m_gpuChannel{},
 		m_cmdBufMemBlock{maker.device}, m_workBufMemBlock{maker.device}, m_cmdBuf{{maker.device,this,_addMemFunc},s_numReservedWords},
 		m_cmdBufCtrlHeader{}, m_gpfifoEntries{},
 		m_cmdBufRing{maker.commandMemorySize}, m_cmdBufFlushThreshold{maker.flushThreshold}, m_cmdBufPerFenceSliceSize{maker.commandMemorySize/s_numFences},
@@ -72,8 +79,12 @@ public:
 		m_cmdBuf.useGpfifoFlushFunc(_gpfifoFlushFunc, this, &m_cmdBufCtrlHeader, s_maxQueuedGpfifoEntries);
 	}
 
+	bool isInErrorState() const noexcept { return m_state == Error; }
+
 	~tag_DkQueue();
 	DkResult initialize();
+	void waitFence(DkFence& fence);
+	void signalFence(DkFence& fence, bool flush);
 	void submitCommands(DkCmdList list);
 	void flush();
 };

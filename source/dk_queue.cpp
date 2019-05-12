@@ -1,6 +1,8 @@
 #include "dk_queue.h"
 #include "dk_device.h"
 
+using namespace maxwell;
+
 DkResult tag_DkQueue::initialize()
 {
 	DkResult res;
@@ -33,11 +35,19 @@ DkResult tag_DkQueue::initialize()
 	printf("cmdBufRing: sz=0x%x con=0x%x pro=0x%x fli=0x%x\n", m_cmdBufRing.getSize(), m_cmdBufRing.getConsumer(), m_cmdBufRing.getProducer(), m_cmdBufRing.getInFlight());
 #endif
 
+	m_state = Healthy;
 	return DkResult_Success;
 }
 
 tag_DkQueue::~tag_DkQueue()
 {
+	if (m_state == Healthy)
+	{
+		DkFence fence;
+		signalFence(fence, true);
+		flush();
+		fence.wait();
+	}
 	nvGpuChannelClose(&m_gpuChannel);
 }
 
@@ -83,14 +93,14 @@ bool tag_DkQueue::waitFenceRing(bool peek)
 	return waited;
 }
 
-void tag_DkQueue::flushRing()
+void tag_DkQueue::flushRing(bool fenceFlush)
 {
 	uint32_t id;
 	while (!m_fenceRing.reserve(id, 1))
 		waitFenceRing();
 
 	m_cmdBuf.unlockReservedWords();
-	// TODO: signalFence() (generates cmds)
+	signalFence(m_fences[id], fenceFlush);
 	m_fenceCmdOffsets[id] = getCmdOffset();
 	m_fenceRing.updateProducer(id+1);
 }
@@ -124,11 +134,51 @@ void tag_DkQueue::appendGpfifoEntries(CtrlCmdGpfifoEntry const* entries, uint32_
 		u32 threshold = (ent.flags & CtrlCmdGpfifoEntry::AutoKick) ? 8 : 0;
 		if (R_FAILED(nvGpuChannelAppendEntry(&m_gpuChannel, ent.iova, ent.numCmds, flags, threshold)))
 		{
-			// TODO: set error state
+			m_state = Error;
 			raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
 			return;
 		}
 	}
+}
+
+void tag_DkQueue::waitFence(DkFence& fence)
+{
+	// TODO
+}
+
+void tag_DkQueue::signalFence(DkFence& fence, bool flush)
+{
+#ifdef DEBUG
+	printf("  signalFence %p %d\n", &fence, flush);
+#endif
+	if (!isInErrorState())
+	{
+		u32 id = nvGpuChannelGetSyncpointId(&m_gpuChannel);
+		if (!flush)
+		{
+			m_cmdBuf.append(
+				MakeInlineCmd(0, 0x451, 0),
+				MakeIncreasingCmd(0, 0x0B2, id | 0x100000)
+			);
+		} else
+		{
+			m_cmdBuf.append(
+				MakeInlineCmd(0, 0x451, 0),
+				MakeIncreasingCmd(0, 0x0B2, id | 0x110000),
+				MakeIncreasingCmd(0, 0x0B2, id | 0x110000)
+			);
+			nvGpuChannelIncrFence(&m_gpuChannel);
+		}
+		nvGpuChannelIncrFence(&m_gpuChannel);
+		// TODO: Perform query shit
+	}
+
+	fence.m_type = DkFence::Internal;
+	nvGpuChannelGetFence(&m_gpuChannel, &fence.m_internal.m_fence);
+#ifdef DEBUG
+	printf("  --> %u,%u\n", fence.m_internal.m_fence.id, fence.m_internal.m_fence.value);
+#endif
+	// TODO: Fill in query shit
 }
 
 void tag_DkQueue::submitCommands(DkCmdList list)
@@ -155,13 +205,17 @@ void tag_DkQueue::submitCommands(DkCmdList list)
 				}
 				break;
 			}
-			case CtrlCmdHeader::SignalFence:
 			case CtrlCmdHeader::WaitFence:
 			{
 				auto* cmd = static_cast<CtrlCmdFence const*>(cur);
-#ifdef DEBUG
-				printf("  <fence> %p\n", cmd->fence);
-#endif
+				waitFence(*cmd->fence);
+				next = cmd+1;
+				break;
+			}
+			case CtrlCmdHeader::SignalFence:
+			{
+				auto* cmd = static_cast<CtrlCmdFence const*>(cur);
+				signalFence(*cmd->fence, cur->arg != 0);
 				next = cmd+1;
 				break;
 			}
@@ -179,7 +233,12 @@ void tag_DkQueue::submitCommands(DkCmdList list)
 
 void tag_DkQueue::flush()
 {
-	// TODO: check error state
+	if (isInErrorState())
+	{
+		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
+		return;
+	}
+
 	if (m_gpuChannel.num_entries || hasPendingCommands())
 	{
 		if (getInFlightCmdSize() >= m_cmdBufPerFenceSliceSize)
@@ -189,7 +248,7 @@ void tag_DkQueue::flush()
 		// - Do the ZBC shit
 		if (R_FAILED(nvGpuChannelKickoff(&m_gpuChannel)))
 		{
-			// TODO: set error state
+			m_state = Error;
 			raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
 			return;
 		}
@@ -233,17 +292,17 @@ void dkQueueDestroy(DkQueue obj)
 
 bool dkQueueIsInErrorState(DkQueue obj)
 {
-	return false; // TODO
+	return obj->isInErrorState();
 }
 
 void dkQueueWaitFence(DkQueue obj, DkFence* fence)
 {
-	// TODO
+	obj->waitFence(*fence);
 }
 
 void dkQueueSignalFence(DkQueue obj, DkFence* fence, bool flush)
 {
-	// TODO
+	obj->signalFence(*fence, flush);
 }
 
 void dkQueueSubmitCommands(DkQueue obj, DkCmdList cmds)
