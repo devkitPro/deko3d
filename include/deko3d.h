@@ -88,6 +88,7 @@ DK_CONSTEXPR void dkDeviceMakerDefaults(DkDeviceMaker* maker)
 
 #define DK_MEMBLOCK_ALIGNMENT 0x1000
 #define DK_CMDMEM_ALIGNMENT 4
+#define DK_QUEUE_MIN_CMDMEM_SIZE 0x10000
 
 enum
 {
@@ -144,11 +145,15 @@ DK_CONSTEXPR void dkCmdBufMakerDefaults(DkCmdBufMaker* maker, DkDevice device)
 typedef struct DkQueueMaker
 {
 	DkDevice device;
+	uint32_t commandMemorySize;
+	uint32_t flushThreshold;
 } DkQueueMaker;
 
 DK_CONSTEXPR void dkQueueMakerDefaults(DkQueueMaker* maker, DkDevice device)
 {
 	maker->device = device;
+	maker->commandMemorySize = DK_QUEUE_MIN_CMDMEM_SIZE;
+	maker->flushThreshold = DK_QUEUE_MIN_CMDMEM_SIZE/8;
 }
 
 #ifdef __cplusplus

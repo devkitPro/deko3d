@@ -64,6 +64,7 @@ public:
 	void addMemory(DkMemBlock mem, uint32_t offset, uint32_t size);
 	DkCmdList finishList();
 
+	constexpr bool isDirty() const noexcept { return m_cmdStart != m_cmdPos; }
 	constexpr uint32_t getCmdOffset() const noexcept { return uint32_t((char*)m_cmdPos - (char*)m_cmdChunkStart); }
 	constexpr size_t getCtrlSpaceFree() const noexcept { return size_t((char*)m_ctrlEnd-(char*)m_ctrlPos); }
 	maxwell::CmdWord* requestCmdMem(uint32_t size);

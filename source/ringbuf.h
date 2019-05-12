@@ -12,6 +12,7 @@ public:
 	constexpr RingBuf() noexcept : RingBuf{0} { }
 	void lateInit(T size) noexcept { m_size = size; }
 
+	constexpr T getSize()     const noexcept { return m_size;     }
 	constexpr T getConsumer() const noexcept { return m_consumer; }
 	constexpr T getProducer() const noexcept { return m_producer; }
 	constexpr T getInFlight() const noexcept { return m_inFlight; }
@@ -39,7 +40,7 @@ public:
 		if (producer >= m_size)
 			producer -= m_size;
 		T produced = producer - m_producer;
-		if (producer <= m_producer)
+		if (producer < m_producer)
 			produced += m_size;
 		m_producer = producer;
 		m_inFlight += produced;
@@ -50,7 +51,7 @@ public:
 		if (consumer >= m_size)
 			consumer -= m_size;
 		T consumed = consumer - m_consumer;
-		if (consumer <= m_consumer)
+		if (consumer < m_consumer)
 			consumed += m_size;
 		m_consumer = consumer;
 		m_inFlight -= consumed;

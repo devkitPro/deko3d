@@ -1,4 +1,45 @@
 #include "dk_queue.h"
+#include "dk_device.h"
+
+DkResult tag_DkQueue::initialize()
+{
+	DkResult res;
+
+	// Create GPU channel
+	if (R_FAILED(nvGpuChannelCreate(&m_gpuChannel, getDevice()->getAddrSpace())))
+		return DkResult_Fail;
+
+	// Allocate cmdbuf
+	res = m_cmdBufMemBlock.initialize(DkMemBlockFlags_CpuUncached | DkMemBlockFlags_GpuUncached, nullptr, m_cmdBufRing.getSize());
+	if (res != DkResult_Success)
+		return res;
+
+	// Add initial chunk of command memory for init purposes
+	addCmdMemory(m_cmdBufRing.getSize()/2);
+#ifdef DEBUG
+	printf("cmdBufRing: sz=0x%x con=0x%x pro=0x%x fli=0x%x\n", m_cmdBufRing.getSize(), m_cmdBufRing.getConsumer(), m_cmdBufRing.getProducer(), m_cmdBufRing.getInFlight());
+#endif
+
+	// TODO:
+	// - Calculate work buffer size (including zcullctx)
+	// - Allocate work buffer
+	// - nvGpuChannelZcullBind
+	// - Bind subchannels
+	// - Perform gpu init
+	// - Post-submit flush commands
+	flush();
+
+#ifdef DEBUG
+	printf("cmdBufRing: sz=0x%x con=0x%x pro=0x%x fli=0x%x\n", m_cmdBufRing.getSize(), m_cmdBufRing.getConsumer(), m_cmdBufRing.getProducer(), m_cmdBufRing.getInFlight());
+#endif
+
+	return DkResult_Success;
+}
+
+tag_DkQueue::~tag_DkQueue()
+{
+	nvGpuChannelClose(&m_gpuChannel);
+}
 
 void tag_DkQueue::addCmdMemory(size_t minReqSize)
 {
@@ -8,6 +49,10 @@ void tag_DkQueue::addCmdMemory(size_t minReqSize)
 		idealSize = m_cmdBufFlushThreshold - inFlightSize;
 
 	uint32_t offset;
+#ifdef DEBUG
+	printf("cmdBufRing: sz=0x%x con=0x%x pro=0x%x fli=0x%x\n", m_cmdBufRing.getSize(), m_cmdBufRing.getConsumer(), m_cmdBufRing.getProducer(), m_cmdBufRing.getInFlight());
+	printf("reserving 0x%x\n", (unsigned)minReqSize);
+#endif
 	uint32_t availableSize = m_cmdBufRing.reserve(offset, minReqSize);
 	bool peek = true;
 	while (!availableSize)
@@ -17,7 +62,7 @@ void tag_DkQueue::addCmdMemory(size_t minReqSize)
 		availableSize = m_cmdBufRing.reserve(offset, minReqSize);
 	}
 
-	m_cmdBuf.addMemory(&m_workBufMemBlock, offset, availableSize < idealSize ? availableSize : idealSize);
+	m_cmdBuf.addMemory(&m_cmdBufMemBlock, offset, availableSize < idealSize ? availableSize : idealSize);
 }
 
 bool tag_DkQueue::waitFenceRing(bool peek)
@@ -75,8 +120,14 @@ void tag_DkQueue::appendGpfifoEntries(CtrlCmdGpfifoEntry const* entries, uint32_
 #ifdef DEBUG
 		printf("  [%u]: iova 0x%010lx numCmds %u flags %x\n", i, ent.iova, ent.numCmds, ent.flags);
 #endif
-		// TODO: nvGpuChannelAppendEntry
-		(void)ent;
+		u32 flags = GPFIFO_ENTRY_NOT_MAIN | ((ent.flags & CtrlCmdGpfifoEntry::NoPrefetch) ? GPFIFO_ENTRY_NO_PREFETCH : 0);
+		u32 threshold = (ent.flags & CtrlCmdGpfifoEntry::AutoKick) ? 8 : 0;
+		if (R_FAILED(nvGpuChannelAppendEntry(&m_gpuChannel, ent.iova, ent.numCmds, flags, threshold)))
+		{
+			// TODO: set error state
+			raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
+			return;
+		}
 	}
 }
 
@@ -85,9 +136,6 @@ void tag_DkQueue::submitCommands(DkCmdList list)
 	CtrlCmdHeader const *cur, *next;
 	for (cur = reinterpret_cast<CtrlCmdHeader*>(list); cur; cur = next)
 	{
-#ifdef DEBUG
-		printf("cmd %u (%u) (%p)\n", unsigned(cur->type), unsigned(cur->arg), cur);
-#endif
 		switch (cur->type)
 		{
 			default:
@@ -98,9 +146,6 @@ void tag_DkQueue::submitCommands(DkCmdList list)
 			case CtrlCmdHeader::Call:
 			{
 				auto* cmd = static_cast<CtrlCmdJumpCall const*>(cur);
-#ifdef DEBUG
-				printf("--> %p\n", cmd->ptr);
-#endif
 				if (cur->type == CtrlCmdHeader::Jump)
 					next = cmd->ptr;
 				else
@@ -115,7 +160,7 @@ void tag_DkQueue::submitCommands(DkCmdList list)
 			{
 				auto* cmd = static_cast<CtrlCmdFence const*>(cur);
 #ifdef DEBUG
-				printf("--> %p\n", cmd->fence);
+				printf("  <fence> %p\n", cmd->fence);
 #endif
 				next = cmd+1;
 				break;
@@ -135,17 +180,19 @@ void tag_DkQueue::submitCommands(DkCmdList list)
 void tag_DkQueue::flush()
 {
 	// TODO: check error state
-	if (m_cmdBufCtrlHeader.arg || m_cmdBuf.getCmdOffset())
+	if (m_gpuChannel.num_entries || hasPendingCommands())
 	{
 		if (getInFlightCmdSize() >= m_cmdBufPerFenceSliceSize)
 			flushRing();
 		flushCmdBuf();
 		// TODO:
 		// - Do the ZBC shit
-		// - nvGpuChannelKickoff
-#ifdef DEBUG
-		printf("Kickoff happens\n");
-#endif
+		if (R_FAILED(nvGpuChannelKickoff(&m_gpuChannel)))
+		{
+			// TODO: set error state
+			raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
+			return;
+		}
 		// - Update device query data (is this really necessary?)
 		m_cmdBufRing.updateProducer(getCmdOffset());
 		addCmdMemory(m_cmdBufPerFenceSliceSize);
@@ -157,10 +204,24 @@ void tag_DkQueue::flush()
 DkQueue dkQueueCreate(DkQueueMaker const* maker)
 {
 	DkQueue obj = nullptr;
-	obj = new(maker->device) tag_DkQueue(maker->device);
+#ifdef DEBUG
+	if (maker->commandMemorySize < DK_QUEUE_MIN_CMDMEM_SIZE)
+		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	else if (maker->commandMemorySize & (DK_MEMBLOCK_ALIGNMENT-1))
+		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
+	else if (maker->flushThreshold < DK_MEMBLOCK_ALIGNMENT || maker->flushThreshold > maker->commandMemorySize)
+		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+	obj = new(maker->device) tag_DkQueue(*maker);
 	if (obj)
 	{
-		// TODO: initialize
+		DkResult res = obj->initialize();
+		if (res != DkResult_Success)
+		{
+			delete obj;
+			obj = nullptr;
+			DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, res);
+		}
 	}
 	return obj;
 }
