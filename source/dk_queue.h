@@ -33,9 +33,18 @@ class tag_DkQueue : public DkObjBase
 	RingBuf<uint32_t> m_fenceRing;
 	DkFence m_fences[s_numFences];
 	uint32_t m_fenceCmdOffsets[s_numFences];
+	uint32_t m_fenceLastFlushOffset;
 
 	uint32_t getCmdOffset() const noexcept { return m_cmdBufRing.getProducer() + m_cmdBuf.getCmdOffset(); }
 	uint32_t getInFlightCmdSize() const noexcept { return m_cmdBufRing.getInFlight() + m_cmdBuf.getCmdOffset(); }
+	uint32_t getSizeSinceLastFenceFlush() const noexcept
+	{
+		uint32_t offset = getCmdOffset();
+		if (offset < m_fenceLastFlushOffset)
+			return m_cmdBufRing.getSize() + offset - m_fenceLastFlushOffset;
+		else
+			return offset - m_fenceLastFlushOffset;
+	}
 
 	void addCmdMemory(size_t minReqSize) noexcept;
 	bool waitFenceRing(bool peek = false) noexcept;
@@ -74,7 +83,7 @@ public:
 		m_cmdBufMemBlock{maker.device}, m_workBufMemBlock{maker.device}, m_cmdBuf{{maker.device,this,_addMemFunc},s_numReservedWords},
 		m_cmdBufCtrlHeader{}, m_gpfifoEntries{},
 		m_cmdBufRing{maker.commandMemorySize}, m_cmdBufFlushThreshold{maker.flushThreshold}, m_cmdBufPerFenceSliceSize{maker.commandMemorySize/s_numFences},
-		m_fenceRing{s_numFences}, m_fences{}, m_fenceCmdOffsets{}
+		m_fenceRing{s_numFences}, m_fences{}, m_fenceCmdOffsets{}, m_fenceLastFlushOffset{}
 	{
 		m_cmdBuf.useGpfifoFlushFunc(_gpfifoFlushFunc, this, &m_cmdBufCtrlHeader, s_maxQueuedGpfifoEntries);
 	}

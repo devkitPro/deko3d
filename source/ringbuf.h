@@ -20,7 +20,9 @@ public:
 	T reserve(T& pos, T required) noexcept
 	{
 		T available = m_size - m_inFlight;
-		if ((m_producer + available) > m_size)
+		if (available < required)
+			return 0;
+		if ((m_producer + required) > m_size)
 		{
 			T wasted = m_size - m_producer;
 			if (available < (required + wasted))
@@ -29,8 +31,8 @@ public:
 			m_inFlight += wasted;
 			available -= wasted;
 		}
-		else if (available < required)
-			return 0;
+		else if ((m_producer + available) > m_size)
+			available = m_size - m_producer;
 		pos = m_producer;
 		return available;
 	}

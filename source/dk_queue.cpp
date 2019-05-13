@@ -96,12 +96,17 @@ bool tag_DkQueue::waitFenceRing(bool peek)
 void tag_DkQueue::flushRing(bool fenceFlush)
 {
 	uint32_t id;
-	while (!m_fenceRing.reserve(id, 1))
-		waitFenceRing();
+	bool peek = true;
+	do
+	{
+		waitFenceRing(peek);
+		peek = false;
+	}
+	while (!m_fenceRing.reserve(id, 1));
 
 	m_cmdBuf.unlockReservedWords();
 	signalFence(m_fences[id], fenceFlush);
-	m_fenceCmdOffsets[id] = getCmdOffset();
+	m_fenceLastFlushOffset = m_fenceCmdOffsets[id] = getCmdOffset();
 	m_fenceRing.updateProducer(id+1);
 }
 
@@ -176,7 +181,7 @@ void tag_DkQueue::signalFence(DkFence& fence, bool flush)
 	fence.m_type = DkFence::Internal;
 	nvGpuChannelGetFence(&m_gpuChannel, &fence.m_internal.m_fence);
 #ifdef DEBUG
-	printf("  --> %u,%u\n", fence.m_internal.m_fence.id, fence.m_internal.m_fence.value);
+	//printf("  --> %u,%u\n", fence.m_internal.m_fence.id, fence.m_internal.m_fence.value);
 #endif
 	// TODO: Fill in query shit
 }
@@ -241,7 +246,7 @@ void tag_DkQueue::flush()
 
 	if (m_gpuChannel.num_entries || hasPendingCommands())
 	{
-		if (getInFlightCmdSize() >= m_cmdBufPerFenceSliceSize)
+		if (getSizeSinceLastFenceFlush() >= m_cmdBufPerFenceSliceSize)
 			flushRing();
 		flushCmdBuf();
 		// TODO:
