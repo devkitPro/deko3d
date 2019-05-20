@@ -77,6 +77,8 @@ class tag_DkQueue : public DkObjBase
 		static_cast<tag_DkQueue*>(data)->appendGpfifoEntries(entries, numEntries);
 	}
 
+	void setupEngines();
+
 public:
 	constexpr tag_DkQueue(DkQueueMaker const& maker) : DkObjBase{maker.device},
 		m_state{Uninitialized}, m_gpuChannel{},

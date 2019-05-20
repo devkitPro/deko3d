@@ -1,0 +1,14 @@
+
+# Fills registers with a fixed write value
+# Arguments:
+# - 0: Bit0..11=Address, Bit12..17=Increment
+# - 1: Number of writes to perform
+# - 2: Value to write
+FillRegisters::
+	r1 to addr; fetch r2
+	fetch r3
+.loop
+	dec r2 to r2
+	bnz r2 .loop
+	*r3 to mem
+	nop

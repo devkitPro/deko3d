@@ -1,0 +1,20 @@
+
+# Performs a masked write to a PGRAPH register
+# Arguments:
+# - 0: PGRAPH register address
+# - 1: Value to write
+# - 2: Bitmask specifying which bits are updated
+WriteHardwareReg::
+	WaitForIdle'0 to addr'mem
+	MmeFirmwareArgs'1 to addr; fetch r2
+	0 to mem; fetch r3
+	r2 to mem
+	r3 to mem
+	FirmwareCall[4]'0 to addr
+	r1 to mem
+.loop
+	ldi MmeFirmwareArgs[0] to r1
+	dec r1 to r1
+	bnz r1 .loop
+	*NoOperation'0 to addr'mem
+	nop

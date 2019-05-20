@@ -95,6 +95,8 @@ engine _3D 0xB197;
 
 0x451 UnknownFlush;
 
+0x8C0 FirmwareCall array[32];
+
 0x8E0 ConstbufSelectorSize bits (0..16 Size;);
 0x8E1 ConstbufSelectorAddr iova;
 0x8E3 LoadConstbufOffset bits (0..15 Offset;);

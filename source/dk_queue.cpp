@@ -29,7 +29,7 @@ DkResult tag_DkQueue::initialize()
 	// - Calculate work buffer size (including zcullctx)
 	// - Allocate work buffer
 	// - nvGpuChannelZcullBind
-	// - Bind subchannels
+	setupEngines();
 	// - Perform gpu init
 	// - Post-submit flush commands
 	flush();
