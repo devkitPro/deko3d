@@ -22,7 +22,7 @@ VERSION	:=	$(DEKO3D_MAJOR).$(DEKO3D_MINOR).$(DEKO3D_PATCH)
 # INCLUDES is a list of directories containing header files
 #---------------------------------------------------------------------------------
 #BUILD		:=	build
-SOURCES		:=	source
+SOURCES		:=	source source/maxwell
 DATA		:=	data
 INCLUDES	:=	include
 
@@ -74,6 +74,7 @@ export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+DEFFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.def)))
 MMEFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.mme)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 
@@ -94,7 +95,7 @@ endif
 export OFILES_BIN	:=	$(addsuffix .o,$(BINFILES))
 export OFILES_SRC	:=	$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
 export OFILES 	:=	$(OFILES_BIN) $(OFILES_SRC)
-export HFILES	:=	$(addsuffix .h,$(subst .,_,$(BINFILES)))
+export HFILES	:=	$(addsuffix .h,$(subst .,_,$(BINFILES))) $(DEFFILES:.def=.h)
 ifneq ($(strip $(MMEFILES)),)
 export HFILES	+=	mme_macros.h
 export MMEFILES
@@ -161,9 +162,17 @@ $(OUTPUT)	:	$(OFILES)
 
 $(OFILES_SRC)	: $(HFILES)
 
-mme_macros.h : $(MMEFILES)
+mme_macros.h : engine_3d.mme $(MMEFILES)
 	@echo $(notdir $@)
 	@dekomme -o $@ $^
+
+%_3d.h %_3d.mme : %_3d.def
+	@echo $(notdir $<)
+	@dekodef -h $*_3d.h -m $*_3d.mme $<
+
+%.h : %.def
+	@echo $(notdir $<)
+	@dekodef -h $@ $<
 
 #---------------------------------------------------------------------------------
 %_bin.h %.bin.o	:	%.bin

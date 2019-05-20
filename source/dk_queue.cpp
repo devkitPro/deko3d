@@ -1,6 +1,9 @@
 #include "dk_queue.h"
 #include "dk_device.h"
 
+#include "maxwell/helpers.h"
+#include "engine_3d.h"
+
 using namespace maxwell;
 
 DkResult tag_DkQueue::initialize()
@@ -158,19 +161,22 @@ void tag_DkQueue::signalFence(DkFence& fence, bool flush)
 #endif
 	if (!isInErrorState())
 	{
+		using A = Engine3D::SyncptAction;
 		u32 id = nvGpuChannelGetSyncpointId(&m_gpuChannel);
+		uint32_t action = A::Id{id} | A::Increment{};
 		if (!flush)
 		{
 			m_cmdBuf.append(
-				MakeInlineCmd(0, 0x451, 0),
-				MakeIncreasingCmd(0, 0x0B2, id | 0x100000)
+				CmdInline(3D, UnknownFlush{}, 0),
+				Cmd(3D, SyncptAction{}, action)
 			);
 		} else
 		{
+			action |= A::FlushCache{};
 			m_cmdBuf.append(
-				MakeInlineCmd(0, 0x451, 0),
-				MakeIncreasingCmd(0, 0x0B2, id | 0x110000),
-				MakeIncreasingCmd(0, 0x0B2, id | 0x110000)
+				CmdInline(3D, UnknownFlush{}, 0),
+				Cmd(3D, SyncptAction{}, action),
+				Cmd(3D, SyncptAction{}, action)
 			);
 			nvGpuChannelIncrFence(&m_gpuChannel);
 		}

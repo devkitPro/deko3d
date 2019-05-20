@@ -1,0 +1,107 @@
+
+// MAXWELL_B
+engine _3D 0xB197;
+
+0x040 NoOperation;
+0x044 WaitForIdle;
+0x045 MmeInstructionRamPointer;
+0x046 MmeInstructionRamLoad pipe;
+0x047 MmeStartAddressRamPointer;
+0x048 MmeStartAddressRamLoad pipe;
+0x049 MmeShadowRamControl enum (
+	0 MethodTrack;
+	1 MethodTrackWithFilter;
+	2 MethodPassthrough;
+	3 MethodReplay;
+);
+
+0x0b2 SyncptAction bits (
+	0..15 Id;
+	16    FlushCache;
+	20    Increment;
+);
+
+0x0c8 TessellationMode bits (
+	0..1 PrimitiveType enum (
+		0 Isolines;
+		1 Triangles;
+		2 Quads;
+	);
+	4..5 Spacing enum (
+		0 Equal;
+		1 FractionalOdd;
+		2 FractionalEven;
+	);
+	8..9 WindingAndConnectednessFlags enum (
+		0 CcwAndNotConnected;
+		1 IsolineConnected;
+		1 TriangleCw;
+		2 TriangleConnected;
+		3 TriangleConnectedCw;
+	);
+);
+0x0c9 TessellationOuterLevels array[4] float;
+0x0cd TessellationInnerLevels array[2] float;
+0x0df RasterizerEnable bool;
+
+0x200 RenderTarget array[8] (
+	0x00 Addr iova;
+	0x02 Horizontal;
+	0x03 Vertical;
+	0x04 Format;
+	0x05 TileMode bits (
+		0..3  Width;
+		4..7  Height;
+		8..10 Depth;
+		12    Layout;
+	);
+	0x06 ArrayMode bits (
+		0..15 Layers;
+		16    Volume;
+	);
+	0x07 LayerStride;
+	0x08 BaseLayer;
+	0x10 next;
+);
+
+0x280 ViewportTransform array[16] (
+	0x00 ScaleX float;
+	0x01 ScaleY float;
+	0x02 ScaleZ float;
+	0x03 TranslateX float;
+	0x04 TranslateY float;
+	0x05 TranslateZ float;
+	0x06 Swizzles;
+	0x07 SubpixelPrecisionBias bits (
+		0..4  X;
+		8..11 Y;
+	);
+	0x08 next;
+);
+
+0x300 Viewport array[16] (
+	0x00 Horizontal bits (
+		0..15  X;
+		16..31 Width;
+	);
+	0x01 Vertical bits (
+		0..15  Y;
+		16..31 Height;
+	);
+	0x02 DepthRangeNear float;
+	0x03 DepthRangeFar float;
+	0x04 next;
+);
+
+0x451 UnknownFlush;
+
+0x8E0 ConstbufSelectorSize bits (0..16 Size;);
+0x8E1 ConstbufSelectorAddr iova;
+0x8E3 LoadConstbufOffset bits (0..15 Offset;);
+0x8E4 LoadConstbufData array[16];
+
+// Shadow scratch registers
+
+0xD00 MmeFirmwareArgs array[8];
+0xD08 MmeScratch array[16];
+0xD18 MmeTestReg;

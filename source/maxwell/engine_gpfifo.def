@@ -1,0 +1,3 @@
+
+// MAXWELL_CHANNEL_GPFIFO_A
+engine Gpfifo 0xB06F;
