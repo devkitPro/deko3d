@@ -275,12 +275,15 @@ DkQueue dkQueueCreate(DkQueueMaker const* maker)
 {
 	DkQueue obj = nullptr;
 #ifdef DEBUG
-	if (maker->commandMemorySize < DK_QUEUE_MIN_CMDMEM_SIZE)
+	if (!(maker->flags & (DkQueueFlags_Graphics|DkQueueFlags_Compute|DkQueueFlags_Transfer)))
+		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	else if (maker->commandMemorySize < DK_QUEUE_MIN_CMDMEM_SIZE)
 		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	else if (maker->commandMemorySize & (DK_MEMBLOCK_ALIGNMENT-1))
 		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
 	else if (maker->flushThreshold < DK_MEMBLOCK_ALIGNMENT || maker->flushThreshold > maker->commandMemorySize)
 		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	else
 #endif
 	obj = new(maker->device) tag_DkQueue(*maker);
 	if (obj)

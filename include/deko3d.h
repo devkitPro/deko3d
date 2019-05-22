@@ -63,11 +63,6 @@ typedef DkResult (*DkAllocFunc)(void* userData, size_t alignment, size_t size, v
 typedef void (*DkFreeFunc)(void* userData, void* mem);
 typedef void (*DkCmdBufAddMemFunc)(void* userData, DkCmdBuf cmdbuf, size_t minReqSize);
 
-enum
-{
-	DkDeviceFlags_
-};
-
 typedef struct DkDeviceMaker
 {
 	void* userData;
@@ -142,9 +137,23 @@ DK_CONSTEXPR void dkCmdBufMakerDefaults(DkCmdBufMaker* maker, DkDevice device)
 	maker->cbAddMem = nullptr;
 }
 
+enum
+{
+	DkQueueFlags_Graphics              = 1U << 0,
+	DkQueueFlags_Compute               = 1U << 1,
+	DkQueueFlags_Transfer              = 1U << 2,
+	DkQueueFlags_EnableZcull           = 0U << 4,
+	DkQueueFlags_DisableZcull          = 1U << 4,
+	DkQueueFlags_DepthNegativeOneToOne = 0U << 8,
+	DkQueueFlags_DepthZeroToOne        = 1U << 8,
+	DkQueueFlags_OriginLowerLeft       = 0U << 9,
+	DkQueueFlags_OriginUpperLeft       = 1U << 9,
+};
+
 typedef struct DkQueueMaker
 {
 	DkDevice device;
+	uint32_t flags;
 	uint32_t commandMemorySize;
 	uint32_t flushThreshold;
 } DkQueueMaker;
@@ -152,6 +161,10 @@ typedef struct DkQueueMaker
 DK_CONSTEXPR void dkQueueMakerDefaults(DkQueueMaker* maker, DkDevice device)
 {
 	maker->device = device;
+	maker->flags =
+		DkQueueFlags_Graphics | DkQueueFlags_Compute | DkQueueFlags_Transfer |
+		DkQueueFlags_EnableZcull |
+		DkQueueFlags_DepthNegativeOneToOne | DkQueueFlags_OriginLowerLeft;
 	maker->commandMemorySize = DK_QUEUE_MIN_CMDMEM_SIZE;
 	maker->flushThreshold = DK_QUEUE_MIN_CMDMEM_SIZE/8;
 }

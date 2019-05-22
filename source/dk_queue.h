@@ -11,6 +11,7 @@ class tag_DkQueue : public DkObjBase
 	static constexpr size_t s_maxQueuedGpfifoEntries = 64;
 	static constexpr uint32_t s_numFences = 16;
 
+	uint32_t m_flags;
 	enum
 	{
 		Uninitialized = 0,
@@ -81,7 +82,7 @@ class tag_DkQueue : public DkObjBase
 
 public:
 	constexpr tag_DkQueue(DkQueueMaker const& maker) : DkObjBase{maker.device},
-		m_state{Uninitialized}, m_gpuChannel{},
+		m_flags{maker.flags}, m_state{Uninitialized}, m_gpuChannel{},
 		m_cmdBufMemBlock{maker.device}, m_workBufMemBlock{maker.device}, m_cmdBuf{{maker.device,this,_addMemFunc},s_numReservedWords},
 		m_cmdBufCtrlHeader{}, m_gpfifoEntries{},
 		m_cmdBufRing{maker.commandMemorySize}, m_cmdBufFlushThreshold{maker.flushThreshold}, m_cmdBufPerFenceSliceSize{maker.commandMemorySize/s_numFences},
@@ -90,6 +91,12 @@ public:
 		m_cmdBuf.useGpfifoFlushFunc(_gpfifoFlushFunc, this, &m_cmdBufCtrlHeader, s_maxQueuedGpfifoEntries);
 	}
 
+	bool hasGraphics() const noexcept { return (m_flags & DkQueueFlags_Graphics) != 0; }
+	bool hasCompute() const noexcept { return (m_flags & DkQueueFlags_Compute) != 0; }
+	bool hasTransfer() const noexcept { return (m_flags & DkQueueFlags_Transfer) != 0; }
+	bool hasZcull() const noexcept { return (m_flags & DkQueueFlags_DisableZcull) == 0; }
+	bool isDepthModeOpenGL() const noexcept { return (m_flags & DkQueueFlags_DepthZeroToOne) == 0; }
+	bool isOriginModeOpenGL() const noexcept { return (m_flags & DkQueueFlags_OriginUpperLeft) == 0; }
 	bool isInErrorState() const noexcept { return m_state == Error; }
 
 	~tag_DkQueue();

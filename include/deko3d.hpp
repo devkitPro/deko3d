@@ -125,6 +125,7 @@ namespace dk
 	struct QueueMaker : public ::DkQueueMaker
 	{
 		QueueMaker(DkDevice device) noexcept : DkQueueMaker{} { ::dkQueueMakerDefaults(this, device); }
+		QueueMaker& setFlags(uint32_t flags) noexcept { this->flags = flags; return *this; }
 		QueueMaker& setCommandMemorySize(uint32_t commandMemorySize) noexcept { this->commandMemorySize = commandMemorySize; return *this; }
 		QueueMaker& setFlushThreshold(uint32_t flushThreshold) noexcept { this->flushThreshold = flushThreshold; return *this; }
 		Queue create();
