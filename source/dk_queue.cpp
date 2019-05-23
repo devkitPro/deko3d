@@ -39,6 +39,7 @@ DkResult tag_DkQueue::initialize()
 #endif
 
 	m_state = Healthy;
+	getDevice()->registerQueue(m_id, this);
 	return DkResult_Success;
 }
 
@@ -52,6 +53,7 @@ tag_DkQueue::~tag_DkQueue()
 		fence.wait();
 	}
 	nvGpuChannelClose(&m_gpuChannel);
+	getDevice()->returnQueueId(m_id);
 }
 
 void tag_DkQueue::addCmdMemory(size_t minReqSize)
@@ -285,7 +287,11 @@ DkQueue dkQueueCreate(DkQueueMaker const* maker)
 		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	else
 #endif
-	obj = new(maker->device) tag_DkQueue(*maker);
+	{
+		int32_t id = maker->device->reserveQueueId();
+		if (id >= 0)
+			obj = new(maker->device) tag_DkQueue(*maker, id);
+	}
 	if (obj)
 	{
 		DkResult res = obj->initialize();

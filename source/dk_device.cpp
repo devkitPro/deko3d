@@ -72,8 +72,41 @@ tag_DkDevice::~tag_DkDevice()
 {
 	if (!m_didLibInit) return;
 
+#ifdef DEBUG
+	for (uint32_t i = 0; i < s_numQueues; i ++)
+		if (m_queueTable[i])
+			raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
+#endif
+
 	nvAddressSpaceClose(&m_addrSpace); // does nothing if uninitialized
 	nvLibExit();
+}
+
+int32_t tag_DkDevice::reserveQueueId()
+{
+	int32_t id = -1;
+	mutexLock(&m_queueTableMutex);
+	for (uint32_t i = 0; i < s_usedQueueBitmapSize; i ++)
+	{
+		uint32_t mask = m_usedQueues[i];
+		int32_t bit = __builtin_ffs(~mask)-1;
+		if (bit >= 0)
+		{
+			m_usedQueues[i] |= 1U << bit;
+			id = 32*i + bit;
+			break;
+		}
+	}
+	mutexUnlock(&m_queueTableMutex);
+	return id;
+}
+
+void tag_DkDevice::returnQueueId(uint32_t id)
+{
+	mutexLock(&m_queueTableMutex);
+	m_queueTable[id] = nullptr;
+	m_usedQueues[id/32] &= ~(1U << (id & 0x3F));
+	mutexUnlock(&m_queueTableMutex);
 }
 
 DkDevice dkDeviceCreate(DkDeviceMaker const* maker)

@@ -11,6 +11,7 @@ class tag_DkQueue : public DkObjBase
 	static constexpr size_t s_maxQueuedGpfifoEntries = 64;
 	static constexpr uint32_t s_numFences = 16;
 
+	uint32_t m_id;
 	uint32_t m_flags;
 	enum
 	{
@@ -81,8 +82,8 @@ class tag_DkQueue : public DkObjBase
 	void setupEngines();
 
 public:
-	constexpr tag_DkQueue(DkQueueMaker const& maker) : DkObjBase{maker.device},
-		m_flags{maker.flags}, m_state{Uninitialized}, m_gpuChannel{},
+	constexpr tag_DkQueue(DkQueueMaker const& maker, uint32_t id) : DkObjBase{maker.device},
+		m_id{id}, m_flags{maker.flags}, m_state{Uninitialized}, m_gpuChannel{},
 		m_cmdBufMemBlock{maker.device}, m_workBufMemBlock{maker.device}, m_cmdBuf{{maker.device,this,_addMemFunc},s_numReservedWords},
 		m_cmdBufCtrlHeader{}, m_gpfifoEntries{},
 		m_cmdBufRing{maker.commandMemorySize}, m_cmdBufFlushThreshold{maker.flushThreshold}, m_cmdBufPerFenceSliceSize{maker.commandMemorySize/s_numFences},
