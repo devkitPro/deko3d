@@ -90,6 +90,11 @@ DkGpuAddr dkMemBlockGetGpuAddr(DkMemBlock obj)
 	return obj->getGpuAddrPitch();
 }
 
+uint32_t dkMemBlockGetSize(DkMemBlock obj)
+{
+	return obj->getSize();
+}
+
 DkResult dkMemBlockFlushCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size)
 {
 	if (!obj->isCpuCached())

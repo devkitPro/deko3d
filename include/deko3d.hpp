@@ -61,6 +61,7 @@ namespace dk
 		DK_HANDLE_COMMON_MEMBERS(MemBlock);
 		void* getCpuAddr();
 		DkGpuAddr getGpuAddr();
+		uint32_t getSize();
 		DkResult flushCpuCache(uint32_t offset, uint32_t size);
 		DkResult invalidateCpuCache(uint32_t offset, uint32_t size);
 	};
@@ -159,6 +160,11 @@ namespace dk
 	inline DkGpuAddr MemBlock::getGpuAddr()
 	{
 		return ::dkMemBlockGetGpuAddr(*this);
+	}
+
+	inline uint32_t MemBlock::getSize()
+	{
+		return ::dkMemBlockGetSize(*this);
 	}
 
 	inline DkResult MemBlock::flushCpuCache(uint32_t offset, uint32_t size)

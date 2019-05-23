@@ -180,6 +180,7 @@ DkMemBlock dkMemBlockCreate(DkMemBlockMaker const* maker);
 void dkMemBlockDestroy(DkMemBlock obj);
 void* dkMemBlockGetCpuAddr(DkMemBlock obj);
 DkGpuAddr dkMemBlockGetGpuAddr(DkMemBlock obj);
+uint32_t dkMemBlockGetSize(DkMemBlock obj);
 DkResult dkMemBlockFlushCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size);
 DkResult dkMemBlockInvalidateCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size);
 
