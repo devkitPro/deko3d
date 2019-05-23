@@ -47,12 +47,7 @@ DkResult tag_DkQueue::initialize()
 tag_DkQueue::~tag_DkQueue()
 {
 	if (m_state == Healthy)
-	{
-		DkFence fence;
-		signalFence(fence, true);
-		flush();
-		fence.wait();
-	}
+		waitIdle();
 	nvGpuChannelClose(&m_gpuChannel);
 	getDevice()->returnQueueId(m_id);
 }
@@ -316,6 +311,17 @@ void tag_DkQueue::flush()
 	}
 }
 
+void tag_DkQueue::waitIdle()
+{
+	if (isInErrorState())
+		return;
+
+	DkFence fence;
+	signalFence(fence, true);
+	flush();
+	fence.wait();
+}
+
 DkQueue dkQueueCreate(DkQueueMaker const* maker)
 {
 	DkQueue obj = nullptr;
@@ -376,6 +382,11 @@ void dkQueueSubmitCommands(DkQueue obj, DkCmdList cmds)
 void dkQueueFlush(DkQueue obj)
 {
 	obj->flush();
+}
+
+void dkQueueWaitIdle(DkQueue obj)
+{
+	obj->waitIdle();
 }
 
 void dkQueuePresent(DkQueue obj, DkWindow window, int imageSlot)

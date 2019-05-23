@@ -200,6 +200,7 @@ void dkQueueWaitFence(DkQueue obj, DkFence* fence);
 void dkQueueSignalFence(DkQueue obj, DkFence* fence, bool flush);
 void dkQueueSubmitCommands(DkQueue obj, DkCmdList cmds);
 void dkQueueFlush(DkQueue obj);
+void dkQueueWaitIdle(DkQueue obj);
 void dkQueuePresent(DkQueue obj, DkWindow window, int imageSlot);
 
 #ifdef __cplusplus

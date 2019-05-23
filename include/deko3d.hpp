@@ -89,6 +89,7 @@ namespace dk
 		void signalFence(DkFence& fence, bool flush = false);
 		void submitCommands(DkCmdList cmds);
 		void flush();
+		void waitIdle();
 		void present(DkWindow window, int imageSlot);
 	};
 
@@ -245,6 +246,11 @@ namespace dk
 	inline void Queue::flush()
 	{
 		::dkQueueFlush(*this);
+	}
+
+	inline void Queue::waitIdle()
+	{
+		::dkQueueWaitIdle(*this);
 	}
 
 	inline void Queue::present(DkWindow window, int imageSlot)

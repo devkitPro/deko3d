@@ -106,4 +106,5 @@ public:
 	void signalFence(DkFence& fence, bool flush);
 	void submitCommands(DkCmdList list);
 	void flush();
+	void waitIdle();
 };
