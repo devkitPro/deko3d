@@ -51,6 +51,8 @@ namespace
 
 DkResult tag_DkDevice::initialize()
 {
+	DkResult res;
+
 	if (R_FAILED(nvLibInit()))
 		return DkResult_Fail;
 	m_didLibInit = true;
@@ -63,7 +65,15 @@ DkResult tag_DkDevice::initialize()
 		return DkResult_Fail;
 
 	// TODO: Create address space region for code segment
-	// TODO: Create memblock for queries
+
+	res = m_semaphoreMem.initialize(DkMemBlockFlags_CpuUncached | DkMemBlockFlags_GpuUncached,
+		nullptr, s_numQueues*sizeof(NvLongSemaphore));
+	if (res != DkResult_Success)
+		return res;
+	memset(m_semaphoreMem.getCpuAddr(), 0, m_semaphoreMem.getSize());
+
+	// TODO: Set up built-in shaders, if we ever decide to have them?
+	// TODO: Get zbc active slot mask
 
 	return DkResult_Success;
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "dk_private.h"
+#include "dk_memblock.h"
 
 struct DkGpuInfo
 {
@@ -28,11 +29,15 @@ class tag_DkDevice
 	DkQueue m_queueTable[s_numQueues];
 	uint32_t m_usedQueues[s_usedQueueBitmapSize];
 
+	tag_DkMemBlock m_semaphoreMem;
+	uint32_t m_semaphores[s_numQueues];
+
 public:
 
 	constexpr tag_DkDevice(DkDeviceMaker const& m) noexcept :
 		m_maker{m}, m_addrSpace{}, m_gpuInfo{}, m_didLibInit{},
-		m_queueTableMutex{}, m_queueTable{}, m_usedQueues{} { }
+		m_queueTableMutex{}, m_queueTable{}, m_usedQueues{},
+		m_semaphoreMem{this}, m_semaphores{} { }
 	constexpr DkDeviceMaker const& getMaker() const noexcept { return m_maker; }
 	constexpr NvAddressSpace *getAddrSpace() const noexcept { return &m_addrSpace; }
 	constexpr DkGpuInfo const& getGpuInfo() const noexcept { return m_gpuInfo; }
@@ -45,6 +50,26 @@ public:
 	void registerQueue(uint32_t id, DkQueue queue) noexcept
 	{
 		m_queueTable[id] = queue;
+	}
+
+	NvLongSemaphore volatile* getSemaphoreCpuAddr(uint32_t id) noexcept
+	{
+		return (NvLongSemaphore volatile*)m_semaphoreMem.getCpuAddr() + id;
+	}
+
+	DkGpuAddr getSemaphoreGpuAddr(uint32_t id) noexcept
+	{
+		return m_semaphoreMem.getGpuAddrPitch() + id*sizeof(NvLongSemaphore);
+	}
+
+	uint32_t getSemaphoreValue(uint32_t id) const noexcept
+	{
+		return m_semaphores[id];
+	}
+
+	uint32_t incrSemaphoreValue(uint32_t id) noexcept
+	{
+		return ++m_semaphores[id];
 	}
 
 	void raiseError(const char* context, DkResult result) const

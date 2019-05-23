@@ -1,3 +1,22 @@
 
 // MAXWELL_CHANNEL_GPFIFO_A
 engine Gpfifo 0xB06F;
+
+0x004 SemaphoreOffset iova;
+0x006 SemaphorePayload;
+0x007 Semaphore bits (
+	0..4 Operation enum (
+		1 Acquire;
+		2 Release;
+		4 AcqGeq;  // acquire greater-or-equal
+	);
+	12 AcquireSwitch;
+);
+
+0x01C FenceValue;
+0x01D FenceAction bits (
+	4..7 Operation enum (
+		1 Acquire;
+	);
+	8..15 Id;
+);

@@ -16,7 +16,7 @@ engine _3D 0xB197;
 );
 
 0x0b2 SyncptAction bits (
-	0..15 Id;
+	0..11 Id;
 	16    FlushCache;
 	20    Increment;
 );
@@ -93,7 +93,70 @@ engine _3D 0xB197;
 	0x04 next;
 );
 
+0x3D8 TiledCacheEnable bool;
+0x3D9 TiledCacheTileSize bits (
+	0..15  Width;
+	16..31 Height;
+);
+
+0x3DF TiledCacheBarrier;
+0x3E0 TiledCacheFlush enum (
+	0 Flush;
+	1 Unknown;
+);
+
+0x44D TiledCacheUnkFeatureEnable bool;
+
 0x451 UnknownFlush;
+
+0x485 TiledCacheUnkConfig;
+
+0x6C0 SetReportSemaphoreOffset iova;
+0x6C2 SetReportSemaphorePayload;
+0x6C3 SetReportSemaphore bits (
+	0..1 Operation enum (
+		0 Release;
+		1 Acquire;
+		2 Unknown;
+		3 Trap;
+	);
+	2 FlushDisable;
+	3 ReductionEnable;
+	4 FenceEnable;
+	9..11 ReductionOp enum (
+		0 Add;
+		1 Min;
+		2 Max;
+		3 Inc;
+		4 Dec;
+		5 And;
+		6 Or;
+		7 Xor;
+	);
+	12..15 Unit enum (
+		1 VFetch;
+		2 VP;
+		4 Rast;
+		5 StrmOut;
+		6 GP;
+		7 ZCull;
+		10 Prop;
+		15 Crop;
+	);
+	16 SyncCondition enum (
+		0 NotEqual;
+		1 GreaterThan;
+	);
+	17..18 Format enum (
+		0 Unsigned32;
+		1 Signed32;
+	);
+	20 AwakenEnable;
+	28 StructureSize enum (
+		0 FourWords;
+		1 OneWord;
+	);
+);
 
 0x8C0 FirmwareCall array[32];
 

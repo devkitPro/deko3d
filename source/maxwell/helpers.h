@@ -18,6 +18,8 @@
 #define Macro(_name, ...) __Macro(IncreaseOnce, _name, __VA_ARGS__)
 #define MacroInline(_name, ...) __Macro(Inline, _name, __VA_ARGS__)
 
+#define Iova(_arg) ::maxwell::IovaHigh(_arg), ::maxwell::IovaLow(_arg)
+
 namespace maxwell
 {
 	constexpr unsigned Subchannel3D = 0;
@@ -26,4 +28,14 @@ namespace maxwell
 	constexpr unsigned Subchannel2D = 3;
 	constexpr unsigned SubchannelDMA = 4;
 	constexpr unsigned SubchannelGpfifo = 6;
+
+	constexpr uint32_t IovaHigh(uint64_t iova) noexcept
+	{
+		return uint32_t(iova>>32);
+	}
+
+	constexpr uint32_t IovaLow(uint64_t iova) noexcept
+	{
+		return uint32_t(iova);
+	}
 }

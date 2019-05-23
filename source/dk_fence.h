@@ -13,8 +13,8 @@ struct DkFence
 	struct _Internal
 	{
 		Type m_type;
-		uint32_t m_queryValue;
-		DkGpuAddr m_queryAddr;
+		uint32_t m_semaphoreValue;
+		DkGpuAddr m_semaphoreAddr;
 		NvFence m_fence;
 	};
 

@@ -3,6 +3,7 @@
 
 #include "maxwell/helpers.h"
 #include "engine_3d.h"
+#include "engine_gpfifo.h"
 
 using namespace maxwell;
 
@@ -153,7 +154,38 @@ void tag_DkQueue::appendGpfifoEntries(CtrlCmdGpfifoEntry const* entries, uint32_
 
 void tag_DkQueue::waitFence(DkFence& fence)
 {
-	// TODO
+#ifdef DEBUG
+	printf("  waitFence %p\n", &fence);
+#endif
+
+	using S = EngineGpfifo::Semaphore;
+	using F = EngineGpfifo::FenceAction;
+
+	switch (fence.m_type)
+	{
+		case DkFence::Type::Invalid:
+			break;
+		case DkFence::Type::Internal:
+			m_cmdBuf.append(Cmd(Gpfifo, SemaphoreOffset{},
+				Iova(fence.m_internal.m_semaphoreAddr),
+				fence.m_internal.m_semaphoreValue,
+				S::Operation::AcqGeq | S::AcquireSwitch{}
+			));
+			break;
+		case DkFence::Type::External:
+			for (u32 i = 0; i < fence.m_external.m_fence.num_fences; i ++)
+			{
+				NvFence const& f = fence.m_external.m_fence.fences[i];
+				if ((s32)f.id < 0) continue;
+				m_cmdBuf.append(Cmd(Gpfifo, FenceValue{},
+					f.value,
+					F::Operation::Acquire | F::Id{f.id}
+				));
+			}
+			break;
+		default:
+			raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
+	}
 }
 
 void tag_DkQueue::signalFence(DkFence& fence, bool flush)
@@ -161,9 +193,14 @@ void tag_DkQueue::signalFence(DkFence& fence, bool flush)
 #ifdef DEBUG
 	printf("  signalFence %p %d\n", &fence, flush);
 #endif
+
+	fence.m_type = DkFence::Internal;
+	fence.m_internal.m_semaphoreAddr = getDevice()->getSemaphoreGpuAddr(m_id);
+
 	if (!isInErrorState())
 	{
 		using A = Engine3D::SyncptAction;
+		using S = Engine3D::SetReportSemaphore;
 		u32 id = nvGpuChannelGetSyncpointId(&m_gpuChannel);
 		uint32_t action = A::Id{id} | A::Increment{};
 		if (!flush)
@@ -183,15 +220,21 @@ void tag_DkQueue::signalFence(DkFence& fence, bool flush)
 			nvGpuChannelIncrFence(&m_gpuChannel);
 		}
 		nvGpuChannelIncrFence(&m_gpuChannel);
-		// TODO: Perform query shit
+		fence.m_internal.m_semaphoreValue = getDevice()->incrSemaphoreValue(m_id);
+		m_cmdBuf.append(
+			CmdInline(3D, UnknownFlush{}, 0),
+			Cmd(3D, SetReportSemaphoreOffset{},
+				Iova(fence.m_internal.m_semaphoreAddr),
+				fence.m_internal.m_semaphoreValue,
+				S::Operation::Release | S::FenceEnable{} | S::Unit::Crop | S::StructureSize::OneWord
+			),
+			CmdInline(3D, TiledCacheFlush{}, Engine3D::TiledCacheFlush::Flush)
+		);
 	}
+	else
+		fence.m_internal.m_semaphoreValue = getDevice()->getSemaphoreValue(m_id);
 
-	fence.m_type = DkFence::Internal;
 	nvGpuChannelGetFence(&m_gpuChannel, &fence.m_internal.m_fence);
-#ifdef DEBUG
-	//printf("  --> %u,%u\n", fence.m_internal.m_fence.id, fence.m_internal.m_fence.value);
-#endif
-	// TODO: Fill in query shit
 }
 
 void tag_DkQueue::submitCommands(DkCmdList list)
