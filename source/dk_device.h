@@ -1,6 +1,7 @@
 #pragma once
 #include "dk_private.h"
 #include "dk_memblock.h"
+#include "codesegmgr.h"
 
 struct DkGpuInfo
 {
@@ -32,14 +33,18 @@ class tag_DkDevice
 	tag_DkMemBlock m_semaphoreMem;
 	uint32_t m_semaphores[s_numQueues];
 
+	dk::detail::CodeSegMgr m_codeSeg;
+
 public:
 
 	constexpr tag_DkDevice(DkDeviceMaker const& m) noexcept :
 		m_maker{m}, m_addrSpace{}, m_gpuInfo{}, m_didLibInit{},
 		m_queueTableMutex{}, m_queueTable{}, m_usedQueues{},
-		m_semaphoreMem{this}, m_semaphores{} { }
+		m_semaphoreMem{this}, m_semaphores{},
+		m_codeSeg{this} { }
 	constexpr DkDeviceMaker const& getMaker() const noexcept { return m_maker; }
 	constexpr NvAddressSpace *getAddrSpace() const noexcept { return &m_addrSpace; }
+	constexpr dk::detail::CodeSegMgr &getCodeSeg() noexcept { return m_codeSeg; }
 	constexpr DkGpuInfo const& getGpuInfo() const noexcept { return m_gpuInfo; }
 
 	DkResult initialize() noexcept;

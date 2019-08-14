@@ -7,8 +7,6 @@ DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size
 	uint32_t gpuAccess = (flags >> DkMemBlockFlags_GpuAccessShift) & DkMemAccess_Mask;
 	flags &= ~(DkMemBlockFlags_CpuAccessMask | DkMemBlockFlags_GpuAccessMask);
 
-	if (flags & DkMemBlockFlags_Code)
-		return DkResult_NotImplemented;
 	if (flags & DkMemBlockFlags_Image)
 		return DkResult_NotImplemented;
 
@@ -30,10 +28,34 @@ DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size
 
 	if (!isGpuNoAccess())
 	{
-		// Create pitch mapping (TODO: use fixed mapping for DkMemBlockFlags_Code)
-		if (R_FAILED(nvAddressSpaceMap(getDevice()->getAddrSpace(),
-			getHandle(), isGpuCached(), NvKind_Pitch, &m_gpuAddrPitch)))
-			return DkResult_Fail;
+		// Create pitch mapping
+		if (!isCode())
+		{
+			// For non-code memory blocks, we can just let the system place it automatically.
+			if (R_FAILED(nvAddressSpaceMap(getDevice()->getAddrSpace(),
+				getHandle(), isGpuCached(), NvKind_Pitch, &m_gpuAddrPitch)))
+				return DkResult_Fail;
+		}
+		else
+		{
+			auto& codeSeg = getDevice()->getCodeSeg();
+
+			// Reserve a suitable chunk of address space in the code segment
+			if (!codeSeg.allocSpace(size, m_gpuAddrPitch))
+				return DkResult_Fail;
+
+			// Create a fixed mapping on said chunk
+			if (R_FAILED(nvAddressSpaceMapFixed(getDevice()->getAddrSpace(),
+				getHandle(), isGpuCached(), NvKind_Pitch, m_gpuAddrPitch)))
+			{
+				codeSeg.freeSpace(m_gpuAddrPitch, size);
+				m_gpuAddrPitch = DK_GPU_ADDR_INVALID;
+				return DkResult_Fail;
+			}
+
+			// Retrieve the code segment offset
+			m_codeSegOffset = codeSeg.calcOffset(m_gpuAddrPitch);
+		}
 
 		// TODO: create swizzled/compressed mappings for DkMemBlockFlags_Image
 	}
@@ -44,7 +66,11 @@ DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size
 tag_DkMemBlock::~tag_DkMemBlock()
 {
 	if (m_gpuAddrPitch != DK_GPU_ADDR_INVALID)
+	{
 		nvAddressSpaceUnmap(getDevice()->getAddrSpace(), m_gpuAddrPitch);
+		if (isCode())
+			getDevice()->getCodeSeg().freeSpace(m_gpuAddrPitch, getSize());
+	}
 
 	nvMapClose(&m_mapObj); // does nothing if uninitialized
 	if (m_ownedMem)

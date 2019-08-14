@@ -61,11 +61,18 @@ DkResult tag_DkDevice::initialize()
 	m_gpuInfo.bigPageSize = gpuChars->big_page_size;
 	m_gpuInfo.zcullCtxSize = nvGpuGetZcullCtxSize();
 
+	// Create a GPU virtual address space (40-bit)
 	if (R_FAILED(nvAddressSpaceCreate(&m_addrSpace, m_gpuInfo.bigPageSize)))
 		return DkResult_Fail;
 
-	// TODO: Create address space region for code segment
+	// Create and initialize a code segment (32-bit) within the address space:
+	// this is necessary because shader code resides within a configurable
+	// window inside the address space, and offsets within that window are 32-bit
+	res = m_codeSeg.initialize();
+	if (res != DkResult_Success)
+		return res;
 
+	// Allocate memory for the semaphore queries
 	res = m_semaphoreMem.initialize(DkMemBlockFlags_CpuUncached | DkMemBlockFlags_GpuUncached,
 		nullptr, s_numQueues*sizeof(NvLongSemaphore));
 	if (res != DkResult_Success)
@@ -88,6 +95,7 @@ tag_DkDevice::~tag_DkDevice()
 			raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
 #endif
 
+	m_codeSeg.cleanup();
 	nvAddressSpaceClose(&m_addrSpace); // does nothing if uninitialized
 	nvLibExit();
 }
