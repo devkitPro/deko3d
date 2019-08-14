@@ -95,6 +95,7 @@ tag_DkDevice::~tag_DkDevice()
 			raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
 #endif
 
+	m_semaphoreMem.destroy(); // must do this before NvLib is wound down
 	m_codeSeg.cleanup();
 	nvAddressSpaceClose(&m_addrSpace); // does nothing if uninitialized
 	nvLibExit();

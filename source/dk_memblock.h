@@ -17,9 +17,10 @@ public:
 		m_gpuAddrPitch{DK_GPU_ADDR_INVALID},
 		m_gpuAddrSwizzled{DK_GPU_ADDR_INVALID},
 		m_gpuAddrCompressed{DK_GPU_ADDR_INVALID} { }
+	~tag_DkMemBlock() { destroy(); }
 
 	DkResult initialize(uint32_t flags, void* storage, uint32_t size) noexcept;
-	~tag_DkMemBlock();
+	void destroy();
 
 	// Flag traits
 	constexpr uint32_t getCpuAccess() const noexcept { return (m_flags >> DkMemBlockFlags_CpuAccessShift) & DkMemAccess_Mask; }

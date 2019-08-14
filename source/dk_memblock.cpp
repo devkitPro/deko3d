@@ -63,18 +63,22 @@ DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size
 	return DkResult_Success;
 }
 
-tag_DkMemBlock::~tag_DkMemBlock()
+void tag_DkMemBlock::destroy()
 {
 	if (m_gpuAddrPitch != DK_GPU_ADDR_INVALID)
 	{
 		nvAddressSpaceUnmap(getDevice()->getAddrSpace(), m_gpuAddrPitch);
 		if (isCode())
 			getDevice()->getCodeSeg().freeSpace(m_gpuAddrPitch, getSize());
+		m_gpuAddrPitch = DK_GPU_ADDR_INVALID;
 	}
 
 	nvMapClose(&m_mapObj); // does nothing if uninitialized
 	if (m_ownedMem)
+	{
 		freeMem(m_ownedMem);
+		m_ownedMem = nullptr;
+	}
 }
 
 DkMemBlock dkMemBlockCreate(DkMemBlockMaker const* maker)
