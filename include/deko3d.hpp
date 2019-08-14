@@ -1,4 +1,7 @@
 #pragma once
+#ifdef DK_NO_OPAQUE_DUMMY
+#undef DK_NO_OPAQUE_DUMMY
+#endif
 #include <tuple>
 #include "deko3d.h"
 
@@ -141,6 +144,7 @@ namespace dk
 	inline void Device::destroy()
 	{
 		::dkDeviceDestroy(*this);
+		_clear();
 	}
 
 	inline MemBlock MemBlockMaker::create()
@@ -151,6 +155,7 @@ namespace dk
 	inline void MemBlock::destroy()
 	{
 		::dkMemBlockDestroy(*this);
+		_clear();
 	}
 
 	inline void* MemBlock::getCpuAddr()
@@ -191,6 +196,7 @@ namespace dk
 	inline void CmdBuf::destroy()
 	{
 		::dkCmdBufDestroy(*this);
+		_clear();
 	}
 
 	inline void CmdBuf::addMemory(DkMemBlock mem, uint32_t offset, uint32_t size)
@@ -221,6 +227,7 @@ namespace dk
 	inline void Queue::destroy()
 	{
 		::dkQueueDestroy(*this);
+		_clear();
 	}
 
 	inline bool Queue::isInErrorState()
