@@ -135,7 +135,7 @@ public:
 	template <uint32_t... sizes>
 	maxwell::CmdWord* append(maxwell::CmdList<sizes>&&... cmds)
 	{
-		auto list = (std::move(cmds) + ...);
+		auto list = Cmds(std::move(cmds)...);
 		return append(std::move(list));
 	}
 };

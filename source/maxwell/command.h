@@ -76,6 +76,12 @@ constexpr CmdList<size> CmdsFromArray(uint32_t const (&cmds)[size])
 	return CmdsFromArray(cmds, make_u32_seq<size>{});
 }
 
+template <uint32_t... sizes>
+constexpr auto Cmds(maxwell::CmdList<sizes>&&... cmds)
+{
+	return (std::move(cmds) + ...);
+}
+
 enum SubmissionMode : uint32_t
 {
 	Increasing       = 1,
