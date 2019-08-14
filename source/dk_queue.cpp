@@ -22,7 +22,7 @@ DkResult tag_DkQueue::initialize()
 
 	// Add initial chunk of command memory for init purposes
 	addCmdMemory(m_cmdBufRing.getSize()/2);
-#ifdef DEBUG
+#ifdef DK_QUEUE_DEBUG
 	printf("cmdBufRing: sz=0x%x con=0x%x pro=0x%x fli=0x%x\n", m_cmdBufRing.getSize(), m_cmdBufRing.getConsumer(), m_cmdBufRing.getProducer(), m_cmdBufRing.getInFlight());
 #endif
 
@@ -35,7 +35,7 @@ DkResult tag_DkQueue::initialize()
 	// - Post-submit flush commands
 	flush();
 
-#ifdef DEBUG
+#ifdef DK_QUEUE_DEBUG
 	printf("cmdBufRing: sz=0x%x con=0x%x pro=0x%x fli=0x%x\n", m_cmdBufRing.getSize(), m_cmdBufRing.getConsumer(), m_cmdBufRing.getProducer(), m_cmdBufRing.getInFlight());
 #endif
 
@@ -60,7 +60,7 @@ void tag_DkQueue::addCmdMemory(size_t minReqSize)
 		idealSize = m_cmdBufFlushThreshold - inFlightSize;
 
 	uint32_t offset;
-#ifdef DEBUG
+#ifdef DK_QUEUE_DEBUG
 	printf("cmdBufRing: sz=0x%x con=0x%x pro=0x%x fli=0x%x\n", m_cmdBufRing.getSize(), m_cmdBufRing.getConsumer(), m_cmdBufRing.getProducer(), m_cmdBufRing.getInFlight());
 	printf("reserving 0x%x\n", (unsigned)minReqSize);
 #endif
@@ -133,7 +133,7 @@ void tag_DkQueue::appendGpfifoEntries(CtrlCmdGpfifoEntry const* entries, uint32_
 	for (unsigned i = 0; i < numEntries; i ++)
 	{
 		auto& ent = entries[i];
-#ifdef DEBUG
+#ifdef DK_QUEUE_DEBUG
 		printf("  [%u]: iova 0x%010lx numCmds %u flags %x\n", i, ent.iova, ent.numCmds, ent.flags);
 #endif
 		u32 flags = GPFIFO_ENTRY_NOT_MAIN | ((ent.flags & CtrlCmdGpfifoEntry::NoPrefetch) ? GPFIFO_ENTRY_NO_PREFETCH : 0);
@@ -149,7 +149,7 @@ void tag_DkQueue::appendGpfifoEntries(CtrlCmdGpfifoEntry const* entries, uint32_
 
 void tag_DkQueue::waitFence(DkFence& fence)
 {
-#ifdef DEBUG
+#ifdef DK_QUEUE_DEBUG
 	printf("  waitFence %p\n", &fence);
 #endif
 
@@ -185,7 +185,7 @@ void tag_DkQueue::waitFence(DkFence& fence)
 
 void tag_DkQueue::signalFence(DkFence& fence, bool flush)
 {
-#ifdef DEBUG
+#ifdef DK_QUEUE_DEBUG
 	printf("  signalFence %p %d\n", &fence, flush);
 #endif
 
