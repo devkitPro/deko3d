@@ -94,8 +94,7 @@ tag_DkDevice::~tag_DkDevice()
 
 int32_t tag_DkDevice::reserveQueueId()
 {
-	int32_t id = -1;
-	mutexLock(&m_queueTableMutex);
+	DkMutexHolder m{m_queueTableMutex};
 	for (uint32_t i = 0; i < s_usedQueueBitmapSize; i ++)
 	{
 		uint32_t mask = m_usedQueues[i];
@@ -103,20 +102,17 @@ int32_t tag_DkDevice::reserveQueueId()
 		if (bit >= 0)
 		{
 			m_usedQueues[i] |= 1U << bit;
-			id = 32*i + bit;
-			break;
+			return 32*i + bit;
 		}
 	}
-	mutexUnlock(&m_queueTableMutex);
-	return id;
+	return -1;
 }
 
 void tag_DkDevice::returnQueueId(uint32_t id)
 {
-	mutexLock(&m_queueTableMutex);
+	DkMutexHolder m{m_queueTableMutex};
 	m_queueTable[id] = nullptr;
 	m_usedQueues[id/32] &= ~(1U << (id & 0x3F));
-	mutexUnlock(&m_queueTableMutex);
 }
 
 DkDevice dkDeviceCreate(DkDeviceMaker const* maker)

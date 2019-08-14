@@ -17,6 +17,20 @@
 	static_assert(_size_##_typename >= sizeof(_typename), "Invalid size"); \
 	static_assert(_align_##_typename >= alignof(_typename), "Invalid alignment")
 
+class DkMutexHolder
+{
+	Mutex& m_mutex;
+public:
+	DkMutexHolder(Mutex& mutex) noexcept : m_mutex{mutex}
+	{
+		mutexLock(&m_mutex);
+	}
+	~DkMutexHolder()
+	{
+		mutexUnlock(&m_mutex);
+	}
+};
+
 class DkObjBase
 {
 	DkDevice m_device;
