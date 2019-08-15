@@ -85,6 +85,9 @@ DK_CONSTEXPR void dkDeviceMakerDefaults(DkDeviceMaker* maker)
 #define DK_MEMBLOCK_ALIGNMENT 0x1000
 #define DK_CMDMEM_ALIGNMENT 4
 #define DK_QUEUE_MIN_CMDMEM_SIZE 0x10000
+#define DK_PER_WARP_SCRATCH_MEM_ALIGNMENT 0x200
+#define DK_UNIFORM_BUF_ALIGNMENT 0x100
+#define DK_DEFAULT_MAX_COMPUTE_CONCURRENT_JOBS 128
 
 enum
 {
@@ -158,6 +161,8 @@ typedef struct DkQueueMaker
 	uint32_t flags;
 	uint32_t commandMemorySize;
 	uint32_t flushThreshold;
+	uint32_t perWarpScratchMemorySize;
+	uint32_t maxConcurrentComputeJobs;
 } DkQueueMaker;
 
 DK_CONSTEXPR void dkQueueMakerDefaults(DkQueueMaker* maker, DkDevice device)
@@ -169,6 +174,8 @@ DK_CONSTEXPR void dkQueueMakerDefaults(DkQueueMaker* maker, DkDevice device)
 		DkQueueFlags_DepthNegativeOneToOne | DkQueueFlags_OriginLowerLeft;
 	maker->commandMemorySize = DK_QUEUE_MIN_CMDMEM_SIZE;
 	maker->flushThreshold = DK_QUEUE_MIN_CMDMEM_SIZE/8;
+	maker->perWarpScratchMemorySize = DK_PER_WARP_SCRATCH_MEM_ALIGNMENT;
+	maker->maxConcurrentComputeJobs = DK_DEFAULT_MAX_COMPUTE_CONCURRENT_JOBS;
 }
 
 typedef enum DkBarrier

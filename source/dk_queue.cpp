@@ -26,12 +26,25 @@ DkResult tag_DkQueue::initialize()
 	printf("cmdBufRing: sz=0x%x con=0x%x pro=0x%x fli=0x%x\n", m_cmdBufRing.getSize(), m_cmdBufRing.getConsumer(), m_cmdBufRing.getProducer(), m_cmdBufRing.getInFlight());
 #endif
 
-	// TODO:
-	// - Calculate work buffer size (including zcullctx)
-	// - Allocate work buffer
-	// - nvGpuChannelZcullBind
+	// Allocate the work buffer
+	res = m_workBuf.initialize();
+	if (res != DkResult_Success)
+		return res;
+
+#ifdef DK_QUEUE_WORKBUF_DEBUG
+	printf("Work buf: 0x%010lx\n", m_workBuf.getGpuAddrPitch());
+#endif
+
+	// Bind the Zcull context if present
+	if (m_workBuf.getZcullCtxSize())
+	{
+		Result rc = nvGpuChannelZcullBind(&m_gpuChannel, m_workBuf.getZcullCtx());
+		if (R_FAILED(rc))
+			return DkResult_Fail;
+	}
+
 	setupEngines();
-	// - Perform gpu init
+	// TODO: Init the requested engines (graphics/compute/transfer)
 	postSubmitFlush();
 	flush();
 
@@ -326,13 +339,19 @@ DkQueue dkQueueCreate(DkQueueMaker const* maker)
 {
 	DkQueue obj = nullptr;
 #ifdef DEBUG
-	if (!(maker->flags & (DkQueueFlags_Graphics|DkQueueFlags_Compute|DkQueueFlags_Transfer)))
+	if (!maker)
+		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	else if (!(maker->flags & (DkQueueFlags_Graphics|DkQueueFlags_Compute|DkQueueFlags_Transfer)))
 		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	else if (maker->commandMemorySize < DK_QUEUE_MIN_CMDMEM_SIZE)
 		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	else if (maker->commandMemorySize & (DK_MEMBLOCK_ALIGNMENT-1))
 		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
 	else if (maker->flushThreshold < DK_MEMBLOCK_ALIGNMENT || maker->flushThreshold > maker->commandMemorySize)
+		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	else if (maker->perWarpScratchMemorySize & (DK_PER_WARP_SCRATCH_MEM_ALIGNMENT-1))
+		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
+	else if (!maker->maxConcurrentComputeJobs && (maker->flags & DkQueueFlags_Compute))
 		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	else
 #endif

@@ -4,6 +4,7 @@
 #include "dk_fence.h"
 #include "dk_cmdbuf.h"
 #include "ringbuf.h"
+#include "queue_workbuf.h"
 
 class tag_DkQueue : public DkObjBase
 {
@@ -22,7 +23,6 @@ class tag_DkQueue : public DkObjBase
 
 	NvGpuChannel m_gpuChannel;
 	tag_DkMemBlock m_cmdBufMemBlock;
-	tag_DkMemBlock m_workBufMemBlock;
 	tag_DkCmdBuf m_cmdBuf;
 
 	CtrlCmdHeader m_cmdBufCtrlHeader;
@@ -36,6 +36,8 @@ class tag_DkQueue : public DkObjBase
 	DkFence m_fences[s_numFences];
 	uint32_t m_fenceCmdOffsets[s_numFences];
 	uint32_t m_fenceLastFlushOffset;
+
+	dk::detail::QueueWorkBuf m_workBuf;
 
 	uint32_t getCmdOffset() const noexcept { return m_cmdBufRing.getProducer() + m_cmdBuf.getCmdOffset(); }
 	uint32_t getInFlightCmdSize() const noexcept { return m_cmdBufRing.getInFlight() + m_cmdBuf.getCmdOffset(); }
@@ -83,12 +85,13 @@ class tag_DkQueue : public DkObjBase
 	void postSubmitFlush();
 
 public:
-	constexpr tag_DkQueue(DkQueueMaker const& maker, uint32_t id) : DkObjBase{maker.device},
+	tag_DkQueue(DkQueueMaker const& maker, uint32_t id) : DkObjBase{maker.device},
 		m_id{id}, m_flags{maker.flags}, m_state{Uninitialized}, m_gpuChannel{},
-		m_cmdBufMemBlock{maker.device}, m_workBufMemBlock{maker.device}, m_cmdBuf{{maker.device,this,_addMemFunc},s_numReservedWords},
+		m_cmdBufMemBlock{maker.device}, m_cmdBuf{{maker.device,this,_addMemFunc},s_numReservedWords},
 		m_cmdBufCtrlHeader{}, m_gpfifoEntries{},
 		m_cmdBufRing{maker.commandMemorySize}, m_cmdBufFlushThreshold{maker.flushThreshold}, m_cmdBufPerFenceSliceSize{maker.commandMemorySize/s_numFences},
-		m_fenceRing{s_numFences}, m_fences{}, m_fenceCmdOffsets{}, m_fenceLastFlushOffset{}
+		m_fenceRing{s_numFences}, m_fences{}, m_fenceCmdOffsets{}, m_fenceLastFlushOffset{},
+		m_workBuf{maker}
 	{
 		m_cmdBuf.useGpfifoFlushFunc(_gpfifoFlushFunc, this, &m_cmdBufCtrlHeader, s_maxQueuedGpfifoEntries);
 	}

@@ -134,6 +134,8 @@ namespace dk
 		QueueMaker& setFlags(uint32_t flags) noexcept { this->flags = flags; return *this; }
 		QueueMaker& setCommandMemorySize(uint32_t commandMemorySize) noexcept { this->commandMemorySize = commandMemorySize; return *this; }
 		QueueMaker& setFlushThreshold(uint32_t flushThreshold) noexcept { this->flushThreshold = flushThreshold; return *this; }
+		QueueMaker& setPerWarpScratchMemorySize(uint32_t perWarpScratchMemorySize) noexcept { this->perWarpScratchMemorySize = perWarpScratchMemorySize; return *this; }
+		QueueMaker& setMaxConcurrentComputeJobs(uint32_t maxConcurrentComputeJobs) noexcept { this->maxConcurrentComputeJobs = maxConcurrentComputeJobs; return *this; }
 		Queue create();
 	};
 
