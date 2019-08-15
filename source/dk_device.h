@@ -5,8 +5,12 @@
 
 struct DkGpuInfo
 {
+	u32 numWarpsPerSm;
+	u32 numSms;
 	u32 bigPageSize;
 	u32 zcullCtxSize;
+	u32 zcullCtxAlign;
+	const nvioctl_zcull_info* zcullInfo;
 };
 
 struct NvLongSemaphore

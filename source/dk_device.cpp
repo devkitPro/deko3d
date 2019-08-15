@@ -58,8 +58,12 @@ DkResult tag_DkDevice::initialize()
 	m_didLibInit = true;
 
 	auto gpuChars = nvGpuGetCharacteristics();
-	m_gpuInfo.bigPageSize = gpuChars->big_page_size;
+	m_gpuInfo.numWarpsPerSm = gpuChars->sm_arch_warp_count;
+	m_gpuInfo.numSms = gpuChars->num_gpc * gpuChars->num_tpc_per_gpc * 1; // Each TPC has a single SM
+	m_gpuInfo.bigPageSize = 0x10000; // Hardcoded, as per official software (otherwise this would be gpuChars->big_page_size)
 	m_gpuInfo.zcullCtxSize = nvGpuGetZcullCtxSize();
+	m_gpuInfo.zcullCtxAlign = 0x1000; // Hardcoded, as per official software
+	m_gpuInfo.zcullInfo = nvGpuGetZcullInfo();
 
 	// Create a GPU virtual address space (40-bit)
 	if (R_FAILED(nvAddressSpaceCreate(&m_addrSpace, m_gpuInfo.bigPageSize)))
