@@ -1,6 +1,6 @@
 #include "../dk_queue.h"
+#include "../cmdbuf_writer.h"
 
-#include "helpers.h"
 #include "mme_macros.h"
 #include "engine_3d.h"
 #include "engine_compute.h"
@@ -14,7 +14,8 @@ using namespace dk::detail;
 
 void tag_DkQueue::setupEngines()
 {
-	m_cmdBuf.append(
+	CmdBufWriter w{&m_cmdBuf};
+	w.reserveAdd(
 		BindEngine(3D),
 		BindEngine(Compute),
 		BindEngine(DMA),
@@ -35,18 +36,20 @@ void tag_DkQueue::postSubmitFlush()
 		DkInvalidateFlags_Pool  |
 		DkInvalidateFlags_L2Cache);
 
+	CmdBufWriter w{&m_cmdBuf};
+
 	// TODO: Reserve space for ZBC commands
-	m_cmdBuf.signOffGpfifoEntry(CtrlCmdGpfifoEntry::NoPrefetch);
+	w.split(CtrlCmdGpfifoEntry::NoPrefetch);
 
 	// Append a dummy single-word cmdlist, used as a cmdlist processing barrier
-	m_cmdBuf.append(CmdList<1>{0});
-	m_cmdBuf.signOffGpfifoEntry(CtrlCmdGpfifoEntry::AutoKick | CtrlCmdGpfifoEntry::NoPrefetch);
+	w.reserveAdd(CmdList<1>{0});
+	w.split(CtrlCmdGpfifoEntry::AutoKick | CtrlCmdGpfifoEntry::NoPrefetch);
 }
 
 void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags)
 {
-	if (!obj->reserveCmdMem(12))
-		return;
+	CmdBufWriter w{obj};
+	w.reserve(12);
 
 	bool needsWfi = false;
 	switch (mode)
@@ -56,52 +59,52 @@ void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags)
 			break;
 		case DkBarrier_Tiles:
 			needsWfi = true;
-			obj->appendDirectly(CmdInline(3D, TiledCacheBarrier{}, 0));
+			w.add(CmdInline(3D, TiledCacheBarrier{}, 0));
 			break;
 		case DkBarrier_Fragments:
 			needsWfi = true;
-			obj->appendDirectly(CmdInline(3D, FragmentBarrier{}, 0));
+			w.add(CmdInline(3D, FragmentBarrier{}, 0));
 			break;
 		case DkBarrier_Primitives:
-			obj->appendDirectly(CmdInline(3D, WaitForIdle{}, 0));
+			w.add(CmdInline(3D, WaitForIdle{}, 0));
 			break;
 		case DkBarrier_Full:
-			obj->appendDirectly(CmdInline(Gpfifo, SetReference{}, 0));
-			obj->signOffGpfifoEntry(0);
-			obj->appendDirectly(CmdInline(3D, NoOperation{}, 0));
+			w.add(CmdInline(Gpfifo, SetReference{}, 0));
+			w.split(0);
+			w.add(CmdInline(3D, NoOperation{}, 0));
 			break;
 	}
 
 	if (invalidateFlags & DkInvalidateFlags_Image)
 	{
 		if (needsWfi)
-			obj->appendDirectly(CmdInline(3D, InvalidateTextureDataCache{}, 0));
+			w.add(CmdInline(3D, InvalidateTextureDataCache{}, 0));
 		else
-			obj->appendDirectly(CmdInline(3D, InvalidateTextureDataCacheNoWfi{}, 0));
+			w.add(CmdInline(3D, InvalidateTextureDataCacheNoWfi{}, 0));
 	}
 
 	if (invalidateFlags & DkInvalidateFlags_Code)
 	{
 		using ISC = Engine3D::InvalidateShaderCaches;
-		obj->appendDirectly(CmdInline(3D, InvalidateShaderCaches{},
+		w.add(CmdInline(3D, InvalidateShaderCaches{},
 			ISC::Instruction{} | ISC::GlobalData{} | ISC::Constant{}
 		));
 	}
 
 	if (invalidateFlags & DkInvalidateFlags_Pool)
 	{
-		obj->appendDirectly(CmdInline(3D, InvalidateTextureHeaderCacheNoWfi{}, 0));
-		obj->appendDirectly(CmdInline(3D, InvalidateSamplerCacheNoWfi{}, 0));
+		w.add(CmdInline(3D, InvalidateTextureHeaderCacheNoWfi{}, 0));
+		w.add(CmdInline(3D, InvalidateSamplerCacheNoWfi{}, 0));
 	}
 
 	if (invalidateFlags & DkInvalidateFlags_Zcull)
-		obj->appendDirectly(CmdInline(3D, InvalidateZcullNoWfi{}, 0));
+		w.add(CmdInline(3D, InvalidateZcullNoWfi{}, 0));
 
 	if (invalidateFlags & DkInvalidateFlags_L2Cache)
 	{
 		using Op = EngineGpfifo::MemOpB::Operation;
-		obj->appendDirectly(Cmd(Gpfifo, MemOpB{}, Op::L2FlushDirty));
-		obj->appendDirectly(Cmd(Gpfifo, MemOpB{}, Op::L2SysmemInvalidate));
+		w.add(Cmd(Gpfifo, MemOpB{}, Op::L2FlushDirty));
+		w.add(Cmd(Gpfifo, MemOpB{}, Op::L2SysmemInvalidate));
 	}
 
 	// For DkBarrier_Full, we sign off a gpfifo entry with the NoPrefetch bit set.
@@ -109,5 +112,5 @@ void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags)
 	// Note that indirect draw/dispatch param buffers are stashed away in the command list as gpfifo entries,
 	// so this will effectively ensure that *absolutely everything* will finish before those params get fetched.
 	if (mode == DkBarrier_Full)
-		obj->signOffGpfifoEntry(CtrlCmdGpfifoEntry::AutoKick | CtrlCmdGpfifoEntry::NoPrefetch);
+		w.split(CtrlCmdGpfifoEntry::AutoKick | CtrlCmdGpfifoEntry::NoPrefetch);
 }

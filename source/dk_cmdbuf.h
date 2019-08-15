@@ -7,10 +7,13 @@
 namespace dk::detail
 {
 	using GpfifoFlushFunc = void(*)(void* data, CtrlCmdGpfifoEntry const* entries, uint32_t numEntries);
+	class CmdBufWriter;
 }
 
 class tag_DkCmdBuf : public dk::detail::ObjBase
 {
+	friend class dk::detail::CmdBufWriter;
+
 	struct CtrlMemChunk
 	{
 		CtrlMemChunk *m_next;
@@ -71,6 +74,7 @@ public:
 	constexpr uint32_t getCmdOffset() const noexcept { return uint32_t((char*)m_cmdPos - (char*)m_cmdChunkStart); }
 	constexpr size_t getCtrlSpaceFree() const noexcept { return size_t((char*)m_ctrlEnd-(char*)m_ctrlPos); }
 	maxwell::CmdWord* requestCmdMem(uint32_t size);
+	dk::detail::CtrlCmdHeader* appendCtrlCmd(size_t size);
 
 	bool appendRawGpfifoEntry(DkGpuAddr iova, uint32_t numCmds, uint32_t flags);
 	void signOffGpfifoEntry(uint32_t flags = dk::detail::CtrlCmdGpfifoEntry::AutoKick)
@@ -93,65 +97,5 @@ public:
 			m_ctrlGpfifo->arg = 0;
 			m_ctrlPos = entries;
 		}
-	}
-
-	dk::detail::CtrlCmdHeader* appendCtrlCmd(size_t size);
-	template <typename T>
-	T* appendCtrlCmd()
-	{
-		signOffGpfifoEntry();
-		return static_cast<T*>(appendCtrlCmd(sizeof(T)));
-	}
-
-	maxwell::CmdWord* reserveCmdMem(uint32_t size)
-	{
-		maxwell::CmdWord *pos = m_cmdPos;
-		if ((pos + size) >= m_cmdEnd)
-			pos = requestCmdMem(size);
-		return pos;
-	}
-
-	template <uint32_t size>
-	void appendDirectly(maxwell::CmdList<size> const& cmds)
-	{
-		cmds.copyTo(m_cmdPos);
-		m_cmdPos += size;
-	}
-
-	template <uint32_t size>
-	void appendDirectly(maxwell::CmdList<size>&& cmds)
-	{
-		cmds.moveTo(std::move(m_cmdPos));
-		m_cmdPos += size;
-	}
-
-	template <uint32_t... sizes>
-	void appendDirectly(maxwell::CmdList<sizes>&&... cmds)
-	{
-		auto list = Cmds(std::move(cmds)...);
-		appendDirectly(std::move(list));
-	}
-
-	template <uint32_t size>
-	maxwell::CmdWord* append(maxwell::CmdList<size> const& cmds)
-	{
-		maxwell::CmdWord* p = reserveCmdMem(size);
-		if (p) appendDirectly(cmds);
-		return p;
-	}
-
-	template <uint32_t size>
-	maxwell::CmdWord* append(maxwell::CmdList<size>&& cmds)
-	{
-		maxwell::CmdWord* p = reserveCmdMem(size);
-		if (p) appendDirectly(std::move(cmds));
-		return p;
-	}
-
-	template <uint32_t... sizes>
-	maxwell::CmdWord* append(maxwell::CmdList<sizes>&&... cmds)
-	{
-		auto list = Cmds(std::move(cmds)...);
-		return append(std::move(list));
 	}
 };

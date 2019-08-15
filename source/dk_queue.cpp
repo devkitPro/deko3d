@@ -1,7 +1,8 @@
 #include "dk_queue.h"
 #include "dk_device.h"
 
-#include "maxwell/helpers.h"
+#include "cmdbuf_writer.h"
+
 #include "engine_3d.h"
 #include "engine_gpfifo.h"
 
@@ -169,13 +170,14 @@ void tag_DkQueue::waitFence(DkFence& fence)
 
 	using S = EngineGpfifo::Semaphore;
 	using F = EngineGpfifo::FenceAction;
+	CmdBufWriter w{&m_cmdBuf};
 
 	switch (fence.m_type)
 	{
 		case DkFence::Type::Invalid:
 			break;
 		case DkFence::Type::Internal:
-			m_cmdBuf.append(Cmd(Gpfifo, SemaphoreOffset{},
+			w.reserveAdd(Cmd(Gpfifo, SemaphoreOffset{},
 				Iova(fence.m_internal.m_semaphoreAddr),
 				fence.m_internal.m_semaphoreValue,
 				S::Operation::AcqGeq | S::AcquireSwitch{}
@@ -186,7 +188,7 @@ void tag_DkQueue::waitFence(DkFence& fence)
 			{
 				NvFence const& f = fence.m_external.m_fence.fences[i];
 				if ((s32)f.id < 0) continue;
-				m_cmdBuf.append(Cmd(Gpfifo, FenceValue{},
+				w.reserveAdd(Cmd(Gpfifo, FenceValue{},
 					f.value,
 					F::Operation::Acquire | F::Id{f.id}
 				));
@@ -212,16 +214,18 @@ void tag_DkQueue::signalFence(DkFence& fence, bool flush)
 		using S = Engine3D::SetReportSemaphore;
 		u32 id = nvGpuChannelGetSyncpointId(&m_gpuChannel);
 		uint32_t action = A::Id{id} | A::Increment{};
+		CmdBufWriter w{&m_cmdBuf};
+
 		if (!flush)
 		{
-			m_cmdBuf.append(
+			w.reserveAdd(
 				CmdInline(3D, UnknownFlush{}, 0),
 				Cmd(3D, SyncptAction{}, action)
 			);
 		} else
 		{
 			action |= A::FlushCache{};
-			m_cmdBuf.append(
+			w.reserveAdd(
 				CmdInline(3D, UnknownFlush{}, 0),
 				Cmd(3D, SyncptAction{}, action),
 				Cmd(3D, SyncptAction{}, action)
@@ -230,7 +234,7 @@ void tag_DkQueue::signalFence(DkFence& fence, bool flush)
 		}
 		nvGpuChannelIncrFence(&m_gpuChannel);
 		fence.m_internal.m_semaphoreValue = getDevice()->incrSemaphoreValue(m_id);
-		m_cmdBuf.append(
+		w.reserveAdd(
 			CmdInline(3D, UnknownFlush{}, 0),
 			Cmd(3D, SetReportSemaphoreOffset{},
 				Iova(fence.m_internal.m_semaphoreAddr),

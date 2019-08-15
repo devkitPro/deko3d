@@ -1,5 +1,6 @@
 #include "dk_cmdbuf.h"
 #include "dk_memblock.h"
+#include "cmdbuf_writer.h"
 
 using namespace maxwell;
 using namespace dk::detail;
@@ -68,12 +69,14 @@ CmdWord* tag_DkCmdBuf::requestCmdMem(uint32_t size)
 	if (!m_cbAddMem)
 	{
 		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_OutOfMemory);
+		__builtin_trap(); // Trap, because callers expect this function to always succeed
 		return nullptr;
 	}
 	m_cbAddMem(m_userData, this, (size+m_numReservedWords)*sizeof(CmdWord));
 	if ((m_cmdPos + size) >= m_cmdEnd)
 	{
 		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_OutOfMemory);
+		__builtin_trap(); // As above
 		return nullptr;
 	}
 	return m_cmdPos;
@@ -231,7 +234,8 @@ DkCmdList dkCmdBufFinishList(DkCmdBuf obj)
 
 void dkCmdBufWaitFence(DkCmdBuf obj, DkFence* fence)
 {
-	auto* cmd = obj->appendCtrlCmd<CtrlCmdFence>();
+	CmdBufWriter w{obj};
+	auto* cmd = w.addCtrl<CtrlCmdFence>();
 	if (cmd)
 	{
 		cmd->type = CtrlCmdHeader::WaitFence;
@@ -241,7 +245,8 @@ void dkCmdBufWaitFence(DkCmdBuf obj, DkFence* fence)
 
 void dkCmdBufSignalFence(DkCmdBuf obj, DkFence* fence, bool flush)
 {
-	auto* cmd = obj->appendCtrlCmd<CtrlCmdFence>();
+	CmdBufWriter w{obj};
+	auto* cmd = w.addCtrl<CtrlCmdFence>();
 	if (cmd)
 	{
 		cmd->type = CtrlCmdHeader::SignalFence;
