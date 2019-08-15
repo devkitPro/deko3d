@@ -58,6 +58,7 @@ typedef enum
 
 typedef uint64_t DkGpuAddr;
 typedef uintptr_t DkCmdList;
+typedef uint32_t DkResHandle;
 typedef void (*DkErrorFunc)(void* userData, const char* context, DkResult result);
 typedef DkResult (*DkAllocFunc)(void* userData, size_t alignment, size_t size, void** out);
 typedef void (*DkFreeFunc)(void* userData, void* mem);
