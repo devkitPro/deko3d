@@ -170,28 +170,28 @@ void tag_DkQueue::waitFence(DkFence& fence)
 
 	using S = EngineGpfifo::Semaphore;
 	using F = EngineGpfifo::FenceAction;
-	CmdBufWriter w{&m_cmdBuf};
+	CmdBufWriterChecked w{&m_cmdBuf};
 
 	switch (fence.m_type)
 	{
 		case DkFence::Type::Invalid:
 			break;
 		case DkFence::Type::Internal:
-			w.reserveAdd(Cmd(Gpfifo, SemaphoreOffset{},
+			w << Cmd(Gpfifo, SemaphoreOffset{},
 				Iova(fence.m_internal.m_semaphoreAddr),
 				fence.m_internal.m_semaphoreValue,
 				S::Operation::AcqGeq | S::AcquireSwitch{}
-			));
+			);
 			break;
 		case DkFence::Type::External:
 			for (u32 i = 0; i < fence.m_external.m_fence.num_fences; i ++)
 			{
 				NvFence const& f = fence.m_external.m_fence.fences[i];
 				if ((s32)f.id < 0) continue;
-				w.reserveAdd(Cmd(Gpfifo, FenceValue{},
+				w << Cmd(Gpfifo, FenceValue{},
 					f.value,
 					F::Operation::Acquire | F::Id{f.id}
-				));
+				);
 			}
 			break;
 		default:
@@ -215,34 +215,30 @@ void tag_DkQueue::signalFence(DkFence& fence, bool flush)
 		u32 id = nvGpuChannelGetSyncpointId(&m_gpuChannel);
 		uint32_t action = A::Id{id} | A::Increment{};
 		CmdBufWriter w{&m_cmdBuf};
+		w.reserve(12);
 
 		if (!flush)
 		{
-			w.reserveAdd(
-				CmdInline(3D, UnknownFlush{}, 0),
-				Cmd(3D, SyncptAction{}, action)
-			);
-		} else
+			w << CmdInline(3D, UnknownFlush{}, 0);
+			w << Cmd(3D, SyncptAction{}, action);
+		}
+		else
 		{
 			action |= A::FlushCache{};
-			w.reserveAdd(
-				CmdInline(3D, UnknownFlush{}, 0),
-				Cmd(3D, SyncptAction{}, action),
-				Cmd(3D, SyncptAction{}, action)
-			);
+			w << CmdInline(3D, UnknownFlush{}, 0);
+			w << Cmd(3D, SyncptAction{}, action);
+			w << Cmd(3D, SyncptAction{}, action);
 			nvGpuChannelIncrFence(&m_gpuChannel);
 		}
 		nvGpuChannelIncrFence(&m_gpuChannel);
 		fence.m_internal.m_semaphoreValue = getDevice()->incrSemaphoreValue(m_id);
-		w.reserveAdd(
-			CmdInline(3D, UnknownFlush{}, 0),
-			Cmd(3D, SetReportSemaphoreOffset{},
-				Iova(fence.m_internal.m_semaphoreAddr),
-				fence.m_internal.m_semaphoreValue,
-				S::Operation::Release | S::FenceEnable{} | S::Unit::Crop | S::StructureSize::OneWord
-			),
-			CmdInline(3D, TiledCacheFlush{}, Engine3D::TiledCacheFlush::Flush)
+		w << CmdInline(3D, UnknownFlush{}, 0);
+		w << Cmd(3D, SetReportSemaphoreOffset{},
+			Iova(fence.m_internal.m_semaphoreAddr),
+			fence.m_internal.m_semaphoreValue,
+			S::Operation::Release | S::FenceEnable{} | S::Unit::Crop | S::StructureSize::OneWord
 		);
+		w << CmdInline(3D, TiledCacheFlush{}, Engine3D::TiledCacheFlush::Flush);
 	}
 	else
 		fence.m_internal.m_semaphoreValue = getDevice()->getSemaphoreValue(m_id);

@@ -7,12 +7,12 @@
 namespace dk::detail
 {
 	using GpfifoFlushFunc = void(*)(void* data, CtrlCmdGpfifoEntry const* entries, uint32_t numEntries);
-	class CmdBufWriter;
+	template <bool> class CmdBufWriter;
 }
 
 class tag_DkCmdBuf : public dk::detail::ObjBase
 {
-	friend class dk::detail::CmdBufWriter;
+	template <bool> friend class dk::detail::CmdBufWriter;
 
 	struct CtrlMemChunk
 	{

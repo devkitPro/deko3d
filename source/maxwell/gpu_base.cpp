@@ -59,52 +59,52 @@ void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags)
 			break;
 		case DkBarrier_Tiles:
 			needsWfi = true;
-			w.add(CmdInline(3D, TiledCacheBarrier{}, 0));
+			w << CmdInline(3D, TiledCacheBarrier{}, 0);
 			break;
 		case DkBarrier_Fragments:
 			needsWfi = true;
-			w.add(CmdInline(3D, FragmentBarrier{}, 0));
+			w << CmdInline(3D, FragmentBarrier{}, 0);
 			break;
 		case DkBarrier_Primitives:
-			w.add(CmdInline(3D, WaitForIdle{}, 0));
+			w << CmdInline(3D, WaitForIdle{}, 0);
 			break;
 		case DkBarrier_Full:
-			w.add(CmdInline(Gpfifo, SetReference{}, 0));
+			w << CmdInline(Gpfifo, SetReference{}, 0);
 			w.split(0);
-			w.add(CmdInline(3D, NoOperation{}, 0));
+			w << CmdInline(3D, NoOperation{}, 0);
 			break;
 	}
 
 	if (invalidateFlags & DkInvalidateFlags_Image)
 	{
 		if (needsWfi)
-			w.add(CmdInline(3D, InvalidateTextureDataCache{}, 0));
+			w << CmdInline(3D, InvalidateTextureDataCache{}, 0);
 		else
-			w.add(CmdInline(3D, InvalidateTextureDataCacheNoWfi{}, 0));
+			w << CmdInline(3D, InvalidateTextureDataCacheNoWfi{}, 0);
 	}
 
 	if (invalidateFlags & DkInvalidateFlags_Code)
 	{
 		using ISC = Engine3D::InvalidateShaderCaches;
-		w.add(CmdInline(3D, InvalidateShaderCaches{},
+		w << CmdInline(3D, InvalidateShaderCaches{},
 			ISC::Instruction{} | ISC::GlobalData{} | ISC::Constant{}
-		));
+		);
 	}
 
 	if (invalidateFlags & DkInvalidateFlags_Pool)
 	{
-		w.add(CmdInline(3D, InvalidateTextureHeaderCacheNoWfi{}, 0));
-		w.add(CmdInline(3D, InvalidateSamplerCacheNoWfi{}, 0));
+		w << CmdInline(3D, InvalidateTextureHeaderCacheNoWfi{}, 0);
+		w << CmdInline(3D, InvalidateSamplerCacheNoWfi{}, 0);
 	}
 
 	if (invalidateFlags & DkInvalidateFlags_Zcull)
-		w.add(CmdInline(3D, InvalidateZcullNoWfi{}, 0));
+		w << CmdInline(3D, InvalidateZcullNoWfi{}, 0);
 
 	if (invalidateFlags & DkInvalidateFlags_L2Cache)
 	{
 		using Op = EngineGpfifo::MemOpB::Operation;
-		w.add(Cmd(Gpfifo, MemOpB{}, Op::L2FlushDirty));
-		w.add(Cmd(Gpfifo, MemOpB{}, Op::L2SysmemInvalidate));
+		w << Cmd(Gpfifo, MemOpB{}, Op::L2FlushDirty);
+		w << Cmd(Gpfifo, MemOpB{}, Op::L2SysmemInvalidate);
 	}
 
 	// For DkBarrier_Full, we sign off a gpfifo entry with the NoPrefetch bit set.

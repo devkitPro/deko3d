@@ -5,6 +5,7 @@
 
 namespace dk::detail
 {
+	template <bool StreamOpReserves = false>
 	class CmdBufWriter
 	{
 		DkCmdBuf m_cmdBuf;
@@ -110,5 +111,27 @@ namespace dk::detail
 			auto list = Cmds(std::move(cmds)...);
 			reserveAdd(std::move(list));
 		}
+
+		template <uint32_t size>
+		CmdBufWriter& operator<<(maxwell::CmdList<size> const& cmds)
+		{
+			if constexpr(!StreamOpReserves)
+				add(cmds);
+			else
+				reserveAdd(cmds);
+			return *this;
+		}
+
+		template <uint32_t size>
+		CmdBufWriter& operator<<(maxwell::CmdList<size>&& cmds)
+		{
+			if constexpr(!StreamOpReserves)
+				add(std::move(cmds));
+			else
+				reserveAdd(std::move(cmds));
+			return *this;
+		}
 	};
+
+	using CmdBufWriterChecked = CmdBufWriter<true>;
 }
