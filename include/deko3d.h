@@ -105,6 +105,7 @@ enum
 	DkMemBlockFlags_GpuAccessMask  = DkMemAccess_Mask     << DkMemBlockFlags_GpuAccessShift,
 	DkMemBlockFlags_Code           = 1U << 4,
 	DkMemBlockFlags_Image          = 1U << 5,
+	DkMemBlockFlags_ZeroFillInit   = 1U << 8,
 };
 
 typedef struct DkMemBlockMaker

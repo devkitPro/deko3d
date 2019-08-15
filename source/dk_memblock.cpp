@@ -3,17 +3,37 @@
 
 DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size)
 {
+	// Extract CPU/GPU access bits
 	uint32_t cpuAccess = (flags >> DkMemBlockFlags_CpuAccessShift) & DkMemAccess_Mask;
 	uint32_t gpuAccess = (flags >> DkMemBlockFlags_GpuAccessShift) & DkMemAccess_Mask;
 	flags &= ~(DkMemBlockFlags_CpuAccessMask | DkMemBlockFlags_GpuAccessMask);
 
+	// Extract special flags
+	bool zeroFillInit = (flags & DkMemBlockFlags_ZeroFillInit) != 0;
+	flags &= ~DkMemBlockFlags_ZeroFillInit;
+
+	// Validate access bits for code memory
+	if (flags & DkMemBlockFlags_Code)
+	{
+		// Ensure code memory can be accessed by the CPU
+		if (cpuAccess == DkMemAccess_None)
+			cpuAccess = DkMemAccess_Uncached;
+
+		// It is invalid to request code memory that is not GPU accessible for obvious reasons...
+		if (gpuAccess == DkMemAccess_None)
+			return DkResult_BadInput;
+	}
+
+	// Validate access bits for image memory (TODO: implement image memory)
 	if (flags & DkMemBlockFlags_Image)
 		return DkResult_NotImplemented;
 
+	// Insert back access bits into flags
 	flags |= cpuAccess << DkMemBlockFlags_CpuAccessShift;
 	flags |= gpuAccess << DkMemBlockFlags_GpuAccessShift;
 	m_flags = flags;
 
+	// Allocate backing memory if the user didn't supply storage for this memory block
 	if (!storage)
 	{
 		m_ownedMem = allocMem(size, DK_MEMBLOCK_ALIGNMENT);
@@ -22,10 +42,16 @@ DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size
 		storage = m_ownedMem;
 	}
 
+	// Zerofill the memory if requested
+	if (zeroFillInit)
+		memset(storage, 0, size);
+
+	// Create a NvMap object on this memory
 	uint32_t bigPageSize = getDevice()->getGpuInfo().bigPageSize;
 	if (R_FAILED(nvMapCreate(&m_mapObj, storage, size, bigPageSize, NvKind_Pitch, isCpuCached())))
 		return DkResult_Fail;
 
+	// Map the block into the GPU address space, if the GPU is to have access to this memory block
 	if (!isGpuNoAccess())
 	{
 		// Create pitch mapping
