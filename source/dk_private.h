@@ -17,27 +17,30 @@
 	static_assert(_size_##_typename >= sizeof(_typename), "Invalid size"); \
 	static_assert(_align_##_typename >= alignof(_typename), "Invalid alignment")
 
-class DkMutexHolder
+namespace dk::detail
+{
+
+class MutexHolder
 {
 	Mutex& m_mutex;
 public:
-	DkMutexHolder(Mutex& mutex) noexcept : m_mutex{mutex}
+	MutexHolder(Mutex& mutex) noexcept : m_mutex{mutex}
 	{
 		mutexLock(&m_mutex);
 	}
-	~DkMutexHolder()
+	~MutexHolder()
 	{
 		mutexUnlock(&m_mutex);
 	}
 };
 
-class DkObjBase
+class ObjBase
 {
 	DkDevice m_device;
 
 	void* operator new(size_t size); // private, so that it can't be used
 public:
-	constexpr DkObjBase(DkDevice device) noexcept : m_device{device} { }
+	constexpr ObjBase(DkDevice device) noexcept : m_device{device} { }
 	constexpr DkDevice getDevice() const noexcept { return m_device; }
 
 	void* operator new(size_t size, DkDevice device) noexcept;
@@ -52,3 +55,5 @@ public:
 	void* allocMem(size_t size, size_t alignment = __STDCPP_DEFAULT_NEW_ALIGNMENT__) const noexcept;
 	void freeMem(void* ptr) const noexcept;
 };
+
+}

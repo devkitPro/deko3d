@@ -1,6 +1,8 @@
 #include "dk_memblock.h"
 #include "dk_device.h"
 
+using namespace dk::detail;
+
 DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size)
 {
 	// Extract CPU/GPU access bits
@@ -112,9 +114,9 @@ DkMemBlock dkMemBlockCreate(DkMemBlockMaker const* maker)
 	DkMemBlock obj = nullptr;
 #ifdef DEBUG
 	if (maker->size & (DK_MEMBLOCK_ALIGNMENT-1))
-		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
+		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
 	else if (uintptr_t(maker->storage) & (DK_MEMBLOCK_ALIGNMENT-1))
-		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
+		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
 	else
 #endif
 	obj = new(maker->device) tag_DkMemBlock(maker->device);
@@ -125,7 +127,7 @@ DkMemBlock dkMemBlockCreate(DkMemBlockMaker const* maker)
 		{
 			delete obj;
 			obj = nullptr;
-			DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, res);
+			ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, res);
 		}
 	}
 	return obj;

@@ -1,7 +1,7 @@
 #pragma once
 #include "dk_private.h"
 
-class tag_DkMemBlock : public DkObjBase
+class tag_DkMemBlock : public dk::detail::ObjBase
 {
 	mutable NvMap m_mapObj;
 	uint32_t m_flags;
@@ -12,7 +12,7 @@ class tag_DkMemBlock : public DkObjBase
 	DkGpuAddr m_gpuAddrCompressed;
 
 public:
-	constexpr tag_DkMemBlock(DkDevice dev) noexcept : DkObjBase{dev},
+	constexpr tag_DkMemBlock(DkDevice dev) noexcept : ObjBase{dev},
 		m_mapObj{}, m_flags{}, m_codeSegOffset{}, m_ownedMem{},
 		m_gpuAddrPitch{DK_GPU_ADDR_INVALID},
 		m_gpuAddrSwizzled{DK_GPU_ADDR_INVALID},

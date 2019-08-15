@@ -6,6 +6,7 @@
 #include "engine_gpfifo.h"
 
 using namespace maxwell;
+using namespace dk::detail;
 
 DkResult tag_DkQueue::initialize()
 {
@@ -340,19 +341,19 @@ DkQueue dkQueueCreate(DkQueueMaker const* maker)
 	DkQueue obj = nullptr;
 #ifdef DEBUG
 	if (!maker)
-		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	else if (!(maker->flags & (DkQueueFlags_Graphics|DkQueueFlags_Compute|DkQueueFlags_Transfer)))
-		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	else if (maker->commandMemorySize < DK_QUEUE_MIN_CMDMEM_SIZE)
-		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	else if (maker->commandMemorySize & (DK_MEMBLOCK_ALIGNMENT-1))
-		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
+		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
 	else if (maker->flushThreshold < DK_MEMBLOCK_ALIGNMENT || maker->flushThreshold > maker->commandMemorySize)
-		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	else if (maker->perWarpScratchMemorySize & (DK_PER_WARP_SCRATCH_MEM_ALIGNMENT-1))
-		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
+		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
 	else if (!maker->maxConcurrentComputeJobs && (maker->flags & DkQueueFlags_Compute))
-		DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	else
 #endif
 	{
@@ -367,7 +368,7 @@ DkQueue dkQueueCreate(DkQueueMaker const* maker)
 		{
 			delete obj;
 			obj = nullptr;
-			DkObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, res);
+			ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, res);
 		}
 	}
 	return obj;

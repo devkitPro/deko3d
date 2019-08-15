@@ -1,5 +1,8 @@
 #pragma once
 
+namespace dk::detail
+{
+
 template <typename T>
 class RingBuf
 {
@@ -72,3 +75,5 @@ public:
 		updateConsumer(m_consumer+1);
 	}
 };
+
+}

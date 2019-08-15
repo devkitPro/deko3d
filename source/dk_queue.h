@@ -6,7 +6,7 @@
 #include "ringbuf.h"
 #include "queue_workbuf.h"
 
-class tag_DkQueue : public DkObjBase
+class tag_DkQueue : public dk::detail::ObjBase
 {
 	static constexpr uint32_t s_numReservedWords = 12;
 	static constexpr size_t s_maxQueuedGpfifoEntries = 64;
@@ -25,14 +25,14 @@ class tag_DkQueue : public DkObjBase
 	tag_DkMemBlock m_cmdBufMemBlock;
 	tag_DkCmdBuf m_cmdBuf;
 
-	CtrlCmdHeader m_cmdBufCtrlHeader;
-	CtrlCmdGpfifoEntry m_gpfifoEntries[s_maxQueuedGpfifoEntries];
+	dk::detail::CtrlCmdHeader m_cmdBufCtrlHeader;
+	dk::detail::CtrlCmdGpfifoEntry m_gpfifoEntries[s_maxQueuedGpfifoEntries];
 
-	RingBuf<uint32_t> m_cmdBufRing;
+	dk::detail::RingBuf<uint32_t> m_cmdBufRing;
 	uint32_t m_cmdBufFlushThreshold;
 	uint32_t m_cmdBufPerFenceSliceSize;
 
-	RingBuf<uint32_t> m_fenceRing;
+	dk::detail::RingBuf<uint32_t> m_fenceRing;
 	DkFence m_fences[s_numFences];
 	uint32_t m_fenceCmdOffsets[s_numFences];
 	uint32_t m_fenceLastFlushOffset;
@@ -55,7 +55,7 @@ class tag_DkQueue : public DkObjBase
 	void flushRing(bool fenceFlush = false) noexcept;
 
 	void onCmdBufAddMem(size_t minReqSize) noexcept;
-	void appendGpfifoEntries(CtrlCmdGpfifoEntry const* entries, uint32_t numEntries) noexcept;
+	void appendGpfifoEntries(dk::detail::CtrlCmdGpfifoEntry const* entries, uint32_t numEntries) noexcept;
 
 	bool hasPendingCommands() const noexcept
 	{
@@ -66,7 +66,9 @@ class tag_DkQueue : public DkObjBase
 	{
 		if (hasPendingCommands())
 		{
-			m_cmdBuf.signOffGpfifoEntry(CtrlCmdGpfifoEntry::AutoKick | CtrlCmdGpfifoEntry::NoPrefetch);
+			m_cmdBuf.signOffGpfifoEntry(
+				dk::detail::CtrlCmdGpfifoEntry::AutoKick |
+				dk::detail::CtrlCmdGpfifoEntry::NoPrefetch);
 			m_cmdBuf.flushGpfifoEntries();
 		}
 	}
@@ -76,7 +78,7 @@ class tag_DkQueue : public DkObjBase
 		static_cast<tag_DkQueue*>(userData)->onCmdBufAddMem(minReqSize);
 	}
 
-	static void _gpfifoFlushFunc(void* data, CtrlCmdGpfifoEntry const* entries, uint32_t numEntries) noexcept
+	static void _gpfifoFlushFunc(void* data, dk::detail::CtrlCmdGpfifoEntry const* entries, uint32_t numEntries) noexcept
 	{
 		static_cast<tag_DkQueue*>(data)->appendGpfifoEntries(entries, numEntries);
 	}
@@ -85,7 +87,7 @@ class tag_DkQueue : public DkObjBase
 	void postSubmitFlush();
 
 public:
-	tag_DkQueue(DkQueueMaker const& maker, uint32_t id) : DkObjBase{maker.device},
+	tag_DkQueue(DkQueueMaker const& maker, uint32_t id) : ObjBase{maker.device},
 		m_id{id}, m_flags{maker.flags}, m_state{Uninitialized}, m_gpuChannel{},
 		m_cmdBufMemBlock{maker.device}, m_cmdBuf{{maker.device,this,_addMemFunc},s_numReservedWords},
 		m_cmdBufCtrlHeader{}, m_gpfifoEntries{},

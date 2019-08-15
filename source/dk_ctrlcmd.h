@@ -1,6 +1,9 @@
 #pragma once
 #include "dk_private.h"
 
+namespace dk::detail
+{
+
 struct CtrlCmdHeader
 {
 	enum // Types
@@ -39,3 +42,5 @@ struct CtrlCmdFence : public CtrlCmdHeader
 {
 	DkFence* fence;
 };
+
+}

@@ -10,6 +10,7 @@
 #include "engine_gpfifo.h"
 
 using namespace maxwell;
+using namespace dk::detail;
 
 void tag_DkQueue::setupEngines()
 {

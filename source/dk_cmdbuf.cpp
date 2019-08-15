@@ -2,6 +2,7 @@
 #include "dk_memblock.h"
 
 using namespace maxwell;
+using namespace dk::detail;
 
 tag_DkCmdBuf::~tag_DkCmdBuf()
 {

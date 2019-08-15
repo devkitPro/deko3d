@@ -1,5 +1,7 @@
 #include "dk_device.h"
 
+using namespace dk::detail;
+
 namespace
 {
 	void defaultErrorFunc(void* userdata, const char* context, DkResult result)
@@ -107,7 +109,7 @@ tag_DkDevice::~tag_DkDevice()
 
 int32_t tag_DkDevice::reserveQueueId()
 {
-	DkMutexHolder m{m_queueTableMutex};
+	MutexHolder m{m_queueTableMutex};
 	for (uint32_t i = 0; i < s_usedQueueBitmapSize; i ++)
 	{
 		uint32_t mask = m_usedQueues[i];
@@ -123,7 +125,7 @@ int32_t tag_DkDevice::reserveQueueId()
 
 void tag_DkDevice::returnQueueId(uint32_t id)
 {
-	DkMutexHolder m{m_queueTableMutex};
+	MutexHolder m{m_queueTableMutex};
 	m_queueTable[id] = nullptr;
 	m_usedQueues[id/32] &= ~(1U << (id & 0x3F));
 }
@@ -154,27 +156,27 @@ void dkDeviceDestroy(DkDevice obj)
 	delete obj;
 }
 
-void* DkObjBase::operator new(size_t size, DkDevice device)
+void* ObjBase::operator new(size_t size, DkDevice device)
 {
 	return tag_DkDevice::operator new(size, device->getMaker());
 }
 
-void DkObjBase::operator delete(void* ptr)
+void ObjBase::operator delete(void* ptr)
 {
-	static_cast<DkObjBase*>(ptr)->freeMem(ptr);
+	static_cast<ObjBase*>(ptr)->freeMem(ptr);
 }
 
-void DkObjBase::raiseError(DkDevice device, const char* context, DkResult result)
+void ObjBase::raiseError(DkDevice device, const char* context, DkResult result)
 {
 	device->raiseError(context, result);
 }
 
-void* DkObjBase::allocMem(size_t size, size_t alignment) const noexcept
+void* ObjBase::allocMem(size_t size, size_t alignment) const noexcept
 {
 	return m_device->allocMem(size, alignment);
 }
 
-void DkObjBase::freeMem(void* mem) const noexcept
+void ObjBase::freeMem(void* mem) const noexcept
 {
 	return m_device->freeMem(mem);
 }

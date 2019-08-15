@@ -3,7 +3,10 @@
 #include "dk_memblock.h"
 #include "codesegmgr.h"
 
-struct DkGpuInfo
+namespace dk::detail
+{
+
+struct GpuInfo
 {
 	u32 numWarpsPerSm;
 	u32 numSms;
@@ -20,14 +23,16 @@ struct NvLongSemaphore
 	u64 timestamp;
 };
 
+}
+
 class tag_DkDevice
 {
-	static constexpr unsigned s_numQueues = DK_MEMBLOCK_ALIGNMENT / sizeof(NvLongSemaphore);
+	static constexpr unsigned s_numQueues = DK_MEMBLOCK_ALIGNMENT / sizeof(dk::detail::NvLongSemaphore);
 	static constexpr unsigned s_usedQueueBitmapSize = (s_numQueues + 31) >> 5;
 
 	DkDeviceMaker m_maker;
 	mutable NvAddressSpace m_addrSpace;
-	DkGpuInfo m_gpuInfo;
+	dk::detail::GpuInfo m_gpuInfo;
 	bool m_didLibInit;
 
 	Mutex m_queueTableMutex;
@@ -49,7 +54,7 @@ public:
 	constexpr DkDeviceMaker const& getMaker() const noexcept { return m_maker; }
 	constexpr NvAddressSpace *getAddrSpace() const noexcept { return &m_addrSpace; }
 	constexpr dk::detail::CodeSegMgr &getCodeSeg() noexcept { return m_codeSeg; }
-	constexpr DkGpuInfo const& getGpuInfo() const noexcept { return m_gpuInfo; }
+	constexpr dk::detail::GpuInfo const& getGpuInfo() const noexcept { return m_gpuInfo; }
 
 	DkResult initialize() noexcept;
 	~tag_DkDevice();
@@ -61,14 +66,14 @@ public:
 		m_queueTable[id] = queue;
 	}
 
-	NvLongSemaphore volatile* getSemaphoreCpuAddr(uint32_t id) noexcept
+	dk::detail::NvLongSemaphore volatile* getSemaphoreCpuAddr(uint32_t id) noexcept
 	{
-		return (NvLongSemaphore volatile*)m_semaphoreMem.getCpuAddr() + id;
+		return (dk::detail::NvLongSemaphore volatile*)m_semaphoreMem.getCpuAddr() + id;
 	}
 
 	DkGpuAddr getSemaphoreGpuAddr(uint32_t id) noexcept
 	{
-		return m_semaphoreMem.getGpuAddrPitch() + id*sizeof(NvLongSemaphore);
+		return m_semaphoreMem.getGpuAddrPitch() + id*sizeof(dk::detail::NvLongSemaphore);
 	}
 
 	uint32_t getSemaphoreValue(uint32_t id) const noexcept

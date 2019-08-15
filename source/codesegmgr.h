@@ -3,7 +3,7 @@
 
 namespace dk::detail
 {
-	class CodeSegMgr : public DkObjBase
+	class CodeSegMgr : public ObjBase
 	{
 		struct Node
 		{
@@ -46,7 +46,7 @@ namespace dk::detail
 		}
 
 	public:
-		constexpr CodeSegMgr(DkDevice device) noexcept : DkObjBase{device},
+		constexpr CodeSegMgr(DkDevice device) noexcept : ObjBase{device},
 			m_mutex{}, m_segmentIova{}, m_root{},
 			m_nodeList{ .m_next = &m_nodeList, .m_prev = &m_nodeList }
 		{ }

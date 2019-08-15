@@ -35,7 +35,7 @@ bool CodeSegMgr::allocSpace(uint32_t size, DkGpuAddr& out_addr)
 {
 	uint32_t bigPageSize = getDevice()->getGpuInfo().bigPageSize;
 	uint32_t numPages = (size + bigPageSize - 1) / bigPageSize;
-	DkMutexHolder m{m_mutex};
+	MutexHolder m{m_mutex};
 
 	// Find a node in the list with enough space.
 	Node *node;
@@ -68,7 +68,7 @@ void CodeSegMgr::freeSpace(DkGpuAddr addr, uint32_t size) noexcept
 {
 	uint32_t bigPageSize = getDevice()->getGpuInfo().bigPageSize;
 	uint32_t numPages = (size + bigPageSize - 1) / bigPageSize;
-	DkMutexHolder m{m_mutex};
+	MutexHolder m{m_mutex};
 	// TODO
 	(void)bigPageSize;
 	(void)numPages;
