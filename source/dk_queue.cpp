@@ -32,7 +32,7 @@ DkResult tag_DkQueue::initialize()
 	// - nvGpuChannelZcullBind
 	setupEngines();
 	// - Perform gpu init
-	// - Post-submit flush commands
+	postSubmitFlush();
 	flush();
 
 #ifdef DK_QUEUE_DEBUG
@@ -306,7 +306,7 @@ void tag_DkQueue::flush()
 		// - Update device query data (is this really necessary?)
 		m_cmdBufRing.updateProducer(getCmdOffset());
 		addCmdMemory(m_cmdBufPerFenceSliceSize);
-		// - post-submit flush cmds
+		postSubmitFlush();
 		m_cmdBuf.flushGpfifoEntries();
 	}
 }

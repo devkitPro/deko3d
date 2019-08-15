@@ -109,14 +109,31 @@ public:
 	}
 
 	template <uint32_t size>
+	void appendDirectly(maxwell::CmdList<size> const& cmds)
+	{
+		cmds.copyTo(m_cmdPos);
+		m_cmdPos += size;
+	}
+
+	template <uint32_t size>
+	void appendDirectly(maxwell::CmdList<size>&& cmds)
+	{
+		cmds.moveTo(std::move(m_cmdPos));
+		m_cmdPos += size;
+	}
+
+	template <uint32_t... sizes>
+	void appendDirectly(maxwell::CmdList<sizes>&&... cmds)
+	{
+		auto list = Cmds(std::move(cmds)...);
+		appendDirectly(std::move(list));
+	}
+
+	template <uint32_t size>
 	maxwell::CmdWord* append(maxwell::CmdList<size> const& cmds)
 	{
 		maxwell::CmdWord* p = reserveCmdMem(size);
-		if (p)
-		{
-			cmds.copyTo(p);
-			m_cmdPos = p + size;
-		}
+		if (p) appendDirectly(cmds);
 		return p;
 	}
 
@@ -124,11 +141,7 @@ public:
 	maxwell::CmdWord* append(maxwell::CmdList<size>&& cmds)
 	{
 		maxwell::CmdWord* p = reserveCmdMem(size);
-		if (p)
-		{
-			cmds.moveTo(std::move(p));
-			m_cmdPos = p + size;
-		}
+		if (p) appendDirectly(std::move(cmds));
 		return p;
 	}
 

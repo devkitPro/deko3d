@@ -93,10 +93,27 @@ engine _3D 0xB197;
 	0x04 next;
 );
 
+0x369 InvalidateShaderCaches bits (
+	0  Instruction bool;
+	4  GlobalData bool;
+	12 Constant bool;
+);
+
+0x378 FragmentBarrier;
+
 0x3D8 TiledCacheEnable bool;
 0x3D9 TiledCacheTileSize bits (
 	0..15  Width;
 	16..31 Height;
+);
+
+0x3DD InvalidateTextureDataCache bits (
+	// Theoretical register, same as InvalidateTextureDataCacheNoWfi but with implicit Wfi
+	0 Lines enum (
+		0 All;
+		1 One;
+	);
+	4..25 Tag;
 );
 
 0x3DF TiledCacheBarrier;
@@ -110,6 +127,33 @@ engine _3D 0xB197;
 0x451 UnknownFlush;
 
 0x485 TiledCacheUnkConfig;
+
+0x4A2 InvalidateTextureDataCacheNoWfi bits (
+	0 Lines enum (
+		0 All;
+		1 One;
+	);
+	4..25 Tag;
+);
+
+0x4B2 InvalidateZcullNoWfi; // Theoretical
+
+0x509 InvalidateSamplerCacheNoWfi bits (
+	0 Lines enum (
+		0 All;
+		1 One;
+	);
+	4..25 Tag;
+);
+
+0x50A InvalidateTextureHeaderCacheNoWfi bits (
+	// Theoretical
+	0 Lines enum (
+		0 All;
+		1 One;
+	);
+	4..25 Tag;
+);
 
 0x6C0 SetReportSemaphoreOffset iova;
 0x6C2 SetReportSemaphorePayload;

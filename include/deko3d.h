@@ -169,6 +169,24 @@ DK_CONSTEXPR void dkQueueMakerDefaults(DkQueueMaker* maker, DkDevice device)
 	maker->flushThreshold = DK_QUEUE_MIN_CMDMEM_SIZE/8;
 }
 
+typedef enum DkBarrier
+{
+	DkBarrier_None       = 0, // No ordering is performed
+	DkBarrier_Tiles      = 1, // Orders the processing of tiles (similar to Vulkan subpasses)
+	DkBarrier_Fragments  = 2, // Orders the processing of fragments (similar to Vulkan renderpasses)
+	DkBarrier_Primitives = 3, // Completes the processing of all previous primitives and compute jobs
+	DkBarrier_Full       = 4, // Completes the processing of all previous commands while disabling command list prefetch
+} DkBarrier;
+
+enum
+{
+	DkInvalidateFlags_Image   = 1U << 0, // Invalidates the image (texture) cache
+	DkInvalidateFlags_Code    = 1U << 1, // Invalidates the shader code/data/uniform cache
+	DkInvalidateFlags_Pool    = 1U << 2, // Invalidates the image/sampler pool (descriptor) cache
+	DkInvalidateFlags_Zcull   = 1U << 3, // Invalidates Zcull state
+	DkInvalidateFlags_L2Cache = 1U << 4, // Invalidates the L2 cache
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -192,6 +210,7 @@ void dkCmdBufAddMemory(DkCmdBuf obj, DkMemBlock mem, uint32_t offset, uint32_t s
 DkCmdList dkCmdBufFinishList(DkCmdBuf obj);
 void dkCmdBufWaitFence(DkCmdBuf obj, DkFence* fence);
 void dkCmdBufSignalFence(DkCmdBuf obj, DkFence* fence, bool flush);
+void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags);
 
 DkQueue dkQueueCreate(DkQueueMaker const* maker);
 void dkQueueDestroy(DkQueue obj);

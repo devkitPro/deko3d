@@ -80,6 +80,7 @@ class tag_DkQueue : public DkObjBase
 	}
 
 	void setupEngines();
+	void postSubmitFlush();
 
 public:
 	constexpr tag_DkQueue(DkQueueMaker const& maker, uint32_t id) : DkObjBase{maker.device},

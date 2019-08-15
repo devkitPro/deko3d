@@ -82,6 +82,7 @@ namespace dk
 		DkCmdList finishList();
 		void waitFence(DkFence& fence);
 		void signalFence(DkFence& fence, bool flush = false);
+		void barrier(DkBarrier mode, uint32_t invalidateFlags);
 	};
 
 	struct Queue : public detail::Handle<::DkQueue>
@@ -263,6 +264,11 @@ namespace dk
 	inline void Queue::present(DkWindow window, int imageSlot)
 	{
 		::dkQueuePresent(*this, window, imageSlot);
+	}
+
+	inline void CmdBuf::barrier(DkBarrier mode, uint32_t invalidateFlags)
+	{
+		::dkCmdBufBarrier(*this, mode, invalidateFlags);
 	}
 
 	using UniqueDevice = detail::UniqueHandle<Device>;

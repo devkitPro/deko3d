@@ -13,6 +13,28 @@ engine Gpfifo 0xB06F;
 	12 AcquireSwitch;
 );
 
+0x00B MemOpB bits (
+	0..7 OperandHigh;
+	27..31 Operation enum (
+		5  SysMemBarFlush;
+		6  SoftFlush;
+		9  MmuTlbInvalidate;
+		13 L2PeerMemInvalidate;
+		14 L2SysmemInvalidate;
+		15 L2CleanComptags;
+		16 L2FlushDirty;
+	);
+
+	// These two fields are presumably only used for MmuTlbInvalidate
+	0 MmuTlbInvalidatePdb enum (
+		0 One;
+		1 All;
+	);
+	1 MmuTlbInvalidateGpc bool;
+);
+
+0x014 SetReference;
+
 0x01C FenceValue;
 0x01D FenceAction bits (
 	4..7 Operation enum (
