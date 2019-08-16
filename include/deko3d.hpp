@@ -2,7 +2,12 @@
 #ifdef DK_NO_OPAQUE_DUMMY
 #undef DK_NO_OPAQUE_DUMMY
 #endif
-#include <tuple>
+#include <type_traits>
+#include <initializer_list>
+#include <array>
+#ifdef DK_HPP_SUPPORT_VECTOR
+#include <vector>
+#endif
 #include "deko3d.h"
 
 namespace dk
@@ -41,6 +46,51 @@ namespace dk
 		struct Opaque : public T
 		{
 			constexpr Opaque() noexcept : T{} { }
+		};
+
+		// ArrayProxy borrowed from Vulkan-Hpp with ♥
+		template <typename T>
+		class ArrayProxy
+		{
+			using nonconst_T = typename std::remove_const<T>::type;
+			uint32_t m_count;
+			T* m_ptr;
+		public:
+			constexpr ArrayProxy(std::nullptr_t) noexcept : m_count{}, m_ptr{} { }
+			ArrayProxy(T& ptr) : m_count{1}, m_ptr(&ptr) { }
+			ArrayProxy(uint32_t count, T* ptr) noexcept : m_count{count}, m_ptr{ptr} { }
+
+			template <size_t N>
+			ArrayProxy(std::array<nonconst_T, N>& data) noexcept :
+				m_count{N}, m_ptr{data.data()} { }
+
+			template <size_t N>
+			ArrayProxy(std::array<nonconst_T, N> const& data) noexcept :
+				m_count{N} , m_ptr{data.data()} { }
+
+			ArrayProxy(std::initializer_list<T> const& data) noexcept :
+				m_count{static_cast<uint32_t>(data.end() - data.begin())},
+				m_ptr{data.begin()} { }
+
+#ifdef DK_HPP_SUPPORT_VECTOR
+			template <class Allocator = std::allocator<nonconst_T>>
+			ArrayProxy(std::vector<nonconst_T, Allocator> & data) noexcept :
+				m_count{static_cast<uint32_t>(data.size())},
+				m_ptr{data.data()} { }
+
+			template <class Allocator = std::allocator<nonconst_T>>
+			ArrayProxy(std::vector<nonconst_T, Allocator> const& data) noexcept :
+				m_count{static_cast<uint32_t>(data.size())},
+				m_ptr{data.data()} { }
+#endif
+
+			const T* begin() const noexcept { return m_ptr; }
+			const T* end()   const noexcept { return m_ptr + m_count; }
+			const T& front() const noexcept { return *m_ptr; }
+			const T& back()  const noexcept { return *(m_ptr + m_count - 1); }
+			bool     empty() const noexcept { return m_count == 0; }
+			uint32_t size()  const noexcept { return m_count; }
+			T*       data()  const noexcept { return m_ptr; }
 		};
 	}
 
@@ -83,6 +133,18 @@ namespace dk
 		void waitFence(DkFence& fence);
 		void signalFence(DkFence& fence, bool flush = false);
 		void barrier(DkBarrier mode, uint32_t invalidateFlags);
+		void bindShader(DkShader const& shader);
+		void bindShaders(uint32_t stageMask, detail::ArrayProxy<DkShader const* const> shaders);
+		void bindUniformBuffer(DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize);
+		void bindUniformBuffers(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers);
+		void bindStorageBuffer(DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize);
+		void bindStorageBuffers(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers);
+		void bindTexture(DkStage stage, uint32_t id, DkResHandle handle);
+		void bindTextures(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles);
+		void bindImage(DkStage stage, uint32_t id, DkResHandle handle);
+		void bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles);
+		void dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
+		void dispatchComputeIndirect(DkGpuAddr indirect);
 	};
 
 	struct Queue : public detail::Handle<::DkQueue>
@@ -240,6 +302,66 @@ namespace dk
 	void CmdBuf::barrier(DkBarrier mode, uint32_t invalidateFlags)
 	{
 		::dkCmdBufBarrier(*this, mode, invalidateFlags);
+	}
+
+	void CmdBuf::bindShader(DkShader const& shader)
+	{
+		::dkCmdBufBindShader(*this, &shader);
+	}
+
+	void CmdBuf::bindShaders(uint32_t stageMask, detail::ArrayProxy<DkShader const* const> shaders)
+	{
+		::dkCmdBufBindShaders(*this, stageMask, shaders.data(), shaders.size());
+	}
+
+	void CmdBuf::bindUniformBuffer(DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize)
+	{
+		::dkCmdBufBindUniformBuffer(*this, stage, id, bufAddr, bufSize);
+	}
+
+	void CmdBuf::bindUniformBuffers(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers)
+	{
+		::dkCmdBufBindUniformBuffers(*this, stage, firstId, buffers.data(), buffers.size());
+	}
+
+	void CmdBuf::bindStorageBuffer(DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize)
+	{
+		::dkCmdBufBindStorageBuffer(*this, stage, id, bufAddr, bufSize);
+	}
+
+	void CmdBuf::bindStorageBuffers(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers)
+	{
+		::dkCmdBufBindStorageBuffers(*this, stage, firstId, buffers.data(), buffers.size());
+	}
+
+	void CmdBuf::bindTexture(DkStage stage, uint32_t id, DkResHandle handle)
+	{
+		::dkCmdBufBindTexture(*this, stage, id, handle);
+	}
+
+	void CmdBuf::bindTextures(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles)
+	{
+		::dkCmdBufBindTextures(*this, stage, firstId, handles.data(), handles.size());
+	}
+
+	void CmdBuf::bindImage(DkStage stage, uint32_t id, DkResHandle handle)
+	{
+		::dkCmdBufBindImage(*this, stage, id, handle);
+	}
+
+	void CmdBuf::bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles)
+	{
+		::dkCmdBufBindImages(*this, stage, firstId, handles.data(), handles.size());
+	}
+
+	void CmdBuf::dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)
+	{
+		::dkCmdBufDispatchCompute(*this, numGroupsX, numGroupsY, numGroupsZ);
+	}
+
+	void CmdBuf::dispatchComputeIndirect(DkGpuAddr indirect)
+	{
+		::dkCmdBufDispatchComputeIndirect(*this, indirect);
 	}
 
 	inline Queue QueueMaker::create()
