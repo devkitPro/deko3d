@@ -97,6 +97,13 @@ namespace dk
 		void present(DkWindow window, int imageSlot);
 	};
 
+	struct Shader : public detail::Opaque<::DkShader>
+	{
+		DK_OPAQUE_COMMON_MEMBERS(Shader);
+		bool isValid() const;
+		DkStage getStage() const;
+	};
+
 	struct DeviceMaker : public ::DkDeviceMaker
 	{
 		DeviceMaker() noexcept : DkDeviceMaker{} { ::dkDeviceMakerDefaults(this); }
@@ -137,6 +144,14 @@ namespace dk
 		QueueMaker& setPerWarpScratchMemorySize(uint32_t perWarpScratchMemorySize) noexcept { this->perWarpScratchMemorySize = perWarpScratchMemorySize; return *this; }
 		QueueMaker& setMaxConcurrentComputeJobs(uint32_t maxConcurrentComputeJobs) noexcept { this->maxConcurrentComputeJobs = maxConcurrentComputeJobs; return *this; }
 		Queue create();
+	};
+
+	struct ShaderMaker : public ::DkShaderMaker
+	{
+		ShaderMaker(DkMemBlock codeMem, uint32_t codeOffset) noexcept : DkShaderMaker{} { ::dkShaderMakerDefaults(this, codeMem, codeOffset); }
+		ShaderMaker& setControl(const void* control) noexcept { this->control = control; return *this; }
+		ShaderMaker& setProgramId(uint32_t programId) noexcept { this->programId = programId; return *this; }
+		void initialize(Shader& obj);
 	};
 
 	inline Device DeviceMaker::create()
@@ -222,6 +237,11 @@ namespace dk
 		return ::dkCmdBufSignalFence(*this, &fence, flush);
 	}
 
+	void CmdBuf::barrier(DkBarrier mode, uint32_t invalidateFlags)
+	{
+		::dkCmdBufBarrier(*this, mode, invalidateFlags);
+	}
+
 	inline Queue QueueMaker::create()
 	{
 		return Queue{::dkQueueCreate(this)};
@@ -268,9 +288,19 @@ namespace dk
 		::dkQueuePresent(*this, window, imageSlot);
 	}
 
-	inline void CmdBuf::barrier(DkBarrier mode, uint32_t invalidateFlags)
+	inline void ShaderMaker::initialize(Shader& obj)
 	{
-		::dkCmdBufBarrier(*this, mode, invalidateFlags);
+		::dkShaderInitialize(&obj, this);
+	}
+
+	inline bool Shader::isValid() const
+	{
+		return ::dkShaderIsValid(this);
+	}
+
+	inline DkStage Shader::getStage() const
+	{
+		return ::dkShaderGetStage(this);
 	}
 
 	using UniqueDevice = detail::UniqueHandle<Device>;

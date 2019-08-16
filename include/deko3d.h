@@ -32,7 +32,7 @@ DK_DECL_HANDLE(DkMemBlock);
 DK_DECL_OPAQUE(DkFence, 8, 40);
 DK_DECL_HANDLE(DkCmdBuf);
 DK_DECL_HANDLE(DkQueue);
-DK_DECL_HANDLE(DkShader);
+DK_DECL_OPAQUE(DkShader, 8, 96);
 DK_DECL_HANDLE(DkImage);
 DK_DECL_HANDLE(DkImageView);
 DK_DECL_HANDLE(DkImagePool);
@@ -88,6 +88,7 @@ DK_CONSTEXPR void dkDeviceMakerDefaults(DkDeviceMaker* maker)
 #define DK_PER_WARP_SCRATCH_MEM_ALIGNMENT 0x200
 #define DK_UNIFORM_BUF_ALIGNMENT 0x100
 #define DK_DEFAULT_MAX_COMPUTE_CONCURRENT_JOBS 128
+#define DK_SHADER_CODE_ALIGNMENT 0x100
 
 enum
 {
@@ -178,6 +179,46 @@ DK_CONSTEXPR void dkQueueMakerDefaults(DkQueueMaker* maker, DkDevice device)
 	maker->maxConcurrentComputeJobs = DK_DEFAULT_MAX_COMPUTE_CONCURRENT_JOBS;
 }
 
+typedef struct DkShaderMaker
+{
+	DkMemBlock codeMem;
+	const void* control;
+	uint32_t codeOffset;
+	uint32_t programId;
+} DkShaderMaker;
+
+DK_CONSTEXPR void dkShaderMakerDefaults(DkShaderMaker* maker, DkMemBlock codeMem, uint32_t codeOffset)
+{
+	maker->codeMem = codeMem;
+	maker->control = nullptr;
+	maker->codeOffset = codeOffset;
+	maker->programId = 0;
+}
+
+typedef enum DkStage
+{
+	DkStage_Vertex   = 0,
+	DkStage_TessCtrl = 1,
+	DkStage_TessEval = 2,
+	DkStage_Geometry = 3,
+	DkStage_Fragment = 4,
+	DkStage_Compute  = 5,
+
+	DkStage_MaxGraphics = 5,
+} DkStage;
+
+enum
+{
+	DkStageFlag_Vertex   = 1U << DkStage_Vertex,
+	DkStageFlag_TessCtrl = 1U << DkStage_TessCtrl,
+	DkStageFlag_TessEval = 1U << DkStage_TessEval,
+	DkStageFlag_Geometry = 1U << DkStage_Geometry,
+	DkStageFlag_Fragment = 1U << DkStage_Fragment,
+	DkStageFlag_Compute  = 1U << DkStage_Compute,
+
+	DkStageFlag_GraphicsMask = (1U << DkStage_MaxGraphics) - 1,
+};
+
 typedef enum DkBarrier
 {
 	DkBarrier_None       = 0, // No ordering is performed
@@ -230,6 +271,10 @@ void dkQueueSubmitCommands(DkQueue obj, DkCmdList cmds);
 void dkQueueFlush(DkQueue obj);
 void dkQueueWaitIdle(DkQueue obj);
 void dkQueuePresent(DkQueue obj, DkWindow window, int imageSlot);
+
+void dkShaderInitialize(DkShader* obj, DkShaderMaker const* maker);
+bool dkShaderIsValid(DkShader const* obj);
+DkStage dkShaderGetStage(DkShader const* obj);
 
 #ifdef __cplusplus
 }
