@@ -12,9 +12,9 @@ namespace dk::detail
 
 	struct PerStageData
 	{
-		DkResHandle textures[32];
-		DkResHandle images[32];
-		BufDescriptor storageBufs[16];
+		DkResHandle textures[DK_NUM_TEXTURE_BINDINGS];
+		DkResHandle images[DK_NUM_IMAGE_BINDINGS];
+		BufDescriptor storageBufs[DK_NUM_STORAGE_BUFS];
 	};
 
 	struct GraphicsDriverCbuf
@@ -23,7 +23,7 @@ namespace dk::detail
 		uint32_t baseInstance;
 		uint32_t drawId;
 		uint32_t fbTexHandle;
-		PerStageData data[5];
+		PerStageData data[DkStage_MaxGraphics];
 	};
 
 	struct ComputeDriverCbuf
@@ -31,7 +31,7 @@ namespace dk::detail
 		uint32_t ctaSize[3];
 		uint32_t gridSize[3];
 		uint32_t _padding[2];
-		DkGpuAddr uniformBufs[16];
+		DkGpuAddr uniformBufs[DK_NUM_UNIFORM_BUFS];
 		PerStageData data;
 	};
 
