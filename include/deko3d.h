@@ -242,6 +242,34 @@ enum
 	DkInvalidateFlags_L2Cache = 1U << 4, // Invalidates the L2 cache
 };
 
+typedef struct DkBufExtents
+{
+	DkGpuAddr addr;
+	uint32_t size;
+} DkBufExtents;
+
+DK_CONSTEXPR DkResHandle dkMakeImageHandle(uint32_t id)
+{
+	return id & (BIT(20) - 1);
+}
+
+DK_CONSTEXPR DkResHandle dkMakeSamplerHandle(uint32_t id)
+{
+	return id << 20;
+}
+
+DK_CONSTEXPR DkResHandle dkMakeTextureHandle(uint32_t imageId, uint32_t samplerId)
+{
+	return dkMakeImageHandle(imageId) | dkMakeSamplerHandle(samplerId);
+}
+
+typedef struct DkDispatchIndirectData
+{
+	uint32_t numGroupsX;
+	uint32_t numGroupsY;
+	uint32_t numGroupsZ;
+} DkDispatchIndirectData;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -266,6 +294,13 @@ DkCmdList dkCmdBufFinishList(DkCmdBuf obj);
 void dkCmdBufWaitFence(DkCmdBuf obj, DkFence* fence);
 void dkCmdBufSignalFence(DkCmdBuf obj, DkFence* fence, bool flush);
 void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags);
+void dkCmdBufBindShaders(DkCmdBuf obj, uint32_t stageMask, DkShader const* const shaders[], uint32_t numShaders);
+void dkCmdBufBindUniformBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkBufExtents const buffers[], uint32_t numBuffers);
+void dkCmdBufBindStorageBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkBufExtents const buffers[], uint32_t numBuffers);
+void dkCmdBufBindTextures(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHandle const handles[], uint32_t numHandles);
+void dkCmdBufBindImages(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHandle const handles[], uint32_t numHandles);
+void dkCmdBufDispatchCompute(DkCmdBuf obj, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
+void dkCmdBufDispatchComputeIndirect(DkCmdBuf obj, DkGpuAddr indirect);
 
 DkQueue dkQueueCreate(DkQueueMaker const* maker);
 void dkQueueDestroy(DkQueue obj);
@@ -280,6 +315,34 @@ void dkQueuePresent(DkQueue obj, DkWindow window, int imageSlot);
 void dkShaderInitialize(DkShader* obj, DkShaderMaker const* maker);
 bool dkShaderIsValid(DkShader const* obj);
 DkStage dkShaderGetStage(DkShader const* obj);
+
+static inline void dkCmdBufBindShader(DkCmdBuf obj, DkShader const* shader)
+{
+	DkShader const* table[] = { shader };
+	dkCmdBufBindShaders(obj, 1U << dkShaderGetStage(shader), table, 1);
+}
+
+static inline void dkCmdBufBindUniformBuffer(DkCmdBuf obj, DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize)
+{
+	DkBufExtents ext = { bufAddr, bufSize };
+	dkCmdBufBindUniformBuffers(obj, stage, id, &ext, 1);
+}
+
+static inline void dkCmdBufBindStorageBuffer(DkCmdBuf obj, DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize)
+{
+	DkBufExtents ext = { bufAddr, bufSize };
+	dkCmdBufBindStorageBuffers(obj, stage, id, &ext, 1);
+}
+
+static inline void dkCmdBufBindTexture(DkCmdBuf obj, DkStage stage, uint32_t id, DkResHandle handle)
+{
+	dkCmdBufBindTextures(obj, stage, id, &handle, 1);
+}
+
+static inline void dkCmdBufBindImage(DkCmdBuf obj, DkStage stage, uint32_t id, DkResHandle handle)
+{
+	dkCmdBufBindImages(obj, stage, id, &handle, 1);
+}
 
 #ifdef __cplusplus
 }

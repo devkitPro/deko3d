@@ -1,5 +1,6 @@
 #include "dk_queue.h"
 #include "dk_device.h"
+#include "queue_compute.h"
 
 #include "cmdbuf_writer.h"
 
@@ -47,6 +48,11 @@ DkResult tag_DkQueue::initialize()
 
 	setupEngines();
 	// TODO: Init the requested engines (graphics/compute/transfer)
+	if (hasCompute())
+	{
+		m_computeQueue = new(this+1) ComputeQueue(this);
+		m_computeQueue->initialize();
+	}
 	postSubmitFlush();
 	flush();
 
@@ -63,6 +69,10 @@ tag_DkQueue::~tag_DkQueue()
 {
 	if (m_state == Healthy)
 		waitIdle();
+
+	if (m_computeQueue)
+		m_computeQueue->~ComputeQueue();
+
 	nvGpuChannelClose(&m_gpuChannel);
 	getDevice()->returnQueueId(m_id);
 }
@@ -292,6 +302,11 @@ void tag_DkQueue::submitCommands(DkCmdList list)
 				next = reinterpret_cast<CtrlCmdHeader const*>(entries+cur->arg);
 				break;
 			}
+			case CtrlCmdHeader::ComputeBindShader ... CtrlCmdHeader::ComputeDispatchIndirect:
+			{
+				next = m_computeQueue->processCtrlCmd(cur);
+				break;
+			}
 		}
 	}
 }
@@ -357,9 +372,13 @@ DkQueue dkQueueCreate(DkQueueMaker const* maker)
 	else
 #endif
 	{
+		size_t extraSize = 0;
+		if (maker->flags & DkQueueFlags_Compute)
+			extraSize += sizeof(ComputeQueue);
+
 		int32_t id = maker->device->reserveQueueId();
 		if (id >= 0)
-			obj = new(maker->device) tag_DkQueue(*maker, id);
+			obj = new(maker->device, extraSize) tag_DkQueue(*maker, id);
 	}
 	if (obj)
 	{
@@ -412,4 +431,40 @@ void dkQueueWaitIdle(DkQueue obj)
 void dkQueuePresent(DkQueue obj, DkWindow window, int imageSlot)
 {
 	// TODO
+}
+
+//-----------------------------------------------------------------------------
+// Shims for conditionally linked features
+//-----------------------------------------------------------------------------
+
+DK_WEAK void ComputeQueue::initialize()
+{
+#ifdef DEBUG
+	printf("Warning: Compute-capable DkQueue created, but Dispatch never called\n");
+#endif
+}
+
+DK_WEAK CtrlCmdHeader const* ComputeQueue::processCtrlCmd(CtrlCmdHeader const* cmd)
+{
+#ifdef DEBUG
+	printf("Warning: Compute command called, but Dispatch never called\n");
+#endif
+
+	switch (cmd->type)
+	{
+		default: return nullptr; // shouldn't happen
+
+		case CtrlCmdHeader::ComputeBindShader:
+			return reinterpret_cast<CtrlCmdComputeShader const*>(cmd)+1;
+
+		case CtrlCmdHeader::ComputeBindBuffer:
+		case CtrlCmdHeader::ComputeDispatchIndirect:
+			return reinterpret_cast<CtrlCmdComputeAddress const*>(cmd)+1;
+
+		case CtrlCmdHeader::ComputeBindHandle:
+			return cmd+1;
+
+		case CtrlCmdHeader::ComputeDispatch:
+			return reinterpret_cast<CtrlCmdComputeDispatch const*>(cmd)+1;
+	}
 }

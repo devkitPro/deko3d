@@ -6,8 +6,15 @@
 #include "ringbuf.h"
 #include "queue_workbuf.h"
 
+namespace dk::detail
+{
+	class ComputeQueue;
+}
+
 class tag_DkQueue : public dk::detail::ObjBase
 {
+	friend class dk::detail::ComputeQueue;
+
 	static constexpr uint32_t s_numReservedWords = 12;
 	static constexpr size_t s_maxQueuedGpfifoEntries = 64;
 	static constexpr uint32_t s_numFences = 16;
@@ -38,6 +45,8 @@ class tag_DkQueue : public dk::detail::ObjBase
 	uint32_t m_fenceLastFlushOffset;
 
 	dk::detail::QueueWorkBuf m_workBuf;
+
+	dk::detail::ComputeQueue* m_computeQueue;
 
 	uint32_t getCmdOffset() const noexcept { return m_cmdBufRing.getProducer() + m_cmdBuf.getCmdOffset(); }
 	uint32_t getInFlightCmdSize() const noexcept { return m_cmdBufRing.getInFlight() + m_cmdBuf.getCmdOffset(); }
@@ -93,7 +102,7 @@ public:
 		m_cmdBufCtrlHeader{}, m_gpfifoEntries{},
 		m_cmdBufRing{maker.commandMemorySize}, m_cmdBufFlushThreshold{maker.flushThreshold}, m_cmdBufPerFenceSliceSize{maker.commandMemorySize/s_numFences},
 		m_fenceRing{s_numFences}, m_fences{}, m_fenceCmdOffsets{}, m_fenceLastFlushOffset{},
-		m_workBuf{maker}
+		m_workBuf{maker}, m_computeQueue{}
 	{
 		m_cmdBuf.useGpfifoFlushFunc(_gpfifoFlushFunc, this, &m_cmdBufCtrlHeader, s_maxQueuedGpfifoEntries);
 	}
