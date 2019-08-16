@@ -5,6 +5,8 @@
 #include <switch.h>
 #include <deko3d.h>
 
+#define DK_WEAK __attribute__((weak))
+
 #ifdef DEBUG
 #define DK_ERROR_CONTEXT(_ctx) (_ctx)
 #else
@@ -45,6 +47,12 @@ public:
 
 	void* operator new(size_t size, DkDevice device) noexcept;
 	void operator delete(void* ptr) noexcept;
+
+	void* operator new(size_t size, DkDevice device, size_t extraSize) noexcept
+	{
+		size = (size + __STDCPP_DEFAULT_NEW_ALIGNMENT__ - 1) &~ (__STDCPP_DEFAULT_NEW_ALIGNMENT__ - 1);
+		return operator new(size+extraSize, device);
+	}
 
 	static void raiseError(DkDevice device, const char* context, DkResult result);
 	void raiseError(const char* context, DkResult result) const
