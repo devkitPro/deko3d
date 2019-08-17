@@ -180,7 +180,7 @@ DK_CONSTEXPR void dkQueueMakerDefaults(DkQueueMaker* maker, DkDevice device)
 		DkQueueFlags_DepthNegativeOneToOne | DkQueueFlags_OriginLowerLeft;
 	maker->commandMemorySize = DK_QUEUE_MIN_CMDMEM_SIZE;
 	maker->flushThreshold = DK_QUEUE_MIN_CMDMEM_SIZE/8;
-	maker->perWarpScratchMemorySize = DK_PER_WARP_SCRATCH_MEM_ALIGNMENT;
+	maker->perWarpScratchMemorySize = 4*DK_PER_WARP_SCRATCH_MEM_ALIGNMENT;
 	maker->maxConcurrentComputeJobs = DK_DEFAULT_MAX_COMPUTE_CONCURRENT_JOBS;
 }
 

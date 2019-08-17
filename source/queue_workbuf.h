@@ -25,6 +25,9 @@ namespace dk::detail
 		// Total size of the work buffer
 		uint32_t m_totalSize;
 
+		// Effective per-warp scratch memory size
+		uint32_t m_perWarpScratchSize;
+
 		uint32_t addSection(uint32_t& offset, uint32_t size, uint32_t align) noexcept
 		{
 			offset = (m_totalSize + align - 1) &~ (align - 1);
@@ -48,6 +51,7 @@ namespace dk::detail
 
 		DkGpuAddr getScratchMem() const noexcept { return getGpuAddr(m_scratchMemOffset); }
 		uint32_t getScratchMemSize() const noexcept { return m_scratchMemSize; }
+		uint32_t getPerWarpScratchSize() const noexcept { return m_perWarpScratchSize; }
 
 		DkGpuAddr getGraphicsCbuf() const noexcept { return getGpuAddr(m_graphicsCbufOffset); }
 		uint32_t getGraphicsCbufSize() const noexcept { return m_graphicsCbufSize; }

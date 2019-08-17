@@ -23,6 +23,10 @@ QueueWorkBuf::QueueWorkBuf(DkQueueMaker const& maker) : tag_DkMemBlock{maker.dev
 		uint32_t totalScratchMemorySize = maker.perWarpScratchMemorySize * info.numWarpsPerSm * info.numSms;
 		totalScratchMemorySize = (totalScratchMemorySize + 0x1FFFF) &~ 0x1FFFF; // Align size to 128 KiB...
 		m_scratchMemSize = addSection(m_scratchMemOffset, totalScratchMemorySize, 0x1000); // ... although the buffer itself only needs page alignment
+
+		// Calculate effective per-warp scratch memory size
+		m_perWarpScratchSize = (m_scratchMemSize / info.numSms) &~ 0x7FFF;
+		m_perWarpScratchSize = (m_perWarpScratchSize / info.numWarpsPerSm) &~ 0x1FF;
 	}
 
 	if (hasGraphics)
@@ -35,7 +39,7 @@ QueueWorkBuf::QueueWorkBuf(DkQueueMaker const& maker) : tag_DkMemBlock{maker.dev
 
 	if (hasCompute)
 	{
-		uint32_t jobSize = sizeof(maxwell::ComputeQmd) + sizeof(ComputeDriverCbuf);
+		uint32_t jobSize = sizeof(maxwell::ComputeQmd) + ComputeDriverCbufSize;
 		m_computeJobsCount = maker.maxConcurrentComputeJobs;
 		addSection(m_computeJobsOffset, m_computeJobsCount*jobSize, DK_UNIFORM_BUF_ALIGNMENT);
 	}

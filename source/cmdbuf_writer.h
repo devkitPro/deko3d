@@ -70,6 +70,12 @@ namespace dk::detail
 			m_cmdBuf->appendRawGpfifoEntry(iova, numCmds, flags);
 		}
 
+		void addRawData(const void* data, uint32_t size)
+		{
+			memcpy(getPos(), data, size);
+			m_pos += (size+3)/4;
+		}
+
 		template <uint32_t size>
 		void add(maxwell::CmdList<size> const& cmds)
 		{

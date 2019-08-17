@@ -105,7 +105,7 @@ void dkCmdBufBindUniformBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, D
 			if (!cmd) return;
 			cmd->type = CtrlCmdHeader::ComputeBindBuffer;
 			cmd->extra = firstId + i;
-			cmd->arg = buffers[i].size;
+			cmd->arg = (buffers[i].size + 0xFF) &~ 0xFF;
 			cmd->addr = buffers[i].addr;
 		}
 		return;

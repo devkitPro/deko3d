@@ -11,7 +11,7 @@ namespace dk::detail
 	{
 		tag_DkQueue& m_parent;
 		uint32_t m_curJob;
-		uint32_t m_maxJobs;
+		uint32_t m_curSmThrottling;
 
 		struct
 		{
@@ -21,6 +21,7 @@ namespace dk::detail
 
 		static constexpr uint32_t s_jobSizeBytes = sizeof(job);
 		static constexpr uint32_t s_jobSizeWords = s_jobSizeBytes/sizeof(maxwell::CmdWord);
+		static constexpr uint32_t s_jobSizeAlign = (s_jobSizeBytes + 0xFF) &~ 0xFF;
 
 		void initQmd();
 		void initComputeEngine();
@@ -34,7 +35,7 @@ namespace dk::detail
 
 	public:
 		ComputeQueue(DkQueue parent) :
-			m_parent{*parent}, m_curJob{}, m_maxJobs{}, job{}
+			m_parent{*parent}, m_curJob{}, m_curSmThrottling{0x100}, job{}
 		{ }
 
 		void initialize();

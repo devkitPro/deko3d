@@ -1,3 +1,174 @@
 
 // MAXWELL_COMPUTE_B
 engine Compute 0xB1C0;
+
+0x044 WaitForIdle;
+
+0x060 LineLengthIn;
+0x061 LineCount;
+0x062 OffsetOut iova;
+0x064 PitchOut;
+0x065 SetDstBlockSize bits (
+	0..3 Width enum (
+		0 OneGob;
+	);
+	4..7 Height enum (
+		0 OneGob;
+		1 TwoGobs;
+		2 FourGobs;
+		3 EightGobs;
+		4 SixteenGobs;
+		5 ThirtyTwoGobs;
+	);
+	8..11 Depth enum (
+		0 OneGob;
+		1 TwoGobs;
+		2 FourGobs;
+		3 EightGobs;
+		4 SixteenGobs;
+		5 ThirtyTwoGobs;
+	);
+);
+0x066 SetDstWidth;
+0x067 SetDstHeight;
+0x068 SetDstDepth;
+0x069 SetDstLayer;
+0x06A SetOriginBytesX;
+0x06B SetOriginSamplesY;
+0x06C LaunchDma bits (
+	0 DstMemoryLayout enum (
+		0 BlockLinear;
+		1 Pitch;
+	);
+	1 ReductionEnable bool;
+	2..3 ReductionFormat enum (
+		0 Unsigned32;
+		1 Signed32;
+	);
+	4..5 CompletionType enum (
+		0 FlushDisable;
+		1 FlushOnly;
+		2 ReleaseSemaphore;
+	);
+	6 SysmembarDisable bool;
+	8..9 InterruptType enum (
+		0 None;
+		1 Interrupt;
+	);
+	12 SemaphoreStructSize enum (
+		0 FourWords;
+		1 OneWord;
+	);
+	13..15 ReductionOp enum (
+		0 Add;
+		1 Min;
+		2 Max;
+		3 Inc;
+		4 Dec;
+		5 And;
+		6 Or;
+		7 Xor;
+	);
+);
+0x06D LoadInlineData;
+
+0x085 SetShaderSharedMemoryWindow;
+
+0x087 InvalidateShaderCaches bits (
+	0  Instruction bool;
+	1  Locks bool;
+	2  FlushData bool;
+	4  Data bool;
+	12 Constant bool;
+);
+
+0x0AD SendPcasA bits (
+	0..31 QmdAddressShifted8;
+);
+
+0x0AE SendPcasB bits (
+	0..23  From;
+	24..31 Delta;
+);
+
+0x0AF SendSignalingPcasB bits (
+	0 Invalidate bool;
+	1 Schedule bool;
+);
+
+0x0B9 SetShaderLocalMemoryNonThrottledA bits (
+	0..7 SizeUpper;
+);
+
+0x0BA SetShaderLocalMemoryNonThrottledB bits (
+	0..31 SizeLower;
+);
+
+0x0BB SetShaderLocalMemoryNonThrottledC bits (
+	0..8 MaxSmCount;
+);
+
+0x0BC SetShaderLocalMemoryThrottledA bits (
+	0..7 SizeUpper;
+);
+
+0x0BD SetShaderLocalMemoryThrottledB bits (
+	0..31 SizeLower;
+);
+
+0x0BE SetShaderLocalMemoryThrottledC bits (
+	0..8 MaxSmCount;
+);
+
+0x0C4 SetSpaVersion bits (
+	0..7  Minor;
+	8..15 Major;
+);
+
+0x1DF SetShaderLocalMemoryWindow;
+
+0x1E4 SetShaderLocalMemory iova;
+
+0x54A SetShaderExceptions bool;
+
+0x557 SetTexSamplerPool iova;
+0x559 SetTexSamplerPoolMaximumIndex;
+
+0x55D SetTexHeaderPool iova;
+0x55F SetTexHeaderPoolMaximumIndex;
+
+0x582 SetProgramRegion iova;
+
+0x6C0 SetReportSemaphoreOffset iova;
+0x6C2 SetReportSemaphorePayload;
+0x6C3 SetReportSemaphore bits (
+	0..1 Operation enum (
+		0 Release;
+		3 Trap;
+	);
+	2 FlushDisable;
+	3 ReductionEnable;
+	9..11 ReductionOp enum (
+		0 Add;
+		1 Min;
+		2 Max;
+		3 Inc;
+		4 Dec;
+		5 And;
+		6 Or;
+		7 Xor;
+	);
+	17..18 Format enum (
+		0 Unsigned32;
+		1 Signed32;
+	);
+	20 AwakenEnable;
+	28 StructureSize enum (
+		0 FourWords;
+		1 OneWord;
+	);
+);
+
+0x982 SetBindlessTexture bits (
+	0..2 ConstantBufferSlotSelect;
+);
