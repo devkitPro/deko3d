@@ -10,6 +10,24 @@ using namespace dk::detail;
 
 using C = EngineCompute;
 
+namespace
+{
+	// Uses 7 command words
+	template <bool Arg>
+	inline void PrepareInlineCopy(CmdBufWriter<Arg>& w, uint32_t sizeBytes, DkGpuAddr target)
+	{
+		w << Cmd(Compute, LineLengthIn{},
+			sizeBytes,   // LineLengthIn
+			1,           // LineCount
+			Iova(target) // OffsetOut
+		);
+		w << CmdInline(Compute, LaunchDma{},
+			C::LaunchDma::DstMemoryLayout::Pitch | C::LaunchDma::CompletionType::FlushOnly
+		);
+		w << CmdList<1>{ MakeCmdHeader(NonIncreasing, (sizeBytes + 3) / 4, SubchannelCompute, C::LoadInlineData{}) };
+	}
+}
+
 void ComputeQueue::initQmd()
 {
 	job.qmd.api_visible_call_limit = 1; // no_limit
@@ -113,7 +131,7 @@ void ComputeQueue::bindShader(CtrlCmdComputeShader const* cmd)
 void ComputeQueue::dispatch(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ, DkGpuAddr indirect)
 {
 	CmdBufWriter w{&m_parent.m_cmdBuf};
-	w.reserve(12 + s_jobSizeWords);
+	w.reserve(7 + s_jobSizeWords + 7*3 + 3);
 
 	uint32_t jobId = m_curJob;
 	if (jobId >= m_parent.m_workBuf.getComputeJobsCount())
@@ -143,16 +161,30 @@ void ComputeQueue::dispatch(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t n
 	job.cbuf.gridSize[2] = numGroupsZ;
 
 	// Time to copy the job to the job queue!
-	w << Cmd(Compute, LineLengthIn{},
-		s_jobSizeBytes, // LineLengthIn
-		1,              // LineCount
-		Iova(jobAddr)   // OffsetOut
-	);
-	w << CmdInline(Compute, LaunchDma{},
-		C::LaunchDma::DstMemoryLayout::Pitch | C::LaunchDma::CompletionType::FlushOnly
-	);
-	w << CmdList<1>{ MakeCmdHeader(NonIncreasing, s_jobSizeWords, SubchannelCompute, C::LoadInlineData{}) };
+	PrepareInlineCopy(w, s_jobSizeBytes, jobAddr);
 	w.addRawData(&job, s_jobSizeBytes);
+
+	if (indirect != DK_GPU_ADDR_INVALID)
+	{
+		// Calculate the offsets we need
+		u64 cbufGridSizeOffset = sizeof(ComputeQmd) + offsetof(ComputeDriverCbuf, gridSize[0]);
+		u64 qmdCtaRasterOffset = offsetof(ComputeQmd, cta_raster_width);
+
+		// Update grid dimension parameters in the driver constbuf
+		PrepareInlineCopy(w, 12, jobAddr + cbufGridSizeOffset);
+		w.split(CtrlCmdGpfifoEntry::NoPrefetch);
+		w.addRaw(indirect + 0x00, 3, CtrlCmdGpfifoEntry::AutoKick);
+
+		// Update cta_raster_width (32-bit) and cta_raster_height (16-bit) in the QMD
+		PrepareInlineCopy(w, 6, jobAddr + qmdCtaRasterOffset + 0x00);
+		w.split(CtrlCmdGpfifoEntry::NoPrefetch);
+		w.addRaw(indirect + 0x00, 2, CtrlCmdGpfifoEntry::AutoKick);
+
+		// Update cta_raster_depth (16-bit) in the QMD
+		PrepareInlineCopy(w, 2, jobAddr + qmdCtaRasterOffset + 0x06);
+		w.split(CtrlCmdGpfifoEntry::NoPrefetch);
+		w.addRaw(indirect + 0x08, 1, CtrlCmdGpfifoEntry::AutoKick);
+	}
 
 	// Launch the job
 	w << Cmd(Compute, SendPcasA{}, uint32_t(jobAddr>>8));
