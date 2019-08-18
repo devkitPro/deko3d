@@ -114,3 +114,34 @@ void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags)
 	if (mode == DkBarrier_Full)
 		w.split(CtrlCmdGpfifoEntry::AutoKick | CtrlCmdGpfifoEntry::NoPrefetch);
 }
+
+void dkCmdBufPushConstants(DkCmdBuf obj, DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data)
+{
+#ifdef DEBUG
+	if (uboAddr & (DK_UNIFORM_BUF_ALIGNMENT-1))
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
+	if (uboSize > DK_UNIFORM_BUF_MAX_SIZE)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (offset & 3)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
+	if (size & 3)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
+	if ((offset >= uboSize) || (size > uboSize))
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if ((offset + size) > uboSize)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (!data)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	uint32_t sizeWords = size/4;
+	CmdBufWriter w{obj};
+	w.reserve(6 + sizeWords);
+
+	w << Cmd(3D, ConstbufSelectorSize{},
+		(uboSize + 0xFF) &~ 0xFF, Iova(uboAddr), offset
+	);
+
+	w << CmdList<1>{ MakeCmdHeader(NonIncreasing, sizeWords, Subchannel3D, Engine3D::LoadConstbufData{}) };
+	w.addRawData(data, size);
+}

@@ -145,6 +145,7 @@ namespace dk
 		void bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles);
 		void dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
 		void dispatchComputeIndirect(DkGpuAddr indirect);
+		void pushConstants(DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data);
 	};
 
 	struct Queue : public detail::Handle<::DkQueue>
@@ -362,6 +363,11 @@ namespace dk
 	void CmdBuf::dispatchComputeIndirect(DkGpuAddr indirect)
 	{
 		::dkCmdBufDispatchComputeIndirect(*this, indirect);
+	}
+
+	void CmdBuf::pushConstants(DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data)
+	{
+		::dkCmdBufPushConstants(*this, uboAddr, uboSize, offset, size, data);
 	}
 
 	inline Queue QueueMaker::create()
