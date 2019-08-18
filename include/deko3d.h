@@ -131,7 +131,7 @@ DK_CONSTEXPR void dkMemBlockMakerDefaults(DkMemBlockMaker* maker, DkDevice devic
 	maker->device = device;
 	maker->size = size;
 	maker->flags = DkMemBlockFlags_CpuUncached | DkMemBlockFlags_GpuCached;
-	maker->storage = nullptr;
+	maker->storage = NULL;
 }
 
 typedef struct DkCmdBufMaker
@@ -144,8 +144,8 @@ typedef struct DkCmdBufMaker
 DK_CONSTEXPR void dkCmdBufMakerDefaults(DkCmdBufMaker* maker, DkDevice device)
 {
 	maker->device = device;
-	maker->userData = nullptr;
-	maker->cbAddMem = nullptr;
+	maker->userData = NULL;
+	maker->cbAddMem = NULL;
 }
 
 enum
@@ -195,7 +195,7 @@ typedef struct DkShaderMaker
 DK_CONSTEXPR void dkShaderMakerDefaults(DkShaderMaker* maker, DkMemBlock codeMem, uint32_t codeOffset)
 {
 	maker->codeMem = codeMem;
-	maker->control = nullptr;
+	maker->control = NULL;
 	maker->codeOffset = codeOffset;
 	maker->programId = 0;
 }
@@ -250,7 +250,7 @@ typedef struct DkBufExtents
 
 DK_CONSTEXPR DkResHandle dkMakeImageHandle(uint32_t id)
 {
-	return id & (BIT(20) - 1);
+	return id & ((1U << 20) - 1);
 }
 
 DK_CONSTEXPR DkResHandle dkMakeSamplerHandle(uint32_t id)
