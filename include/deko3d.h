@@ -431,6 +431,7 @@ typedef enum DkTileSize
 
 typedef struct DkImageLayoutMaker
 {
+	DkDevice device;
 	DkImageType type;
 	uint32_t flags;
 	DkImageFormat format;
@@ -444,8 +445,9 @@ typedef struct DkImageLayoutMaker
 	};
 } DkImageLayoutMaker;
 
-DK_CONSTEXPR void dkImageLayoutMakerDefaults(DkImageLayoutMaker* maker)
+DK_CONSTEXPR void dkImageLayoutMakerDefaults(DkImageLayoutMaker* maker, DkDevice device)
 {
+	maker->device = device;
 	maker->type = DkImageType_2D;
 	maker->flags = 0;
 	maker->format = DkImageFormat_None;
