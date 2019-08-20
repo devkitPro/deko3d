@@ -569,7 +569,7 @@ bool dkShaderIsValid(DkShader const* obj);
 DkStage dkShaderGetStage(DkShader const* obj);
 
 void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker);
-uint32_t dkImageLayoutGetSize(DkImageLayout const* obj);
+uint64_t dkImageLayoutGetSize(DkImageLayout const* obj);
 uint32_t dkImageLayoutGetAlignment(DkImageLayout const* obj);
 
 void dkImageInitialize(DkImage* obj, DkImageLayout const* layout, DkMemBlock memBlock, uint32_t offset);

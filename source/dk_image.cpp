@@ -6,13 +6,82 @@ using namespace maxwell;
 
 namespace
 {
-	DkTileSize pickTileSize(uint32_t gobs)
+	constexpr DkTileSize pickTileSize(uint32_t gobs)
 	{
 		if (gobs >= 16) return DkTileSize_SixteenGobs;
 		if (gobs >= 8)  return DkTileSize_EightGobs;
 		if (gobs >= 4)  return DkTileSize_FourGobs;
 		if (gobs >= 2)  return DkTileSize_TwoGobs;
 		return DkTileSize_OneGob;
+	}
+
+	constexpr uint8_t adjustTileSize(uint8_t shift, uint8_t unitFactor, uint32_t dimension)
+	{
+		if (!shift)
+			return 0;
+
+		uint32_t x = uint32_t(unitFactor) << (shift - 1);
+		if (x >= dimension)
+		{
+			while (--shift)
+			{
+				x >>= 1;
+				if (x < dimension)
+					break;
+			}
+		}
+		return shift;
+	}
+
+	constexpr uint32_t adjustMipSize(uint32_t size, unsigned level)
+	{
+		size >>= level;
+		return size ? size : 1;
+	}
+
+	constexpr uint32_t adjustBlockSize(uint32_t size, uint32_t blockSize)
+	{
+		return (size + blockSize - 1) / blockSize;
+	}
+}
+
+void DkImageLayout::calcLayerSize()
+{
+	uint32_t tileWidth  = (64 / m_bytesPerBlock) << m_tileW;
+	uint32_t tileHeight = 8 << m_tileH;
+	uint32_t tileDepth  = 1 << m_tileD;
+
+	m_layerSize = 0;
+	for (unsigned i = 0; i < m_mipLevels; i ++)
+	{
+		uint32_t levelWidth  = adjustBlockSize(adjustMipSize(m_dimensions[0]*m_samplesX, i), m_blockW);
+		uint32_t levelHeight = m_dimsPerLayer>=2 ? adjustBlockSize(adjustMipSize(m_dimensions[1]*m_samplesY, i), m_blockH) : 1;
+		uint32_t levelDepth  = m_dimsPerLayer>=3 ? adjustMipSize(m_dimensions[2], i) : 1;
+		uint32_t levelWidthBytes = levelWidth << m_bytesPerBlockLog2;
+
+		uint32_t levelTileWShift = adjustTileSize(m_tileW, 64, levelWidthBytes);
+		uint32_t levelTileHShift = adjustTileSize(m_tileH, 8,  levelHeight);
+		uint32_t levelTileDShift = adjustTileSize(m_tileD, 1,  levelDepth);
+		uint32_t levelTileWGobs  = 1U << levelTileWShift;
+		uint32_t levelTileHGobs  = 1U << levelTileHShift;
+		uint32_t levelTileD      = 1U << levelTileDShift;
+
+		uint32_t levelWidthGobs = (levelWidthBytes + 63) / 64;
+		uint32_t levelHeightGobs = (levelHeight + 7) / 8;
+
+		uint32_t levelWidthTiles = (levelWidthGobs + levelTileWGobs - 1) >> levelTileWShift;
+		uint32_t levelHeightTiles = (levelHeightGobs + levelTileHGobs - 1) >> levelTileHShift;
+		uint32_t levelDepthTiles = (levelDepth + levelTileD - 1) >> levelTileDShift;
+
+		if (m_tileW && tileWidth <= levelWidth && tileHeight <= levelHeight && tileDepth <= levelDepth)
+		{
+			// I don't understand this logic - we're mismatching width in tiles with width in gobs?
+			// Thankfully this codepath isn't currently taken anyway, since m_tileW is always zero.
+			uint32_t align = 1U << m_tileW;
+			levelWidthTiles = (levelWidthTiles + align - 1) &~ (align - 1);
+		}
+
+		m_layerSize += uint64_t(levelWidthTiles*levelHeightTiles*levelDepthTiles) << (9 + levelTileWShift + levelTileHShift + levelTileDShift);
 	}
 }
 
@@ -25,7 +94,7 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	if (maker->format <= DkImageFormat_None || maker->format >= DkImageFormat_Count)
 		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (maker->type != DkImageType_2DMS && maker->type != DkImageType_2DMSArray && maker->msMode == DkMsMode_1x)
+	if ((maker->type == DkImageType_2DMS || maker->type == DkImageType_2DMSArray) && maker->msMode == DkMsMode_1x)
 		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	if (!maker->mipLevels)
 		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
@@ -196,7 +265,7 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 			// Calculate actual height, and multiply it by 1.5
 			uint32_t actualHeight = obj->m_dimensions[1] * obj->m_samplesY;
 			if (obj->m_blockH > 1)
-				actualHeight = (actualHeight + obj->m_blockH - 1) / obj->m_blockH;
+				actualHeight = adjustBlockSize(actualHeight, obj->m_blockH);
 			uint32_t heightAndHalf = actualHeight + actualHeight/2;
 			uint32_t heightAndHalfInGobs = (heightAndHalf + 7) / 8; // remember, one gob is 8 rows tall
 			obj->m_tileH = pickTileSize(heightAndHalfInGobs);
@@ -218,6 +287,27 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 		obj->m_memKind = NvKind_Generic_16BX2;
 	}
 
-	// TODO: Calculate layer size
-	// TODO: Calculate storage size
+	obj->calcLayerSize();
+	if (obj->m_hasLayers)
+		obj->m_storageSize = obj->m_dimensions[2] * obj->m_layerSize;
+	else
+		obj->m_storageSize = obj->m_layerSize;
+
+	if (obj->m_memKind != NvKind_Pitch && obj->m_memKind != NvKind_Generic_16BX2)
+	{
+		// Since we are using a compressed memory kind, we need to align the image and its size
+		// to a big page boundary so that we can safely reprotect the memory occupied by it.
+		uint32_t bigPageSize = maker->device->getGpuInfo().bigPageSize;
+		obj->m_storageSize = (obj->m_storageSize + bigPageSize - 1) &~ (bigPageSize - 1);
+	}
+}
+
+uint64_t dkImageLayoutGetSize(DkImageLayout const* obj)
+{
+	return obj->m_storageSize;
+}
+
+uint32_t dkImageLayoutGetAlignment(DkImageLayout const* obj)
+{
+	return 0; // TODO
 }

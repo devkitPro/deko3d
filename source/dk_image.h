@@ -23,6 +23,8 @@ struct DkImageLayout
 	uint64_t m_storageSize;
 	uint64_t m_layerSize;
 	uint32_t m_stride; // {for pitch-linear only}
+
+	void calcLayerSize();
 };
 
 struct DkImage : public DkImageLayout

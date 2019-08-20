@@ -167,6 +167,13 @@ namespace dk
 		DkStage getStage() const;
 	};
 
+	struct ImageLayout : public detail::Opaque<::DkImageLayout>
+	{
+		DK_OPAQUE_COMMON_MEMBERS(ImageLayout);
+		uint64_t getSize() const;
+		uint32_t getAlignment() const;
+	};
+
 	struct DeviceMaker : public ::DkDeviceMaker
 	{
 		DeviceMaker() noexcept : DkDeviceMaker{} { ::dkDeviceMakerDefaults(this); }
@@ -215,6 +222,26 @@ namespace dk
 		ShaderMaker& setControl(const void* control) noexcept { this->control = control; return *this; }
 		ShaderMaker& setProgramId(uint32_t programId) noexcept { this->programId = programId; return *this; }
 		void initialize(Shader& obj);
+	};
+
+	struct ImageLayoutMaker : public ::DkImageLayoutMaker
+	{
+		ImageLayoutMaker(DkDevice device) noexcept : DkImageLayoutMaker{} { ::dkImageLayoutMakerDefaults(this, device); }
+		ImageLayoutMaker& setType(DkImageType type) noexcept { this->type = type; return *this; }
+		ImageLayoutMaker& setFlags(uint32_t flags) noexcept { this->flags = flags; return *this; }
+		ImageLayoutMaker& setFormat(DkImageFormat format) noexcept { this->format = format; return *this; }
+		ImageLayoutMaker& setMsMode(DkMsMode msMode) noexcept { this->msMode = msMode; return *this; }
+		ImageLayoutMaker& setDimensions(uint32_t width, uint32_t height = 0, uint32_t depth = 0) noexcept
+		{
+			this->dimensions[0] = width;
+			this->dimensions[1] = height;
+			this->dimensions[2] = depth;
+			return *this;
+		}
+		ImageLayoutMaker& setMipLevels(uint32_t mipLevels) noexcept { this->mipLevels = mipLevels; return *this; }
+		ImageLayoutMaker& setPitchStride(uint32_t pitchStride) noexcept { this->pitchStride = pitchStride; return *this; }
+		ImageLayoutMaker& setTileSize(DkTileSize tileSize) noexcept { this->tileSize = tileSize; return *this; }
+		void initialize(ImageLayout& obj);
 	};
 
 	inline Device DeviceMaker::create()
@@ -429,6 +456,21 @@ namespace dk
 	inline DkStage Shader::getStage() const
 	{
 		return ::dkShaderGetStage(this);
+	}
+
+	inline void ImageLayoutMaker::initialize(ImageLayout& obj)
+	{
+		::dkImageLayoutInitialize(&obj, this);
+	}
+
+	inline uint64_t ImageLayout::getSize() const
+	{
+		return ::dkImageLayoutGetSize(this);
+	}
+
+	inline uint32_t ImageLayout::getAlignment() const
+	{
+		return ::dkImageLayoutGetAlignment(this);
 	}
 
 	using UniqueDevice = detail::UniqueHandle<Device>;
