@@ -244,7 +244,7 @@ struct FormatTraits
 {
 	uint16_t flags;
 	uint8_t redBits, greenBits, blueBits, alphaBits, depthBits, stencilBits;
-	uint8_t blockWidth, blockHeight;
+	uint8_t bytesPerBlock, blockWidth, blockHeight;
 	uint8_t colorCompKind, depthCompKind;
 	uint8_t surfaceFmt, engine2dFmt;
 	uint32_t ticFmt;
