@@ -264,9 +264,13 @@ enum
 	DkImageFlags_BlockLinear    = 0U << 0, // Image is stored in Nvidia block linear format (default).
 	DkImageFlags_PitchLinear    = 1U << 0, // Image is stored in standard pitch linear format.
 	DkImageFlags_CustomTileSize = 1U << 1, // Use a custom tile size for block linear images.
-	DkImageFlags_RenderTarget   = 1U << 2, // Specifies that the image will be used as a render target.
-	DkImageFlags_HwCompression  = 1U << 3, // Specifies that hardware compression is allowed to be enabled (forced true for depth images).
-	DkImageFlags_D16EnableZbc   = 1U << 4, // For Depth16 images, specifies that zero-bandwidth clear is preferred as the hardware compression format.
+	DkImageFlags_HwCompression  = 1U << 2, // Specifies that hardware compression is allowed to be enabled (forced true for depth images).
+	DkImageFlags_D16EnableZbc   = 1U << 3, // For DkImageFormat_Z16 images, specifies that zero-bandwidth clear is preferred as the hardware compression format.
+
+	DkImageFlags_UsageRender    = 1U << 8,  // Specifies that the image will be used as a render target.
+	DkImageFlags_UsageLoadStore = 1U << 9,  // Specifies that the image will be used with shader image load/store commands.
+	DkImageFlags_UsagePresent   = 1U << 10, // Specifies that the image will be presented to a DkWindow.
+	DkImageFlags_Usage2DEngine  = 1U << 11, // Specifies that the image will be used with the 2D Engine (e.g. for transfers between images)
 };
 
 typedef enum DkImageFormat

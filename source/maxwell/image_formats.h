@@ -216,10 +216,10 @@ enum
 	FormatTraitFlags_IsUnorm      = 1U << 2,
 	FormatTraitFlags_IsDepthFloat = 1U << 3,
 
-	FormatTraitFlags_CanRender = 1U << 8,
-	FormatTraitFlags_CanUnk0   = 1U << 9,
-	FormatTraitFlags_CanUnk1   = 1U << 10,
-	FormatTraitFlags_CanUnk2   = 1U << 11,
+	FormatTraitFlags_CanRender      = 1U << 8,  // Formats without this bit set have 0 as their surface format value
+	FormatTraitFlags_CanLoadStore   = 1U << 9,  // Formats with this bit set seem to line up in nouveau with being able to use load/store ops
+	FormatTraitFlags_CanUse2DEngine = 1U << 10, // Formats without this bit set have a dummy R8Unorm surface format value for the 2D engine
+	FormatTraitFlags_CanUse2DFilter = 1U << 11, // Formats with this bit set seem to line up with nouveau's nv50_blit_get_filter function.
 };
 
 constexpr uint32_t _ShiftTicField(uint32_t field, uint32_t pos, uint32_t size)
@@ -246,7 +246,7 @@ struct FormatTraits
 	uint8_t redBits, greenBits, blueBits, alphaBits, depthBits, stencilBits;
 	uint8_t bytesPerBlock, blockWidth, blockHeight;
 	uint8_t colorCompKind, depthCompKind;
-	uint8_t surfaceFmt, engine2dFmt;
+	uint8_t renderFmt, engine2dFmt;
 	uint32_t ticFmt;
 };
 

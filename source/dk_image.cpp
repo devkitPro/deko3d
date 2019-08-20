@@ -123,7 +123,11 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 	obj->m_blockH = traits.blockHeight;
 
 #ifdef DEBUG
-	if ((obj->m_flags & DkImageFlags_RenderTarget) && !(traits.flags & FormatTraitFlags_CanRender))
+	if ((obj->m_flags & DkImageFlags_UsageRender) && !(traits.flags & FormatTraitFlags_CanRender))
+		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if ((obj->m_flags & DkImageFlags_UsageLoadStore) && !(traits.flags & FormatTraitFlags_CanLoadStore))
+		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if ((obj->m_flags & DkImageFlags_Usage2DEngine) && !(traits.flags & FormatTraitFlags_CanUse2DEngine))
 		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 #endif
 	if (traits.depthBits || traits.stencilBits)
