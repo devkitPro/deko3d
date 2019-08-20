@@ -33,9 +33,9 @@ DK_DECL_OPAQUE(DkFence, 8, 40);
 DK_DECL_HANDLE(DkCmdBuf);
 DK_DECL_HANDLE(DkQueue);
 DK_DECL_OPAQUE(DkShader, 8, 96);
-DK_DECL_HANDLE(DkImage);
-DK_DECL_HANDLE(DkImageView);
-DK_DECL_HANDLE(DkImagePool);
+DK_DECL_OPAQUE(DkImageLayout, 8, 128); // size todo
+DK_DECL_OPAQUE(DkImage, 8, 128); // size todo
+DK_DECL_OPAQUE(DkImageDescriptor, 4, 32);
 DK_DECL_HANDLE(DkSampler);
 DK_DECL_HANDLE(DkSamplerPool);
 DK_DECL_HANDLE(DkWindow);
@@ -94,6 +94,7 @@ DK_CONSTEXPR void dkDeviceMakerDefaults(DkDeviceMaker* maker)
 #define DK_UNIFORM_BUF_MAX_SIZE 0x10000
 #define DK_DEFAULT_MAX_COMPUTE_CONCURRENT_JOBS 128
 #define DK_SHADER_CODE_ALIGNMENT 0x100
+#define DK_TEXTURE_POOL_ALIGNMENT 0x20
 
 enum
 {
@@ -242,6 +243,249 @@ enum
 	DkInvalidateFlags_L2Cache = 1U << 4, // Invalidates the L2 cache
 };
 
+typedef enum DkImageType
+{
+	DkImageType_None         = 0,
+	DkImageType_1D           = 1,
+	DkImageType_2D           = 2,
+	DkImageType_3D           = 3,
+	DkImageType_1DArray      = 4,
+	DkImageType_2DArray      = 5,
+	DkImageType_2DMS         = 6,
+	DkImageType_2DMSArray    = 7,
+	DkImageType_Rectangle    = 8,
+	DkImageType_Cubemap      = 9,
+	DkImageType_CubemapArray = 10,
+	DkImageType_Buffer       = 11,
+} DkImageType;
+
+enum
+{
+	DkImageFlags_BlockLinear    = 0U << 0, // Image is stored in Nvidia block linear format (default).
+	DkImageFlags_PitchLinear    = 1U << 0, // Image is stored in standard pitch linear format.
+	DkImageFlags_CustomTileSize = 1U << 1, // Use a custom tile size for block linear images.
+	DkImageFlags_RenderTarget   = 1U << 2, // Specifies that the image will be used as a render target.
+	DkImageFlags_HwCompression  = 1U << 3, // Specifies that hardware compression is allowed to be enabled (forced true for depth images).
+	DkImageFlags_D16EnableZbc   = 1U << 4, // For Depth16 images, specifies that zero-bandwidth clear is preferred as the hardware compression format.
+};
+
+typedef enum DkImageFormat
+{
+	DkImageFormat_None,
+	DkImageFormat_R8_Unorm,
+	DkImageFormat_R8_Snorm,
+	DkImageFormat_R8_Uint,
+	DkImageFormat_R8_Sint,
+	DkImageFormat_R16_Float,
+	DkImageFormat_R16_Unorm,
+	DkImageFormat_R16_Snorm,
+	DkImageFormat_R16_Uint,
+	DkImageFormat_R16_Sint,
+	DkImageFormat_R32_Float,
+	DkImageFormat_R32_Uint,
+	DkImageFormat_R32_Sint,
+	DkImageFormat_RG8_Unorm,
+	DkImageFormat_RG8_Snorm,
+	DkImageFormat_RG8_Uint,
+	DkImageFormat_RG8_Sint,
+	DkImageFormat_RG16_Float,
+	DkImageFormat_RG16_Unorm,
+	DkImageFormat_RG16_Snorm,
+	DkImageFormat_RG16_Uint,
+	DkImageFormat_RG16_Sint,
+	DkImageFormat_RG32_Float,
+	DkImageFormat_RG32_Uint,
+	DkImageFormat_RG32_Sint,
+	DkImageFormat_RGB32_Float,
+	DkImageFormat_RGB32_Uint,
+	DkImageFormat_RGB32_Sint,
+	DkImageFormat_RGBA8_Unorm,
+	DkImageFormat_RGBA8_Snorm,
+	DkImageFormat_RGBA8_Uint,
+	DkImageFormat_RGBA8_Sint,
+	DkImageFormat_RGBA16_Float,
+	DkImageFormat_RGBA16_Unorm,
+	DkImageFormat_RGBA16_Snorm,
+	DkImageFormat_RGBA16_Uint,
+	DkImageFormat_RGBA16_Sint,
+	DkImageFormat_RGBA32_Float,
+	DkImageFormat_RGBA32_Uint,
+	DkImageFormat_RGBA32_Sint,
+	DkImageFormat_S8,
+	DkImageFormat_Z16,
+	DkImageFormat_Z24X8,
+	DkImageFormat_ZF32,
+	DkImageFormat_Z24S8,
+	DkImageFormat_ZF32_X24S8,
+	DkImageFormat_RGBX8_Unorm_sRGB,
+	DkImageFormat_RGBA8_Unorm_sRGB,
+	DkImageFormat_RGBA4_Unorm,
+	DkImageFormat_RGB5_Unorm,
+	DkImageFormat_RGB5A1_Unorm,
+	DkImageFormat_RGB565_Unorm,
+	DkImageFormat_RGB10A2_Unorm,
+	DkImageFormat_RGB10A2_Uint,
+	DkImageFormat_RG11B10_Float,
+	DkImageFormat_E5BGR9_Float,
+	DkImageFormat_RGB_DXT1,
+	DkImageFormat_RGBA_DXT1,
+	DkImageFormat_RGBA_DXT23,
+	DkImageFormat_RGBA_DXT45,
+	DkImageFormat_RGB_DXT1_sRGB,
+	DkImageFormat_RGBA_DXT1_sRGB,
+	DkImageFormat_RGBA_DXT23_sRGB,
+	DkImageFormat_RGBA_DXT45_sRGB,
+	DkImageFormat_R_DXN1_Unorm,
+	DkImageFormat_R_DXN1_Snorm,
+	DkImageFormat_RG_DXN2_Unorm,
+	DkImageFormat_RG_DXN2_Snorm,
+	DkImageFormat_RGBA_BC7U_Unorm,
+	DkImageFormat_RGBA_BC7U_Unorm_sRGB,
+	DkImageFormat_RGBA_BC6H_SF16_Float,
+	DkImageFormat_RGBA_BC6H_UF16_Float,
+	DkImageFormat_RGBX8_Unorm,
+	DkImageFormat_RGBX8_Snorm,
+	DkImageFormat_RGBX8_Uint,
+	DkImageFormat_RGBX8_Sint,
+	DkImageFormat_RGBX16_Float,
+	DkImageFormat_RGBX16_Unorm,
+	DkImageFormat_RGBX16_Snorm,
+	DkImageFormat_RGBX16_Uint,
+	DkImageFormat_RGBX16_Sint,
+	DkImageFormat_RGBX32_Float,
+	DkImageFormat_RGBX32_Uint,
+	DkImageFormat_RGBX32_Sint,
+	DkImageFormat_RGBA_ASTC_4x4,
+	DkImageFormat_RGBA_ASTC_5x4,
+	DkImageFormat_RGBA_ASTC_5x5,
+	DkImageFormat_RGBA_ASTC_6x5,
+	DkImageFormat_RGBA_ASTC_6x6,
+	DkImageFormat_RGBA_ASTC_8x5,
+	DkImageFormat_RGBA_ASTC_8x6,
+	DkImageFormat_RGBA_ASTC_8x8,
+	DkImageFormat_RGBA_ASTC_10x5,
+	DkImageFormat_RGBA_ASTC_10x6,
+	DkImageFormat_RGBA_ASTC_10x8,
+	DkImageFormat_RGBA_ASTC_10x10,
+	DkImageFormat_RGBA_ASTC_12x10,
+	DkImageFormat_RGBA_ASTC_12x12,
+	DkImageFormat_RGBA_ASTC_4x4_sRGB,
+	DkImageFormat_RGBA_ASTC_5x4_sRGB,
+	DkImageFormat_RGBA_ASTC_5x5_sRGB,
+	DkImageFormat_RGBA_ASTC_6x5_sRGB,
+	DkImageFormat_RGBA_ASTC_6x6_sRGB,
+	DkImageFormat_RGBA_ASTC_8x5_sRGB,
+	DkImageFormat_RGBA_ASTC_8x6_sRGB,
+	DkImageFormat_RGBA_ASTC_8x8_sRGB,
+	DkImageFormat_RGBA_ASTC_10x5_sRGB,
+	DkImageFormat_RGBA_ASTC_10x6_sRGB,
+	DkImageFormat_RGBA_ASTC_10x8_sRGB,
+	DkImageFormat_RGBA_ASTC_10x10_sRGB,
+	DkImageFormat_RGBA_ASTC_12x10_sRGB,
+	DkImageFormat_RGBA_ASTC_12x12_sRGB,
+	DkImageFormat_BGR565_Unorm,
+	DkImageFormat_BGR5_Unorm,
+	DkImageFormat_BGR5A1_Unorm,
+	DkImageFormat_A5BGR5_Unorm,
+	DkImageFormat_BGRX8_Unorm,
+	DkImageFormat_BGRA8_Unorm,
+	DkImageFormat_BGRX8_Unorm_sRGB,
+	DkImageFormat_BGRA8_Unorm_sRGB,
+
+	DkImageFormat_Count,
+} DkImageFormat;
+
+typedef enum DkSwizzle
+{
+	DkSwizzle_Zero  = 0,
+	DkSwizzle_One   = 1,
+	DkSwizzle_Red   = 2,
+	DkSwizzle_Green = 3,
+	DkSwizzle_Blue  = 4,
+	DkSwizzle_Alpha = 5,
+} DkSwizzle;
+
+typedef enum DkMsMode
+{
+	DkMsMode_1x = 0,
+	DkMsMode_2x = 1,
+	DkMsMode_4x = 2,
+	DkMsMode_8x = 3,
+} DkMsMode;
+
+typedef enum DkDsSource
+{
+	DkDsSource_Depth   = 0,
+	DkDsSource_Stencil = 1,
+} DkDsSource;
+
+typedef enum DkTileSize
+{
+	DkTileSize_OneGob        = 0,
+	DkTileSize_TwoGobs       = 1,
+	DkTileSize_FourGobs      = 2,
+	DkTileSize_EightGobs     = 3,
+	DkTileSize_SixteenGobs   = 4,
+	DkTileSize_ThirtyTwoGobs = 5,
+} DkTileSize;
+
+typedef struct DkImageLayoutMaker
+{
+	DkImageType type;
+	uint32_t flags;
+	DkImageFormat format;
+	DkMsMode msMode;
+	uint32_t dimensions[3];
+	uint32_t mipLevels;
+	union
+	{
+		uint32_t pitchStride;
+		DkTileSize tileSize;
+	};
+} DkImageLayoutMaker;
+
+DK_CONSTEXPR void dkImageLayoutMakerDefaults(DkImageLayoutMaker* maker)
+{
+	maker->type = DkImageType_2D;
+	maker->flags = 0;
+	maker->format = DkImageFormat_None;
+	maker->msMode = DkMsMode_1x;
+	maker->dimensions[0] = 0;
+	maker->dimensions[1] = 0;
+	maker->dimensions[2] = 0;
+	maker->mipLevels = 1;
+	maker->pitchStride = 0;
+}
+
+typedef struct DkImageView
+{
+	DkImage const* pImage;
+	DkImageType type;
+	DkImageFormat format;
+	DkSwizzle swizzle[4];
+	DkDsSource dsSource;
+	uint16_t layerOffset;
+	uint16_t layerCount;
+	uint8_t mipLevelOffset;
+	uint8_t mipLevelCount;
+} DkImageView;
+
+DK_CONSTEXPR void dkImageViewDefaults(DkImageView* obj, DkImage const* pImage)
+{
+	obj->pImage = pImage;
+	obj->type = DkImageType_None; // no override
+	obj->format = DkImageFormat_None; // no override
+	obj->swizzle[0] = DkSwizzle_Red;
+	obj->swizzle[1] = DkSwizzle_Green;
+	obj->swizzle[2] = DkSwizzle_Blue;
+	obj->swizzle[3] = DkSwizzle_Alpha;
+	obj->dsSource = DkDsSource_Depth;
+	obj->layerOffset = 0;
+	obj->layerCount = 0; // no override
+	obj->mipLevelOffset = 0;
+	obj->mipLevelCount = 0; // no override
+}
+
 typedef struct DkBufExtents
 {
 	DkGpuAddr addr;
@@ -302,6 +546,7 @@ void dkCmdBufBindImages(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHand
 void dkCmdBufDispatchCompute(DkCmdBuf obj, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
 void dkCmdBufDispatchComputeIndirect(DkCmdBuf obj, DkGpuAddr indirect);
 void dkCmdBufPushConstants(DkCmdBuf obj, DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data);
+void dkCmdBufSetImagePool(DkCmdBuf obj, DkGpuAddr poolAddr, uint32_t numDescriptors);
 
 DkQueue dkQueueCreate(DkQueueMaker const* maker);
 void dkQueueDestroy(DkQueue obj);
@@ -316,6 +561,15 @@ void dkQueuePresent(DkQueue obj, DkWindow window, int imageSlot);
 void dkShaderInitialize(DkShader* obj, DkShaderMaker const* maker);
 bool dkShaderIsValid(DkShader const* obj);
 DkStage dkShaderGetStage(DkShader const* obj);
+
+void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker);
+uint32_t dkImageLayoutGetSize(DkImageLayout const* obj);
+uint32_t dkImageLayoutGetAlignment(DkImageLayout const* obj);
+
+void dkImageInitialize(DkImage* obj, DkImageLayout const* layout, DkMemBlock memBlock, uint32_t offset);
+DkImageLayout const* dkImageGetLayout(DkImage const* obj);
+
+void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view, bool usesLoadOrStore);
 
 static inline void dkCmdBufBindShader(DkCmdBuf obj, DkShader const* shader)
 {
