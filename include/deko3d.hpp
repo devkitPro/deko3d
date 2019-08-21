@@ -143,6 +143,7 @@ namespace dk
 		void bindTextures(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles);
 		void bindImage(DkStage stage, uint32_t id, DkResHandle handle);
 		void bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles);
+		void bindImageDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors);
 		void dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
 		void dispatchComputeIndirect(DkGpuAddr indirect);
 		void pushConstants(DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data);
@@ -419,6 +420,11 @@ namespace dk
 	void CmdBuf::bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles)
 	{
 		::dkCmdBufBindImages(*this, stage, firstId, handles.data(), handles.size());
+	}
+
+	void CmdBuf::bindImageDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors)
+	{
+		::dkCmdBufBindImageDescriptorSet(*this, setAddr, numDescriptors);
 	}
 
 	void CmdBuf::dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)

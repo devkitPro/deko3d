@@ -94,7 +94,7 @@ DK_CONSTEXPR void dkDeviceMakerDefaults(DkDeviceMaker* maker)
 #define DK_UNIFORM_BUF_MAX_SIZE 0x10000
 #define DK_DEFAULT_MAX_COMPUTE_CONCURRENT_JOBS 128
 #define DK_SHADER_CODE_ALIGNMENT 0x100
-#define DK_TEXTURE_POOL_ALIGNMENT 0x20
+#define DK_IMAGE_DESCRIPTOR_ALIGNMENT 0x20
 
 enum
 {
@@ -550,10 +550,10 @@ void dkCmdBufBindUniformBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, D
 void dkCmdBufBindStorageBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkBufExtents const buffers[], uint32_t numBuffers);
 void dkCmdBufBindTextures(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHandle const handles[], uint32_t numHandles);
 void dkCmdBufBindImages(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHandle const handles[], uint32_t numHandles);
+void dkCmdBufBindImageDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t numDescriptors);
 void dkCmdBufDispatchCompute(DkCmdBuf obj, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
 void dkCmdBufDispatchComputeIndirect(DkCmdBuf obj, DkGpuAddr indirect);
 void dkCmdBufPushConstants(DkCmdBuf obj, DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data);
-void dkCmdBufSetImagePool(DkCmdBuf obj, DkGpuAddr poolAddr, uint32_t numDescriptors);
 
 DkQueue dkQueueCreate(DkQueueMaker const* maker);
 void dkQueueDestroy(DkQueue obj);

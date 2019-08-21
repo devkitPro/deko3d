@@ -155,6 +155,12 @@ engine _3D 0xB197;
 	4..25 Tag;
 );
 
+0x557 SetTexSamplerPool iova;
+0x559 SetTexSamplerPoolMaximumIndex;
+
+0x55D SetTexHeaderPool iova;
+0x55F SetTexHeaderPoolMaximumIndex;
+
 0x6C0 SetReportSemaphoreOffset iova;
 0x6C2 SetReportSemaphorePayload;
 0x6C3 SetReportSemaphore bits (

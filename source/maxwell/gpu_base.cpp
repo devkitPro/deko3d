@@ -115,6 +115,22 @@ void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags)
 		w.split(CtrlCmdGpfifoEntry::AutoKick | CtrlCmdGpfifoEntry::NoPrefetch);
 }
 
+void dkCmdBufBindImageDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t numDescriptors)
+{
+#ifdef DEBUG
+	if (setAddr & (DK_IMAGE_DESCRIPTOR_ALIGNMENT-1))
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
+	if (!numDescriptors)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	CmdBufWriter w{obj};
+	w.reserve(8);
+
+	w << Cmd(3D,      SetTexHeaderPool{}, Iova(setAddr), numDescriptors-1);
+	w << Cmd(Compute, SetTexHeaderPool{}, Iova(setAddr), numDescriptors-1);
+}
+
 void dkCmdBufPushConstants(DkCmdBuf obj, DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data)
 {
 #ifdef DEBUG
