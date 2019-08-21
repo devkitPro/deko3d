@@ -7,11 +7,12 @@ using namespace maxwell;
 #define _D(x)  DepthCompressionKind_##x
 #define _CS(x) ColorSurfaceFormat_##x
 #define _DS(x) DepthSurfaceFormat_##x
-#define _(fmt,r,g,b,a,x,y,z,w) MakeTicFormat( \
+#define _(fmt,r,g,b,a,x,y,z,w) (TicFormatWord){ \
 	ImageFormat_##fmt, \
 	ImageComponent_##r, ImageComponent_##g, ImageComponent_##b, ImageComponent_##a, \
-	ImageSwizzle_##x, ImageSwizzle_##y, ImageSwizzle_##z, ImageSwizzle_##w \
-)
+	ImageSwizzle_##x, ImageSwizzle_##y, ImageSwizzle_##z, ImageSwizzle_##w, \
+	0, \
+}
 
 const FormatTraits maxwell::formatTraits[] =
 {

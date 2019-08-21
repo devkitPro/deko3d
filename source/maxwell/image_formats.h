@@ -222,23 +222,21 @@ enum
 	FormatTraitFlags_CanUse2DFilter = 1U << 11, // Formats with this bit set seem to line up with nouveau's nv50_blit_get_filter function.
 };
 
-constexpr uint32_t _ShiftTicField(uint32_t field, uint32_t pos, uint32_t size)
+struct TicFormatWord
 {
-	field &= (uint32_t{1} << size) - 1;
-	return field << pos;
-}
+	uint32_t image_format : 7; // ImageFormat
+	uint32_t component_r  : 3; // ImageComponent
+	uint32_t component_g  : 3; // ImageComponent
+	uint32_t component_b  : 3; // ImageComponent
+	uint32_t component_a  : 3; // ImageComponent
+	uint32_t swizzle_x    : 3; // ImageSwizzle
+	uint32_t swizzle_y    : 3; // ImageSwizzle
+	uint32_t swizzle_z    : 3; // ImageSwizzle
+	uint32_t swizzle_w    : 3; // ImageSwizzle
+	uint32_t pack         : 1;
+};
 
-constexpr uint32_t MakeTicFormat(
-	ImageFormat fmt,
-	ImageComponent r, ImageComponent g, ImageComponent b, ImageComponent a,
-	ImageSwizzle x, ImageSwizzle y, ImageSwizzle z, ImageSwizzle w
-)
-{
-	return
-		_ShiftTicField(fmt,0,7) |
-		_ShiftTicField(r,7, 3) | _ShiftTicField(g,10,3) | _ShiftTicField(b,13,3) | _ShiftTicField(a,16,3) |
-		_ShiftTicField(x,19,3) | _ShiftTicField(y,22,3) | _ShiftTicField(z,25,3) | _ShiftTicField(w,28,3);
-}
+static_assert(sizeof(TicFormatWord)==0x04, "Invalid definition of TicFormatWord");
 
 struct FormatTraits
 {
@@ -247,7 +245,7 @@ struct FormatTraits
 	uint8_t bytesPerBlock, blockWidth, blockHeight;
 	uint8_t colorCompKind, depthCompKind;
 	uint8_t renderFmt, engine2dFmt;
-	uint32_t ticFmt;
+	TicFormatWord ticFmt;
 };
 
 extern const FormatTraits formatTraits[];
