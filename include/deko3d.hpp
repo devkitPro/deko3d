@@ -177,9 +177,9 @@ namespace dk
 	struct Image : public detail::Opaque<::DkImage>
 	{
 		DK_OPAQUE_COMMON_MEMBERS(Image);
-		void initialize(ImageLayout const* layout, DkMemBlock memBlock, uint32_t offset);
+		void initialize(ImageLayout const& layout, DkMemBlock memBlock, uint32_t offset);
 		DkGpuAddr getGpuAddr() const;
-		ImageLayout const* getLayout() const;
+		ImageLayout const& getLayout() const;
 	};
 
 	struct DeviceMaker : public ::DkDeviceMaker
@@ -250,6 +250,37 @@ namespace dk
 		ImageLayoutMaker& setPitchStride(uint32_t pitchStride) noexcept { this->pitchStride = pitchStride; return *this; }
 		ImageLayoutMaker& setTileSize(DkTileSize tileSize) noexcept { this->tileSize = tileSize; return *this; }
 		void initialize(ImageLayout& obj);
+	};
+
+	struct ImageView : public ::DkImageView
+	{
+		ImageView(Image const& image) noexcept : DkImageView{} { ::dkImageViewDefaults(this, &image); }
+		void setType(DkImageType type = DkImageType_None) noexcept { this->type = type; }
+		void setFormat(DkImageFormat format = DkImageFormat_None) noexcept { this->format = format; }
+		void setSwizzle(DkSwizzle x = DkSwizzle_Red, DkSwizzle y = DkSwizzle_Green, DkSwizzle z = DkSwizzle_Blue, DkSwizzle w = DkSwizzle_Alpha) noexcept
+		{
+			this->swizzle[0] = x;
+			this->swizzle[1] = y;
+			this->swizzle[2] = z;
+			this->swizzle[3] = w;
+		}
+		void setDsSource(DkDsSource dsSource) noexcept { this->dsSource = dsSource; }
+		void setLayers(uint16_t layerOffset = 0, uint16_t layerCount = 0) noexcept
+		{
+			this->layerOffset = layerOffset;
+			this->layerCount = layerCount;
+		}
+		void setMipLevels(uint8_t mipLevelOffset = 0, uint8_t mipLevelCount = 0) noexcept
+		{
+			this->mipLevelOffset = mipLevelOffset;
+			this->mipLevelCount = mipLevelCount;
+		}
+	};
+
+	struct ImageDescriptor : public detail::Opaque<::DkImageDescriptor>
+	{
+		DK_OPAQUE_COMMON_MEMBERS(ImageDescriptor);
+		void initialize(ImageView const& view, bool usesLoadOrStore = false);
 	};
 
 	inline Device DeviceMaker::create()
@@ -481,9 +512,9 @@ namespace dk
 		return ::dkImageLayoutGetAlignment(this);
 	}
 
-	inline void Image::initialize(ImageLayout const* layout, DkMemBlock memBlock, uint32_t offset)
+	inline void Image::initialize(ImageLayout const& layout, DkMemBlock memBlock, uint32_t offset)
 	{
-		::dkImageInitialize(this, layout, memBlock, offset);
+		::dkImageInitialize(this, &layout, memBlock, offset);
 	}
 
 	inline DkGpuAddr Image::getGpuAddr() const
@@ -491,9 +522,14 @@ namespace dk
 		return ::dkImageGetGpuAddr(this);
 	}
 
-	inline ImageLayout const* Image::getLayout() const
+	inline ImageLayout const& Image::getLayout() const
 	{
-		return static_cast<ImageLayout const*>(::dkImageGetLayout(this));
+		return *static_cast<ImageLayout const*>(::dkImageGetLayout(this));
+	}
+
+	inline void ImageDescriptor::initialize(ImageView const& view, bool usesLoadOrStore)
+	{
+		::dkImageDescriptorInitialize(this, &view, usesLoadOrStore);
 	}
 
 	using UniqueDevice = detail::UniqueHandle<Device>;
