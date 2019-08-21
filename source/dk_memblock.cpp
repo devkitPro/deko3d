@@ -26,9 +26,12 @@ DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size
 			return DkResult_BadInput;
 	}
 
-	// Validate access bits for image memory (TODO: implement image memory)
+	// Validate access bits for image memory
 	if (flags & DkMemBlockFlags_Image)
-		return DkResult_NotImplemented;
+	{
+		if (gpuAccess == DkMemAccess_None)
+			return DkResult_BadInput;
+	}
 
 	// Insert back access bits into flags
 	flags |= cpuAccess << DkMemBlockFlags_CpuAccessShift;
@@ -85,7 +88,17 @@ DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size
 			m_codeSegOffset = codeSeg.calcOffset(m_gpuAddrPitch);
 		}
 
-		// TODO: create swizzled/compressed mappings for DkMemBlockFlags_Image
+		// Create extra mappings for DkMemBlockFlags_Image
+		if (flags & DkMemBlockFlags_Image)
+		{
+			if (R_FAILED(nvAddressSpaceMap(getDevice()->getAddrSpace(),
+				getHandle(), isGpuCached(), NvKind_Generic_16BX2, &m_gpuAddrGeneric)))
+				return DkResult_Fail;
+
+			if (R_FAILED(nvAddressSpaceMap(getDevice()->getAddrSpace(),
+				getHandle(), isGpuCached(), NvKind_C32_2CRA, &m_gpuAddrCompressed)))
+				return DkResult_Fail;
+		}
 	}
 
 	return DkResult_Success;
@@ -93,6 +106,18 @@ DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size
 
 void tag_DkMemBlock::destroy()
 {
+	if (m_gpuAddrCompressed != DK_GPU_ADDR_INVALID)
+	{
+		nvAddressSpaceUnmap(getDevice()->getAddrSpace(), m_gpuAddrCompressed);
+		m_gpuAddrCompressed = DK_GPU_ADDR_INVALID;
+	}
+
+	if (m_gpuAddrGeneric != DK_GPU_ADDR_INVALID)
+	{
+		nvAddressSpaceUnmap(getDevice()->getAddrSpace(), m_gpuAddrGeneric);
+		m_gpuAddrGeneric = DK_GPU_ADDR_INVALID;
+	}
+
 	if (m_gpuAddrPitch != DK_GPU_ADDR_INVALID)
 	{
 		nvAddressSpaceUnmap(getDevice()->getAddrSpace(), m_gpuAddrPitch);
@@ -107,6 +132,18 @@ void tag_DkMemBlock::destroy()
 		freeMem(m_ownedMem);
 		m_ownedMem = nullptr;
 	}
+}
+
+DkGpuAddr tag_DkMemBlock::getGpuAddrForImage(uint32_t offset, uint32_t size, NvKind kind) noexcept
+{
+	if (kind == NvKind_Pitch)
+		return m_gpuAddrPitch + offset;
+	if (kind == NvKind_Generic_16BX2)
+		return m_gpuAddrGeneric + offset;
+	if (R_FAILED(nvAddressSpaceModify(getDevice()->getAddrSpace(),
+		m_gpuAddrCompressed, offset, size, kind)))
+		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
+	return m_gpuAddrCompressed + offset;
 }
 
 DkMemBlock dkMemBlockCreate(DkMemBlockMaker const* maker)

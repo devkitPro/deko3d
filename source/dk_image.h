@@ -22,6 +22,7 @@ struct DkImageLayout
 
 	uint64_t m_storageSize;
 	uint64_t m_layerSize;
+	uint32_t m_alignment;
 	uint32_t m_stride; // {for pitch-linear only}
 
 	void calcLayerSize();
@@ -29,6 +30,9 @@ struct DkImageLayout
 
 struct DkImage : public DkImageLayout
 {
+	DkGpuAddr m_iova;
+	DkMemBlock m_memBlock;
+	uint32_t m_memOffset;
 };
 
 DK_OPAQUE_CHECK(DkImageLayout);

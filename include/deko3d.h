@@ -271,6 +271,7 @@ enum
 	DkImageFlags_UsageLoadStore = 1U << 9,  // Specifies that the image will be used with shader image load/store commands.
 	DkImageFlags_UsagePresent   = 1U << 10, // Specifies that the image will be presented to a DkWindow.
 	DkImageFlags_Usage2DEngine  = 1U << 11, // Specifies that the image will be used with the 2D Engine (e.g. for transfers between images)
+	DkImageFlags_UsageVideo     = 1U << 12, // Specifies that the image will be used with hardware video encoding/decoding engines
 };
 
 typedef enum DkImageFormat
@@ -573,7 +574,7 @@ uint64_t dkImageLayoutGetSize(DkImageLayout const* obj);
 uint32_t dkImageLayoutGetAlignment(DkImageLayout const* obj);
 
 void dkImageInitialize(DkImage* obj, DkImageLayout const* layout, DkMemBlock memBlock, uint32_t offset);
-DkImageLayout const* dkImageGetLayout(DkImage const* obj);
+DkGpuAddr dkImageGetGpuAddr(DkImage const* obj);
 
 void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view, bool usesLoadOrStore);
 
@@ -603,6 +604,11 @@ static inline void dkCmdBufBindTexture(DkCmdBuf obj, DkStage stage, uint32_t id,
 static inline void dkCmdBufBindImage(DkCmdBuf obj, DkStage stage, uint32_t id, DkResHandle handle)
 {
 	dkCmdBufBindImages(obj, stage, id, &handle, 1);
+}
+
+static inline DkImageLayout const* dkImageGetLayout(DkImage const* obj)
+{
+	return (DkImageLayout const*)obj;
 }
 
 #ifdef __cplusplus

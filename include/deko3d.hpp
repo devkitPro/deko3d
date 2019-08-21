@@ -174,6 +174,14 @@ namespace dk
 		uint32_t getAlignment() const;
 	};
 
+	struct Image : public detail::Opaque<::DkImage>
+	{
+		DK_OPAQUE_COMMON_MEMBERS(Image);
+		void initialize(ImageLayout const* layout, DkMemBlock memBlock, uint32_t offset);
+		DkGpuAddr getGpuAddr() const;
+		ImageLayout const* getLayout() const;
+	};
+
 	struct DeviceMaker : public ::DkDeviceMaker
 	{
 		DeviceMaker() noexcept : DkDeviceMaker{} { ::dkDeviceMakerDefaults(this); }
@@ -471,6 +479,21 @@ namespace dk
 	inline uint32_t ImageLayout::getAlignment() const
 	{
 		return ::dkImageLayoutGetAlignment(this);
+	}
+
+	inline void Image::initialize(ImageLayout const* layout, DkMemBlock memBlock, uint32_t offset)
+	{
+		::dkImageInitialize(this, layout, memBlock, offset);
+	}
+
+	inline DkGpuAddr Image::getGpuAddr() const
+	{
+		return ::dkImageGetGpuAddr(this);
+	}
+
+	inline ImageLayout const* Image::getLayout() const
+	{
+		return static_cast<ImageLayout const*>(::dkImageGetLayout(this));
 	}
 
 	using UniqueDevice = detail::UniqueHandle<Device>;

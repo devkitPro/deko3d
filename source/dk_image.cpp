@@ -1,5 +1,6 @@
 #include "dk_image.h"
 #include "dk_device.h"
+#include "dk_memblock.h"
 
 using namespace dk::detail;
 using namespace maxwell;
@@ -233,6 +234,9 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 	{
 		obj->m_layerSize = obj->m_bytesPerBlock * obj->m_dimensions[0];
 		obj->m_storageSize = obj->m_layerSize;
+		obj->m_alignment = traits.bytesPerBlock;
+		if (obj->m_alignment == 12) // i.e. DkImageFormat_RGB32_*
+			obj->m_alignment = 4;
 		return;
 	}
 
@@ -248,6 +252,10 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 		obj->m_stride = maker->pitchStride;
 		obj->m_layerSize = maker->pitchStride * obj->m_dimensions[1];
 		obj->m_storageSize = obj->m_layerSize;
+		if (obj->m_flags & DkImageFlags_UsageRender)
+			obj->m_alignment = 128; // see TRM 20.1 "Tiling Formats", also supported by nouveau
+		else
+			obj->m_alignment = 32; // TRM implies this should be 64, but 32 has been observed instead in official software
 		return;
 	}
 
@@ -260,7 +268,9 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 	}
 	else
 	{
-		if (obj->m_dimsPerLayer == 2)
+		if (obj->m_flags & DkImageFlags_UsageVideo)
+			obj->m_tileH = DkTileSize_TwoGobs; // Supported by nouveau (nvc0_miptree_init_layout_video) and official software
+		else if (obj->m_dimsPerLayer == 2)
 		{
 			// Calculate actual height, and multiply it by 1.5
 			uint32_t actualHeight = obj->m_dimensions[1] * obj->m_samplesY;
@@ -299,7 +309,10 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 		// to a big page boundary so that we can safely reprotect the memory occupied by it.
 		uint32_t bigPageSize = maker->device->getGpuInfo().bigPageSize;
 		obj->m_storageSize = (obj->m_storageSize + bigPageSize - 1) &~ (bigPageSize - 1);
+		obj->m_alignment = bigPageSize;
 	}
+	else
+		obj->m_alignment = 512;
 }
 
 uint64_t dkImageLayoutGetSize(DkImageLayout const* obj)
@@ -309,5 +322,27 @@ uint64_t dkImageLayoutGetSize(DkImageLayout const* obj)
 
 uint32_t dkImageLayoutGetAlignment(DkImageLayout const* obj)
 {
-	return 0; // TODO
+	return obj->m_alignment;
+}
+
+void dkImageInitialize(DkImage* obj, DkImageLayout const* layout, DkMemBlock memBlock, uint32_t offset)
+{
+#ifdef DEBUG
+	if (!obj || !layout || !memBlock)
+		return; // no way to report error back aaaaaaaaaaa
+	if (offset & (layout->m_alignment - 1))
+		memBlock->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
+	if (layout->m_memKind != NvKind_Pitch && !memBlock->isImage())
+		memBlock->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadMemFlags);
+#endif
+
+	memcpy(obj, layout, sizeof(*layout));
+	obj->m_iova = memBlock->getGpuAddrForImage(offset, layout->m_storageSize, (NvKind)layout->m_memKind);
+	obj->m_memBlock = memBlock;
+	obj->m_memOffset = offset;
+}
+
+DkGpuAddr dkImageGetGpuAddr(DkImage const* obj)
+{
+	return obj->m_iova;
 }

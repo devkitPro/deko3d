@@ -8,14 +8,14 @@ class tag_DkMemBlock : public dk::detail::ObjBase
 	uint32_t m_codeSegOffset;
 	void* m_ownedMem;
 	DkGpuAddr m_gpuAddrPitch;
-	DkGpuAddr m_gpuAddrSwizzled;
+	DkGpuAddr m_gpuAddrGeneric;
 	DkGpuAddr m_gpuAddrCompressed;
 
 public:
 	constexpr tag_DkMemBlock(DkDevice dev) noexcept : ObjBase{dev},
 		m_mapObj{}, m_flags{}, m_codeSegOffset{}, m_ownedMem{},
 		m_gpuAddrPitch{DK_GPU_ADDR_INVALID},
-		m_gpuAddrSwizzled{DK_GPU_ADDR_INVALID},
+		m_gpuAddrGeneric{DK_GPU_ADDR_INVALID},
 		m_gpuAddrCompressed{DK_GPU_ADDR_INVALID} { }
 	~tag_DkMemBlock() { destroy(); }
 
@@ -39,6 +39,7 @@ public:
 	void* getCpuAddr() const noexcept { return isCpuNoAccess() ? nullptr : nvMapGetCpuAddr(&m_mapObj); }
 	uint32_t getCodeSegOffset() const noexcept { return isCode() ? m_codeSegOffset : ~0U; }
 	DkGpuAddr getGpuAddrPitch() const noexcept { return m_gpuAddrPitch; }
-	DkGpuAddr getGpuAddrSwizzled() const noexcept { return m_gpuAddrSwizzled; }
+	DkGpuAddr getGpuAddrGeneric() const noexcept { return m_gpuAddrGeneric; }
 	DkGpuAddr getGpuAddrCompressed() const noexcept { return m_gpuAddrCompressed; }
+	DkGpuAddr getGpuAddrForImage(uint32_t offset, uint32_t size, NvKind kind) noexcept;
 };
