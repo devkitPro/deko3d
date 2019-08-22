@@ -33,7 +33,7 @@ class tag_DkCmdBuf : public dk::detail::ObjBase
 	{
 		struct
 		{
-			CtrlMemChunk *m_ctrlChunkFirst, *m_ctrlChunkCur;
+			CtrlMemChunk *m_ctrlChunkCur, *m_ctrlChunkFree;
 		};
 		struct
 		{
@@ -42,14 +42,14 @@ class tag_DkCmdBuf : public dk::detail::ObjBase
 		};
 	};
 	dk::detail::CtrlCmdHeader *m_ctrlGpfifo;
-	void *m_ctrlPos, *m_ctrlEnd;
-	DkGpuAddr m_cmdStartIova;
+	void *m_ctrlStart, *m_ctrlPos, *m_ctrlEnd;
+	DkGpuAddr m_cmdChunkStartIova, m_cmdStartIova;
 	maxwell::CmdWord *m_cmdChunkStart, *m_cmdStart, *m_cmdPos, *m_cmdEnd;
 public:
 	constexpr tag_DkCmdBuf(DkCmdBufMaker const& maker, uint32_t rw = 0) noexcept : ObjBase{maker.device},
 		m_userData{maker.userData}, m_cbAddMem{maker.cbAddMem}, m_numReservedWords{rw}, m_hasFlushFunc{false},
-		m_ctrlChunkFirst{}, m_ctrlChunkCur{}, m_ctrlGpfifo{}, m_ctrlPos{}, m_ctrlEnd{},
-		m_cmdStartIova{}, m_cmdChunkStart{}, m_cmdStart{}, m_cmdPos{}, m_cmdEnd{} { }
+		m_ctrlChunkCur{}, m_ctrlChunkFree{}, m_ctrlGpfifo{}, m_ctrlStart{}, m_ctrlPos{}, m_ctrlEnd{},
+		m_cmdChunkStartIova{}, m_cmdStartIova{}, m_cmdChunkStart{}, m_cmdStart{}, m_cmdPos{}, m_cmdEnd{} { }
 	~tag_DkCmdBuf();
 
 	void useGpfifoFlushFunc(dk::detail::GpfifoFlushFunc func, void* data, dk::detail::CtrlCmdHeader* mem, uint32_t maxEntries)
@@ -58,6 +58,7 @@ public:
 		m_flushFunc = func;
 		m_flushFuncData = data;
 		m_ctrlGpfifo = mem;
+		m_ctrlStart = nullptr;
 		m_ctrlPos = m_ctrlGpfifo+1;
 		m_ctrlEnd = (char*)m_ctrlPos + maxEntries*sizeof(dk::detail::CtrlCmdGpfifoEntry);
 	}
@@ -69,6 +70,7 @@ public:
 
 	void addMemory(DkMemBlock mem, uint32_t offset, uint32_t size);
 	DkCmdList finishList();
+	void clear();
 
 	constexpr bool isDirty() const noexcept { return m_cmdStart != m_cmdPos; }
 	constexpr uint32_t getCmdOffset() const noexcept { return uint32_t((char*)m_cmdPos - (char*)m_cmdChunkStart); }

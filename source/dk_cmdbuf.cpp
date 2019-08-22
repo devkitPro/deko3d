@@ -10,8 +10,11 @@ tag_DkCmdBuf::~tag_DkCmdBuf()
 	if (m_hasFlushFunc)
 		return;
 
+	// Make sure all used chunks get transferred to the free list
+	clear();
+
 	CtrlMemChunk *cur, *next;
-	for (cur = m_ctrlChunkFirst; cur; cur = next)
+	for (cur = m_ctrlChunkFree; cur; cur = next)
 	{
 		next = cur->m_next;
 		freeMem(cur);
@@ -31,7 +34,8 @@ void tag_DkCmdBuf::addMemory(DkMemBlock mem, uint32_t offset, uint32_t size)
 		return raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadMemFlags);
 #endif
 	signOffGpfifoEntry();
-	m_cmdStartIova = mem->getGpuAddrPitch() + offset;
+	m_cmdChunkStartIova = mem->getGpuAddrPitch() + offset;
+	m_cmdStartIova = m_cmdChunkStartIova;
 	m_cmdChunkStart = (CmdWord*)((char*)mem->getCpuAddr() + offset);
 	m_cmdStart = m_cmdChunkStart;
 	m_cmdPos = m_cmdStart;
@@ -42,26 +46,55 @@ DkCmdList tag_DkCmdBuf::finishList()
 {
 	// Sign off any remaining GPU commands
 	signOffGpfifoEntry();
-#ifdef DEBUG
-	if (!m_ctrlChunkCur)
-	{
-		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
+
+	// Retrieve the beginning of the control command list
+	// If nothing was ever recorded then we just return a null list
+	DkCmdList list = DkCmdList(m_ctrlStart);
+	if (!list)
 		return 0;
-	}
-#endif
 
 	// Finish the list with a return command (uses reserved ctrl space)
 	auto* retCmd = static_cast<CtrlCmdHeader*>(m_ctrlPos);
 	retCmd->type = CtrlCmdHeader::Return;
+	m_ctrlPos = retCmd+1;
 
 	// Reset internal variables
-	m_ctrlChunkCur = m_ctrlChunkFirst;
 	m_ctrlGpfifo = nullptr;
-	m_ctrlPos = m_ctrlChunkFirst+1;
-	m_ctrlEnd = (char*)m_ctrlPos + m_ctrlChunkFirst->m_size - s_reservedCtrlMem;
+	m_ctrlStart = nullptr;
 
-	// The final cmdlist starts after the header of the first chunk
-	return DkCmdList(m_ctrlChunkFirst+1);
+	// If we've used up all available control memory in this chunk, just clear it out and move on
+	if (m_ctrlPos >= m_ctrlEnd)
+	{
+		m_ctrlPos = nullptr;
+		m_ctrlEnd = nullptr;
+	}
+
+	return list;
+}
+
+void tag_DkCmdBuf::clear()
+{
+	// Transfer all used chunks into the free list
+	if (m_ctrlChunkCur)
+	{
+		m_ctrlChunkCur->m_next = m_ctrlChunkFree;
+		m_ctrlChunkFree = m_ctrlChunkCur;
+		m_ctrlChunkCur = nullptr;
+	}
+
+	// Clear control memory management variables
+	m_ctrlGpfifo = nullptr;
+	m_ctrlStart = nullptr;
+	m_ctrlPos = nullptr;
+	m_ctrlEnd = nullptr;
+
+	// Reset command memory back to the beginning of the chunk added by the last addMemory call
+	if (m_cmdChunkStart)
+	{
+		m_cmdStartIova = m_cmdChunkStartIova;
+		m_cmdStart = m_cmdChunkStart;
+		m_cmdPos = m_cmdChunkStart;
+	}
 }
 
 CmdWord* tag_DkCmdBuf::requestCmdMem(uint32_t size)
@@ -156,55 +189,50 @@ CtrlCmdHeader* tag_DkCmdBuf::appendCtrlCmd(size_t size)
 		if (reqSize < s_ctrlChunkSize)
 			reqSize = s_ctrlChunkSize;
 
-		// Try to find a chunk in the list that is big enough
-		CtrlMemChunk* nextChunk = nullptr;
-		CtrlMemChunk* prevChunk = m_ctrlChunkCur;
-		if (prevChunk)
+		// Try to find a big enough chunk in the list of free chunks
+		CtrlMemChunk* chunk = nullptr;
+		CtrlMemChunk** prevNext = &m_ctrlChunkFree;
+		for (chunk = *prevNext; chunk; prevNext = &chunk->m_next, chunk = *prevNext)
 		{
-			for (nextChunk = prevChunk->m_next; nextChunk; prevChunk = nextChunk, nextChunk = prevChunk->m_next)
+			if (chunk->m_size >= reqSize)
 			{
-				if (nextChunk->m_size >= reqSize)
-				{
-					// Found a suitable chunk - pop it off the list and make it the next one
-					prevChunk->m_next = nextChunk->m_next;
-					nextChunk->m_next = m_ctrlChunkCur->m_next;
-					m_ctrlChunkCur->m_next = nextChunk;
-				}
+				// Found a suitable chunk - pop it off the list
+				*prevNext = chunk->m_next;
+				break;
 			}
 		}
-		if (!nextChunk)
+
+		// If above didn't give us a chunk, we need to create a new one
+		if (!chunk)
 		{
-			// No such chunk exists, so create a new one.
-			nextChunk = static_cast<CtrlMemChunk*>(allocMem(sizeof(CtrlMemChunk)+reqSize));
-			if (nextChunk) // above already errored out if this failed
-			{
-				// Initialize and append it to the list of chunks
-				CtrlMemChunk*& insertionPoint = m_ctrlChunkCur ? m_ctrlChunkCur->m_next : m_ctrlChunkFirst;
-				nextChunk->m_next = insertionPoint;
-				insertionPoint = nextChunk;
-				nextChunk->m_size = reqSize;
-			}
+			chunk = static_cast<CtrlMemChunk*>(allocMem(sizeof(CtrlMemChunk)+reqSize));
+			if (chunk) // above already errored out if this failed
+				chunk->m_size = reqSize;
 		}
-		if (nextChunk)
+
+		// Make the chunk's memory available and add it to the list of used chunks
+		if (chunk)
 		{
-			ret = reinterpret_cast<CtrlCmdHeader*>(nextChunk+1);
-			if (m_ctrlChunkCur)
+			ret = reinterpret_cast<CtrlCmdHeader*>(chunk+1);
+			if (m_ctrlPos)
 			{
 				// Add a jump command (uses reserved ctrl space)
 				CtrlCmdJumpCall* jumpCmd = static_cast<CtrlCmdJumpCall*>(m_ctrlPos);
 				jumpCmd->type = CtrlCmdHeader::Jump;
 				jumpCmd->ptr = ret;
 			}
-			m_ctrlChunkCur = nextChunk;
-			m_ctrlPos = ret;
-			m_ctrlEnd = (char*)m_ctrlPos + nextChunk->m_size - s_reservedCtrlMem;
+			chunk->m_next = m_ctrlChunkCur;
+			m_ctrlChunkCur = chunk;
+			m_ctrlEnd = (char*)ret + chunk->m_size - s_reservedCtrlMem;
 		}
 	}
 
 	if (ret)
 	{
 		// Update position
-		m_ctrlPos = (char*)m_ctrlPos + size;
+		if (!m_ctrlStart)
+			m_ctrlStart = ret;
+		m_ctrlPos = (char*)ret + size;
 		m_ctrlGpfifo = nullptr;
 	}
 	return ret;
@@ -230,6 +258,11 @@ void dkCmdBufAddMemory(DkCmdBuf obj, DkMemBlock mem, uint32_t offset, uint32_t s
 DkCmdList dkCmdBufFinishList(DkCmdBuf obj)
 {
 	return obj->finishList();
+}
+
+void dkCmdBufClear(DkCmdBuf obj)
+{
+	obj->clear();
 }
 
 void dkCmdBufWaitFence(DkCmdBuf obj, DkFence* fence)

@@ -130,6 +130,7 @@ namespace dk
 		DK_HANDLE_COMMON_MEMBERS(CmdBuf);
 		void addMemory(DkMemBlock mem, uint32_t offset, uint32_t size);
 		DkCmdList finishList();
+		void clear();
 		void waitFence(DkFence& fence);
 		void signalFence(DkFence& fence, bool flush = false);
 		void barrier(DkBarrier mode, uint32_t invalidateFlags);
@@ -370,6 +371,11 @@ namespace dk
 	inline DkCmdList CmdBuf::finishList()
 	{
 		return ::dkCmdBufFinishList(*this);
+	}
+
+	inline void CmdBuf::clear()
+	{
+		::dkCmdBufClear(*this);
 	}
 
 	inline void CmdBuf::waitFence(DkFence& fence)
