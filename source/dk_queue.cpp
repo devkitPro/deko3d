@@ -428,11 +428,6 @@ void dkQueueWaitIdle(DkQueue obj)
 	obj->waitIdle();
 }
 
-void dkQueuePresent(DkQueue obj, DkWindow window, int imageSlot)
-{
-	// TODO
-}
-
 //-----------------------------------------------------------------------------
 // Shims for conditionally linked features
 //-----------------------------------------------------------------------------

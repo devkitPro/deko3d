@@ -158,7 +158,8 @@ namespace dk
 		void submitCommands(DkCmdList cmds);
 		void flush();
 		void waitIdle();
-		void present(DkWindow window, int imageSlot);
+		int acquireImage(DkSwapchain swapchain);
+		void presentImage(DkSwapchain swapchain, int imageSlot);
 	};
 
 	struct Shader : public detail::Opaque<::DkShader>
@@ -181,6 +182,14 @@ namespace dk
 		void initialize(ImageLayout const& layout, DkMemBlock memBlock, uint32_t offset);
 		DkGpuAddr getGpuAddr() const;
 		ImageLayout const& getLayout() const;
+	};
+
+	struct Swapchain : public detail::Handle<::DkSwapchain>
+	{
+		DK_HANDLE_COMMON_MEMBERS(Swapchain);
+		void acquireImage(int& imageSlot, DkFence& fence);
+		void setCrop(int32_t left, int32_t top, int32_t right, int32_t bottom);
+		void setSwapInterval(uint32_t interval);
 	};
 
 	struct DeviceMaker : public ::DkDeviceMaker
@@ -282,6 +291,12 @@ namespace dk
 	{
 		DK_OPAQUE_COMMON_MEMBERS(ImageDescriptor);
 		void initialize(ImageView const& view, bool usesLoadOrStore = false);
+	};
+
+	struct SwapchainMaker : public ::DkSwapchainMaker
+	{
+		SwapchainMaker(DkDevice device, void* nativeWindow, DkImage const* const pImages[], uint32_t numImages) noexcept : DkSwapchainMaker{} { ::dkSwapchainMakerDefaults(this, device, nativeWindow, pImages, numImages); }
+		Swapchain create();
 	};
 
 	inline Device DeviceMaker::create()
@@ -483,9 +498,14 @@ namespace dk
 		::dkQueueWaitIdle(*this);
 	}
 
-	inline void Queue::present(DkWindow window, int imageSlot)
+	inline int Queue::acquireImage(DkSwapchain swapchain)
 	{
-		::dkQueuePresent(*this, window, imageSlot);
+		return ::dkQueueAcquireImage(*this, swapchain);
+	}
+
+	inline void Queue::presentImage(DkSwapchain swapchain, int imageSlot)
+	{
+		::dkQueuePresentImage(*this, swapchain, imageSlot);
 	}
 
 	inline void ShaderMaker::initialize(Shader& obj)
@@ -538,8 +558,35 @@ namespace dk
 		::dkImageDescriptorInitialize(this, &view, usesLoadOrStore);
 	}
 
+	inline Swapchain SwapchainMaker::create()
+	{
+		return Swapchain{::dkSwapchainCreate(this)};
+	}
+
+	inline void Swapchain::destroy()
+	{
+		::dkSwapchainDestroy(*this);
+		_clear();
+	}
+
+	inline void Swapchain::acquireImage(int& imageSlot, DkFence& fence)
+	{
+		::dkSwapchainAcquireImage(*this, &imageSlot, &fence);
+	}
+
+	inline void Swapchain::setCrop(int32_t left, int32_t top, int32_t right, int32_t bottom)
+	{
+		::dkSwapchainSetCrop(*this, left, top, right, bottom);
+	}
+
+	inline void Swapchain::setSwapInterval(uint32_t interval)
+	{
+		::dkSwapchainSetSwapInterval(*this, interval);
+	}
+
 	using UniqueDevice = detail::UniqueHandle<Device>;
 	using UniqueMemBlock = detail::UniqueHandle<MemBlock>;
 	using UniqueCmdBuf = detail::UniqueHandle<CmdBuf>;
 	using UniqueQueue = detail::UniqueHandle<Queue>;
+	using UniqueSwapchain = detail::UniqueHandle<Swapchain>;
 }

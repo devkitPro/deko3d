@@ -199,6 +199,13 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	if ((obj->m_flags & DkImageFlags_Usage2DEngine) && !(traits.flags & FormatTraitFlags_CanUse2DEngine))
 		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (obj->m_flags & DkImageFlags_UsageRender)
+	{
+		if (obj->m_flags & DkImageFlags_PitchLinear)
+			return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+		if (obj->m_dimsPerLayer != 2 || obj->m_hasLayers || obj->m_numSamplesLog2 != DkMsMode_1x)
+			return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	}
 #endif
 	if (traits.depthBits || traits.stencilBits)
 		obj->m_flags |= DkImageFlags_HwCompression; // Hardware compression is mandatory for depth/stencil images

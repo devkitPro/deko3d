@@ -38,7 +38,7 @@ DK_DECL_OPAQUE(DkImage, 8, 128); // size todo
 DK_DECL_OPAQUE(DkImageDescriptor, 4, 32);
 DK_DECL_HANDLE(DkSampler);
 DK_DECL_HANDLE(DkSamplerPool);
-DK_DECL_HANDLE(DkWindow);
+DK_DECL_HANDLE(DkSwapchain);
 
 typedef enum
 {
@@ -521,6 +521,22 @@ typedef struct DkDispatchIndirectData
 	uint32_t numGroupsZ;
 } DkDispatchIndirectData;
 
+typedef struct DkSwapchainMaker
+{
+	DkDevice device;
+	void* nativeWindow;
+	DkImage const* const* pImages;
+	uint32_t numImages;
+} DkSwapchainMaker;
+
+DK_CONSTEXPR void dkSwapchainMakerDefaults(DkSwapchainMaker* maker, DkDevice device, void* nativeWindow, DkImage const* const pImages[], uint32_t numImages)
+{
+	maker->device = device;
+	maker->nativeWindow = nativeWindow;
+	maker->pImages = pImages;
+	maker->numImages = numImages;
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -563,7 +579,8 @@ void dkQueueSignalFence(DkQueue obj, DkFence* fence, bool flush);
 void dkQueueSubmitCommands(DkQueue obj, DkCmdList cmds);
 void dkQueueFlush(DkQueue obj);
 void dkQueueWaitIdle(DkQueue obj);
-void dkQueuePresent(DkQueue obj, DkWindow window, int imageSlot);
+int dkQueueAcquireImage(DkQueue obj, DkSwapchain swapchain);
+void dkQueuePresentImage(DkQueue obj, DkSwapchain swapchain, int imageSlot);
 
 void dkShaderInitialize(DkShader* obj, DkShaderMaker const* maker);
 bool dkShaderIsValid(DkShader const* obj);
@@ -577,6 +594,12 @@ void dkImageInitialize(DkImage* obj, DkImageLayout const* layout, DkMemBlock mem
 DkGpuAddr dkImageGetGpuAddr(DkImage const* obj);
 
 void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view, bool usesLoadOrStore);
+
+DkSwapchain dkSwapchainCreate(DkSwapchainMaker const* maker);
+void dkSwapchainDestroy(DkSwapchain obj);
+void dkSwapchainAcquireImage(DkSwapchain obj, int* imageSlot, DkFence* fence);
+void dkSwapchainSetCrop(DkSwapchain obj, int32_t left, int32_t top, int32_t right, int32_t bottom);
+void dkSwapchainSetSwapInterval(DkSwapchain obj, uint32_t interval);
 
 static inline void dkCmdBufBindShader(DkCmdBuf obj, DkShader const* shader)
 {
