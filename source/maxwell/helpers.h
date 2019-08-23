@@ -26,7 +26,7 @@ namespace maxwell
 	constexpr unsigned SubchannelCompute = 1;
 	constexpr unsigned SubchannelInline = 2;
 	constexpr unsigned Subchannel2D = 3;
-	constexpr unsigned SubchannelDMA = 4;
+	constexpr unsigned SubchannelCopy = 4;
 	constexpr unsigned SubchannelGpfifo = 6;
 
 	constexpr uint32_t IovaHigh(uint64_t iova) noexcept

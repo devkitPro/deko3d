@@ -6,7 +6,7 @@
 #include "engine_compute.h"
 #include "engine_inline.h"
 #include "engine_2d.h"
-#include "engine_dma.h"
+#include "engine_copy.h"
 #include "engine_gpfifo.h"
 
 using namespace maxwell;
@@ -18,7 +18,7 @@ void tag_DkQueue::setupEngines()
 	w.reserveAdd(
 		BindEngine(3D),
 		BindEngine(Compute),
-		BindEngine(DMA),
+		BindEngine(Copy),
 		BindEngine(Inline),
 		BindEngine(2D),
 		CmdsFromArray(MmeMacro_SetupCmds)
