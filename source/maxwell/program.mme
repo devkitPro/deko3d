@@ -1,0 +1,12 @@
+
+# Selects the driver constbuf at the specified offset, for usage with LoadConstbufData
+# Arguments:
+# - 0: Offset to write to (counted in words)
+SelectDriverConstbuf:
+	ldi MmeDriverConstbufIova to r2
+	ldi MmeDriverConstbufSize to r3
+	ConstbufSelectorSize'1 to addr
+	r3 to mem
+	lsr r2 24 to mem
+	*lsl r2 8 to mem
+	lsl r1 2 to mem

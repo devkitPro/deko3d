@@ -15,10 +15,28 @@ engine _3D 0xB197;
 	3 MethodReplay;
 );
 
+0x054 SetInstrumentationMethodHeader;
+0x055 SetInstrumentationMethodData;
+
+0x083 LineWidthSeparate;
+
+0x086 Unknown086;
+
 0x0b2 SyncptAction bits (
 	0..11 Id;
 	16    FlushCache;
 	20    Increment;
+);
+
+0x0BB Unknown0bb;
+
+0x0c0 Unknown0c0;
+
+0x0c3 Unknown0c3;
+
+0x0C4 SetSpaVersion bits (
+	0..7  Minor;
+	8..15 Major;
 );
 
 0x0c8 TessellationMode bits (
@@ -42,7 +60,14 @@ engine _3D 0xB197;
 );
 0x0c9 TessellationOuterLevels array[4] float;
 0x0cd TessellationInnerLevels array[2] float;
+0x0dd Unknown0dd;
 0x0df RasterizerEnable bool;
+
+0x1d3 Unknown1d3;
+
+0x1DF SetShaderLocalMemoryWindow;
+
+0x1E4 SetShaderLocalMemory iova;
 
 0x200 RenderTarget array[8] (
 	0x00 Addr iova;
@@ -93,6 +118,40 @@ engine _3D 0xB197;
 	0x04 next;
 );
 
+0x340 WindowRectangle array[8] (
+	0x00 Horizontal bits (
+		0..15  Min;
+		16..31 Max;
+	);
+	0x01 Vertical bits (
+		0..15  Min;
+		16..31 Max;
+	);
+	0x02 next;
+);
+
+0x359 SetApiVisibleCallLimit bits (
+	0..3 Cta enum (
+		0  _0;
+		1  _1;
+		2  _2;
+		3  _4;
+		4  _8;
+		5  _16;
+		6  _32;
+		7  _64;
+		8  _128;
+		15 NoCheck;
+	);
+);
+
+0x35F SetDepthMode enum (
+	0 MinusOneToOne;
+	1 ZeroToOne;
+);
+
+0x367 ColorReductionEnable bool;
+
 0x369 InvalidateShaderCaches bits (
 	0  Instruction bool;
 	4  GlobalData bool;
@@ -101,11 +160,31 @@ engine _3D 0xB197;
 
 0x378 FragmentBarrier;
 
+0x37A PrimitiveRestartWithDrawArrays bool;
+
+0x380 Scissor array[16] (
+	0x00 Enable bool;
+	0x01 Horizontal bits (
+		0..15  Min;
+		16..31 Max;
+	);
+	0x02 Vertical bits (
+		0..15  Min;
+		16..31 Max;
+	);
+	0x04 next;
+);
+
+0x3D6 StencilBackFuncMask;
+0x3D7 StencilBackMask;
 0x3D8 TiledCacheEnable bool;
 0x3D9 TiledCacheTileSize bits (
 	0..15  Width;
 	16..31 Height;
 );
+0x3DA TiledCacheUnknownConfig0;
+0x3DB TiledCacheUnknownConfig1;
+0x3DC TiledCacheUnknownConfig3;
 
 0x3DD InvalidateTextureDataCache bits (
 	// Theoretical register, same as InvalidateTextureDataCacheNoWfi but with implicit Wfi
@@ -121,12 +200,53 @@ engine _3D 0xB197;
 	0 Flush;
 	1 Unknown;
 );
+0x3E1 VertexRunoutBufferIova iova;
+0x3E3 Unknown3e3;
 
+0x3ED SetMultisampleRasterEnable bool;
+0x3EF MsaaMask array[4];
+
+0x3F6 SetCoverageModulationTableEnable bool;
+0x3F7 Unknown3f7;
+
+0x400 Unknown400;
+
+0x433 ColorReductionConfig0;
+
+0x438 ColorReductionConfig1;
+0x439 ColorReductionConfig2;
+0x43A ColorReductionConfig3;
+0x43B ColorReductionConfig4;
+0x43C ColorReductionConfig5;
+
+0x43E ClearBufferFlags bits (
+	0 StencilMask bool;
+	8 Scissor bool;
+	12 Viewport bool;
+);
+
+0x43F Unknown43f;
+
+0x442 TiledCacheUnknownConfig2;
+
+0x44C Unknown44c;
 0x44D TiledCacheUnkFeatureEnable bool;
 
+0x450 Unknown450;
 0x451 UnknownFlush;
+0x452 SetConservativeRasterEnable bool;
+
+0x47E SetMultisampleCoverageToColorEnable bool;
 
 0x485 TiledCacheUnkConfig;
+
+0x488 Unknown488;
+
+0x48C DepthTargetArrayMode bits (
+	0..15 NumLayers; // ??
+	16 Unknown16 bool;
+);
+0x48D LinkedTsc bool; //???
 
 0x4A2 InvalidateTextureDataCacheNoWfi bits (
 	0 Lines enum (
@@ -136,7 +256,21 @@ engine _3D 0xB197;
 	4..25 Tag;
 );
 
+0x4A4 Unknown4a4;
+
 0x4B2 InvalidateZcullNoWfi; // Theoretical
+
+0x4B6 Unknown4b6 array[2];
+
+0x4B9 BlendIndependent bool;
+
+0x4E6 StencilFrontFuncMask;
+0x4E7 StencilFrontMask;
+
+0x4EB SetWindowOriginMode enum (
+	0 UpperLeft; // as in Direct3D/Vulkan
+	1 LowerLeft; // as in OpenGL
+);
 
 0x509 InvalidateSamplerCacheNoWfi bits (
 	0 Lines enum (
@@ -155,11 +289,104 @@ engine _3D 0xB197;
 	4..25 Tag;
 );
 
+0x514 Unknown514;
+
+0x544 ClipDistanceEnable; // bitmask, one bit for each clip distance (8 in total)
+0x545 SampleCounterEnable bool;
+
+0x547 ZcullStatCountersEnable bool;
+0x548 PointSpriteEnable bool;
+
+0x54A SetShaderExceptions bool;
+
+0x54D MultisampleEnable bool;
+
+0x54F MultisampleControl bits (
+	0 AlphaToCoverage bool;
+	4 AlphaToOne bool;
+);
+
 0x557 SetTexSamplerPool iova;
 0x559 SetTexSamplerPoolMaximumIndex;
 
 0x55D SetTexHeaderPool iova;
 0x55F SetTexHeaderPoolMaximumIndex;
+
+0x564 ZcullRegion; //???
+0x565 StencilTwoSideEnable bool;
+
+0x56D CsaaEnable bool;
+
+0x573 SetRenderLayer bits (
+	0..15 Index;
+	16 UseIndexFromVTG bool;
+);
+
+0x574 MultisampleMode; // uses maxwell::MsaaMode enum
+
+0x579 EdgeFlag bool;
+
+0x581 PointCoordReplace bits (
+	0..1  Unknown0;
+	2     CoordOrigin enum (
+		0 LowerLeft;
+		1 UpperLeft;
+	);
+	3..12 Enable; // wait what, not a single bit?
+);
+
+0x582 SetProgramRegion iova;
+
+0x584 Unknown584;
+
+0x593 VertexIdConfig bits (
+	12 AddVertexBase bool; // i.e. when cleared behaves like gl_VertexIndex, when set gl_VertexID
+);
+
+0x597 PointRasterRules enum (
+	0 OpenGL;
+	1 Direct3D;
+);
+
+0x5A1 ProvokingVertexLast bool;
+
+0x5AA Unknown5aa;
+
+0x5AD Unknown5ad;
+
+0x5E5 Unknown5e5;
+
+0x5F4 IndexArrayLimitIova iova; // it looks like a 40-bit iova, official sw sets to 0xFFFFFFFFFF
+
+0x620 IsVertexArrayPerInstance array[16] bool;
+
+0x644 VertexProgramPointSize bits (
+	0 Enable bool;
+	4..11 Unknown4;
+);
+
+0x64B ViewportTransformEnable bool;
+
+0x64F ViewVolumeClipControl bits (
+	0      ForceDepthRangeZeroToOne bool;
+	1..2   Unknown1;
+	3      DepthClampNear bool;
+	4      DepthClampFar  bool;
+	7      Unknown7 bool;
+	10     Unknown10 bool;
+	11     Unknown11 bool;
+	12..13 Unknown12;
+);
+
+0x65A ZcullUnknown65a;
+0x65B ZcullTestMask bits (
+	0 AllowZIncrease; // "disables coarse rejection/pass for GT/LT direction"
+	4 AllowZDecrease; // "disables coarse rejection/pass for LT/GT direction"
+);
+
+0x670 Unknown670;
+
+0x68B PipeNop;
 
 0x6C0 SetReportSemaphoreOffset iova;
 0x6C2 SetReportSemaphorePayload;
@@ -215,8 +442,27 @@ engine _3D 0xB197;
 0x8E3 LoadConstbufOffset bits (0..15 Offset;);
 0x8E4 LoadConstbufData array[16];
 
+0x900 Bind array[5] ( // one for each stage
+	// There used to be more methods here; however all of them became useless thanks to SetBindlessTexture.
+	0x04 Constbuf bits (
+		0    Valid bool;
+		4..8 Index;
+	);
+	0x08 next;
+);
+
+0x982 SetBindlessTexture bits (
+	0..2 ConstantBufferSlotSelect;
+);
+
 // Shadow scratch registers
 
 0xD00 MmeFirmwareArgs array[8];
 0xD08 MmeScratch array[16];
-0xD18 MmeTestReg;
+
+0xD18 MmeDriverConstbufIova;
+0xD19 MmeDriverConstbufSize;
+0xD20 MmeProgramIds array[6];
+0xD26 MmeProgramOffsets array[6];
+
+0xD30 MmeDepthRenderTargetIova;
