@@ -250,4 +250,6 @@ struct FormatTraits
 
 extern const FormatTraits formatTraits[];
 
+unsigned pickImageMemoryKind(FormatTraits const& traits, uint32_t msMode, bool compressed, bool d16EnableZbc);
+
 }

@@ -264,7 +264,7 @@ enum
 	DkImageFlags_BlockLinear    = 0U << 0, // Image is stored in Nvidia block linear format (default).
 	DkImageFlags_PitchLinear    = 1U << 0, // Image is stored in standard pitch linear format.
 	DkImageFlags_CustomTileSize = 1U << 1, // Use a custom tile size for block linear images.
-	DkImageFlags_HwCompression  = 1U << 2, // Specifies that hardware compression is allowed to be enabled (forced true for depth images).
+	DkImageFlags_HwCompression  = 1U << 2, // Specifies that hardware compression is allowed to be enabled.
 	DkImageFlags_D16EnableZbc   = 1U << 3, // For DkImageFormat_Z16 images, specifies that zero-bandwidth clear is preferred as the hardware compression format.
 
 	DkImageFlags_UsageRender    = 1U << 8,  // Specifies that the image will be used as a render target.

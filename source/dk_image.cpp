@@ -207,8 +207,6 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 			return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	}
 #endif
-	if (traits.depthBits || traits.stencilBits)
-		obj->m_flags |= DkImageFlags_HwCompression; // Hardware compression is mandatory for depth/stencil images
 
 	switch (obj->m_numSamplesLog2)
 	{
@@ -296,13 +294,11 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 		}
 	}
 
-	if (!(obj->m_flags & DkImageFlags_HwCompression))
-		obj->m_memKind = NvKind_Generic_16BX2;
-	else
-	{
-		// TODO: Pick a compressed memory kind
-		obj->m_memKind = NvKind_Generic_16BX2;
-	}
+	// Pick a memory kind for this image
+	obj->m_memKind = pickImageMemoryKind(traits, obj->m_numSamplesLog2,
+		(obj->m_flags & DkImageFlags_HwCompression) != 0,
+		(obj->m_flags & DkImageFlags_D16EnableZbc) != 0);
+	printf("picked %02X\n", obj->m_memKind);
 
 	obj->calcLayerSize();
 	if (obj->m_hasLayers)
@@ -312,7 +308,7 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 
 	if (obj->m_memKind != NvKind_Pitch && obj->m_memKind != NvKind_Generic_16BX2)
 	{
-		// Since we are using a compressed memory kind, we need to align the image and its size
+		// Since we are using a special memory kind, we need to align the image and its size
 		// to a big page boundary so that we can safely reprotect the memory occupied by it.
 		uint32_t bigPageSize = maker->device->getGpuInfo().bigPageSize;
 		obj->m_storageSize = (obj->m_storageSize + bigPageSize - 1) &~ (bigPageSize - 1);
