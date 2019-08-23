@@ -2,11 +2,21 @@
 
 using namespace dk::detail;
 
+#ifdef DEBUG
+extern "C" u32 __nx_applet_exit_mode;
+#endif
+
 namespace
 {
 	void defaultErrorFunc(void* userdata, const char* context, DkResult result)
 	{
+#ifdef DEBUG
+		printf("{FATAL} deko3d error in %s, result:%d\n", context, result);
+		__nx_applet_exit_mode = 1;
+		exit(1);
+#else
 		fatalSimple(MAKERESULT(359, result));
+#endif
 	}
 
 	DkResult defaultAllocFunc(void* userdata, size_t alignment, size_t size, void** out)

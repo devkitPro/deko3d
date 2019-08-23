@@ -13,7 +13,7 @@
 #define DK_ERROR_CONTEXT(_ctx) nullptr
 #endif
 
-#define DK_FUNC_ERROR_CONTEXT DK_ERROR_CONTEXT(__func__)
+#define DK_FUNC_ERROR_CONTEXT DK_ERROR_CONTEXT(__PRETTY_FUNCTION__)
 
 #define DK_OPAQUE_CHECK(_typename) \
 	static_assert(_size_##_typename >= sizeof(_typename), "Invalid size"); \
