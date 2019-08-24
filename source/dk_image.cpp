@@ -48,7 +48,7 @@ namespace
 
 void DkImageLayout::calcLayerSize()
 {
-	uint32_t tileWidth  = (64 / m_bytesPerBlock) << m_tileW;
+	uint32_t tileWidth  = 64 / m_bytesPerBlock; // non-sparse tile width is always zero
 	uint32_t tileHeight = 8 << m_tileH;
 	uint32_t tileDepth  = 1 << m_tileD;
 
@@ -60,7 +60,7 @@ void DkImageLayout::calcLayerSize()
 		uint32_t levelDepth  = m_dimsPerLayer>=3 ? adjustMipSize(m_dimensions[2], i) : 1;
 		uint32_t levelWidthBytes = levelWidth << m_bytesPerBlockLog2;
 
-		uint32_t levelTileWShift = adjustTileSize(m_tileW, 64, levelWidthBytes);
+		uint32_t levelTileWShift = adjustTileSize(0,       64, levelWidthBytes); // non-sparse tile width is always zero
 		uint32_t levelTileHShift = adjustTileSize(m_tileH, 8,  levelHeight);
 		uint32_t levelTileDShift = adjustTileSize(m_tileD, 1,  levelDepth);
 		uint32_t levelTileWGobs  = 1U << levelTileWShift;
@@ -76,8 +76,7 @@ void DkImageLayout::calcLayerSize()
 
 		if (m_tileW && tileWidth <= levelWidth && tileHeight <= levelHeight && tileDepth <= levelDepth)
 		{
-			// I don't understand this logic - we're mismatching width in tiles with width in gobs?
-			// Thankfully this codepath isn't currently taken anyway, since m_tileW is always zero.
+			// For sparse images, we need to align the width using the sparse tile width.
 			uint32_t align = 1U << m_tileW;
 			levelWidthTiles = (levelWidthTiles + align - 1) &~ (align - 1);
 		}
@@ -298,7 +297,6 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 	obj->m_memKind = pickImageMemoryKind(traits, obj->m_numSamplesLog2,
 		(obj->m_flags & DkImageFlags_HwCompression) != 0,
 		(obj->m_flags & DkImageFlags_D16EnableZbc) != 0);
-	printf("picked %02X\n", obj->m_memKind);
 
 	obj->calcLayerSize();
 	if (obj->m_hasLayers)
