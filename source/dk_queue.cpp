@@ -47,7 +47,8 @@ DkResult tag_DkQueue::initialize()
 	}
 
 	setupEngines();
-	// TODO: Init the requested engines (graphics/compute/transfer)
+	if (hasGraphics())
+		setup3DEngine();
 	if (hasCompute())
 	{
 		m_computeQueue = new(this+1) ComputeQueue(this);

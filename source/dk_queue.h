@@ -93,6 +93,7 @@ class tag_DkQueue : public dk::detail::ObjBase
 	}
 
 	void setupEngines();
+	void setup3DEngine();
 	void postSubmitFlush();
 
 public:
