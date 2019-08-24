@@ -1,0 +1,19 @@
+
+# Performs a ClearBuffers operation on all layers of the specified color render target
+# Arguments:
+# - 0: Argument to Engine3D::ClearBuffers (including mask and most importantly, target id)
+ClearColor::
+	ei RenderTarget_Shift:rz ClearBuffersTargetId_Shift:r1 ClearBuffersTargetId_Size to r2
+	ldr r2 RenderTargetNArrayMode to r2
+	bz r2 .nothing
+	ClearBuffers'0 to addr
+
+.loop
+	dec r2 to r2
+	r1 to mem
+	*bnz r2 .loop
+	addi r1 1<<ClearBuffersLayerId_Shift to r1
+
+.nothing
+	exit
+	nop

@@ -1,5 +1,6 @@
 #include "../dk_device.h"
 #include "../dk_queue.h"
+#include "../dk_image.h"
 #include "../cmdbuf_writer.h"
 
 #include "mme_macros.h"
@@ -136,7 +137,7 @@ void tag_DkQueue::setup3DEngine()
 	// Configure viewport transform XY to convert [-1,1] into [0,1]: newXY = 0.5*oldXY + 0.5
 	// Additionally, for UpperLeft origin mode, the Y value needs to be reversed since viewport seems to expect LowerLeft as origin instead.
 	// Also, I have no idea what SetWindowOriginMode is affecting, possibly gl_FragCoord?
-	w << CmdInline(3D, SetWindowOriginMode{}, isOriginModeOpenGL() ? E::SetWindowOriginMode::LowerLeft : E::SetWindowOriginMode::UpperLeft);
+	w << CmdInline(3D, SetWindowOriginMode{}, isOriginModeOpenGL() ? E::SetWindowOriginMode::Mode::LowerLeft : E::SetWindowOriginMode::Mode::UpperLeft);
 	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::ScaleX{}, +0.5f);
 	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::ScaleY{}, isOriginModeOpenGL() ? +0.5f : -0.5f);
 	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::TranslateX{}, +0.5f);
@@ -211,4 +212,141 @@ void tag_DkQueue::setup3DEngine()
 	w << Cmd(3D, TiledCacheUnknownConfig2{}, 0x0000001F);
 	w << Cmd(3D, TiledCacheUnknownConfig3{}, 0x00080001);
 	w << CmdInline(3D, TiledCacheUnkFeatureEnable{}, 0);
+}
+
+void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTargets[], uint32_t numColorTargets, DkImageView const* depthTarget)
+{
+#ifdef DEBUG
+	if (numColorTargets > DK_MAX_RENDER_TARGETS)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	CmdBufWriter w{obj};
+	w.reserve(100);
+
+	w << Cmd(3D, RenderTargetControl{},
+		E::RenderTargetControl::NumTargets{numColorTargets} | (076543210<<4)
+	);
+
+	uint32_t minWidth = 0xFFFF, minHeight = 0xFFFF;
+	DkMsMode msMode = DkMsMode_1x;
+	for (uint32_t i = 0; i < numColorTargets; i ++)
+	{
+		auto* view = colorTargets[i];
+#ifdef DEBUG
+		if (!view || !view->pImage)
+			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+		if (!(view->pImage->m_flags & DkImageFlags_UsageRender))
+			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+		DkImage const* image = view->pImage;
+		DkImageType type = view->type ? view->type : image->m_type;
+		DkImageFormat format = view->format ? view->format : image->m_format;
+		FormatTraits const& traits = formatTraits[format];
+		uint32_t targetW = image->m_dimensions[0];
+		uint32_t targetH = image->m_dimensions[1];
+		uint32_t targetD = (image->m_dimsPerLayer==3 || image->m_hasLayers) ? image->m_dimensions[2] : 1;
+
+		// Update data
+		if (targetW < minWidth)  minWidth  = targetW;
+		if (targetH < minHeight) minHeight = targetH;
+		if (i == 0) msMode = (DkMsMode)image->m_numSamplesLog2;
+
+		// TODO: Make this more robust
+		if (!(image->m_flags & DkImageFlags_PitchLinear))
+		{
+			using TM = E::RenderTarget::TileMode;
+			DkGpuAddr iova = image->m_iova + view->layerOffset * image->m_layerSize;
+			uint32_t tileWidth = 64 / traits.bytesPerBlock;
+			w << Cmd(3D, RenderTarget::Addr{i},
+				Iova(iova),
+				(targetW + tileWidth - 1) &~ (tileWidth - 1),
+				targetH,
+				traits.renderFmt,
+				TM::Width{image->m_tileW} | TM::Height{image->m_tileH} | TM::Depth{image->m_tileD} | TM::Is3D{type==DkImageType_3D},
+				targetD,
+				image->m_layerSize >> 2
+			);
+		}
+		else
+		{
+			// TODO
+			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
+		}
+	}
+
+	// Disable all remaining render targets
+	for (uint32_t i = numColorTargets; i < DK_MAX_RENDER_TARGETS; i ++)
+	{
+		// Writing format 0 seems to disable this render target?
+		w << CmdInline(3D, RenderTarget::Format{i}, 0);
+	}
+
+	if (!depthTarget)
+	{
+		w << CmdInline(3D, DepthTargetEnable{}, 0);
+		// mme scratch "weird zcull feature enable" is set to zero here
+	}
+	else
+	{
+		// TODO
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
+	}
+
+	// Configure screen scissor
+	if (minWidth  > 0x4000) minWidth  = 0x4000;
+	if (minHeight > 0x4000) minHeight = 0x4000;
+	w << Cmd(3D, ScreenScissorHorizontal{}, minWidth<<16, minHeight<<16);
+
+	// Configure msaa mode
+	MsaaMode msaaMode;
+	switch (msMode)
+	{
+		default:
+		case DkMsMode_1x:
+			msaaMode = MsaaMode_1x1;
+			break;
+		case DkMsMode_2x:
+			msaaMode = MsaaMode_2x1_D3D;
+			break;
+		case DkMsMode_4x:
+			msaaMode = MsaaMode_2x2;
+			break;
+		case DkMsMode_8x:
+			msaaMode = MsaaMode_4x2_D3D;
+			break;
+		/* not yet
+		case DkMsMode_16x:
+			msaaMode = MsaaMode_4x4;
+			break;
+		*/
+	}
+	w << CmdInline(3D, MultisampleMode{}, msaaMode);
+}
+
+void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, const void* clearData)
+{
+#ifdef DEBUG
+	if (targetId >= DK_MAX_RENDER_TARGETS)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (!clearData)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	CmdBufWriter w{obj};
+	w.reserve(12);
+
+	w << CmdList<1>{ MakeCmdHeader(Increasing, 4, Subchannel3D, E::ClearColor{}) };
+	w.addRawData(clearData, 4*sizeof(float));
+
+	w << SetShadowRamControl(SRC::MethodPassthrough);
+	w << CmdInline(3D, SetMultisampleRasterEnable{}, 0);
+	w << Macro(ClearColor,
+		((clearMask&0xF)<<E::ClearBuffers::Red::Shift) | E::ClearBuffers::TargetId{targetId}
+	);
+
+	w << SetShadowRamControl(SRC::MethodReplay);
+	w << CmdInline(3D, SetMultisampleRasterEnable{}, 0);
+
+	w << SetShadowRamControl(SRC::MethodTrackWithFilter);
 }

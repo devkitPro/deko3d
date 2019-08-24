@@ -145,6 +145,9 @@ namespace dk
 		void bindImage(DkStage stage, uint32_t id, DkResHandle handle);
 		void bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles);
 		void bindImageDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors);
+		void bindRenderTargets(detail::ArrayProxy<DkImageView const* const> colorTargets, DkImageView const* depthTarget = nullptr);
+		void clearColor(uint32_t targetId, uint32_t clearMask, const void* clearData);
+		template<typename T> void clearColor(uint32_t targetId, uint32_t clearMask, T red = T{0}, T green = T{0}, T blue = T{0}, T alpha = T{0});
 		void dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
 		void dispatchComputeIndirect(DkGpuAddr indirect);
 		void pushConstants(DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data);
@@ -388,77 +391,95 @@ namespace dk
 		return ::dkCmdBufSignalFence(*this, &fence, flush);
 	}
 
-	void CmdBuf::barrier(DkBarrier mode, uint32_t invalidateFlags)
+	inline void CmdBuf::barrier(DkBarrier mode, uint32_t invalidateFlags)
 	{
 		::dkCmdBufBarrier(*this, mode, invalidateFlags);
 	}
 
-	void CmdBuf::bindShader(DkShader const& shader)
+	inline void CmdBuf::bindShader(DkShader const& shader)
 	{
 		::dkCmdBufBindShader(*this, &shader);
 	}
 
-	void CmdBuf::bindShaders(uint32_t stageMask, detail::ArrayProxy<DkShader const* const> shaders)
+	inline void CmdBuf::bindShaders(uint32_t stageMask, detail::ArrayProxy<DkShader const* const> shaders)
 	{
 		::dkCmdBufBindShaders(*this, stageMask, shaders.data(), shaders.size());
 	}
 
-	void CmdBuf::bindUniformBuffer(DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize)
+	inline void CmdBuf::bindUniformBuffer(DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize)
 	{
 		::dkCmdBufBindUniformBuffer(*this, stage, id, bufAddr, bufSize);
 	}
 
-	void CmdBuf::bindUniformBuffers(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers)
+	inline void CmdBuf::bindUniformBuffers(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers)
 	{
 		::dkCmdBufBindUniformBuffers(*this, stage, firstId, buffers.data(), buffers.size());
 	}
 
-	void CmdBuf::bindStorageBuffer(DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize)
+	inline void CmdBuf::bindStorageBuffer(DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize)
 	{
 		::dkCmdBufBindStorageBuffer(*this, stage, id, bufAddr, bufSize);
 	}
 
-	void CmdBuf::bindStorageBuffers(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers)
+	inline void CmdBuf::bindStorageBuffers(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers)
 	{
 		::dkCmdBufBindStorageBuffers(*this, stage, firstId, buffers.data(), buffers.size());
 	}
 
-	void CmdBuf::bindTexture(DkStage stage, uint32_t id, DkResHandle handle)
+	inline void CmdBuf::bindTexture(DkStage stage, uint32_t id, DkResHandle handle)
 	{
 		::dkCmdBufBindTexture(*this, stage, id, handle);
 	}
 
-	void CmdBuf::bindTextures(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles)
+	inline void CmdBuf::bindTextures(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles)
 	{
 		::dkCmdBufBindTextures(*this, stage, firstId, handles.data(), handles.size());
 	}
 
-	void CmdBuf::bindImage(DkStage stage, uint32_t id, DkResHandle handle)
+	inline void CmdBuf::bindImage(DkStage stage, uint32_t id, DkResHandle handle)
 	{
 		::dkCmdBufBindImage(*this, stage, id, handle);
 	}
 
-	void CmdBuf::bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles)
+	inline void CmdBuf::bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles)
 	{
 		::dkCmdBufBindImages(*this, stage, firstId, handles.data(), handles.size());
 	}
 
-	void CmdBuf::bindImageDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors)
+	inline void CmdBuf::bindImageDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors)
 	{
 		::dkCmdBufBindImageDescriptorSet(*this, setAddr, numDescriptors);
 	}
 
-	void CmdBuf::dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)
+	inline void CmdBuf::bindRenderTargets(detail::ArrayProxy<DkImageView const* const> colorTargets, DkImageView const* depthTarget)
+	{
+		::dkCmdBufBindRenderTargets(*this, colorTargets.data(), colorTargets.size(), depthTarget);
+	}
+
+	inline void CmdBuf::clearColor(uint32_t targetId, uint32_t clearMask, const void* clearData)
+	{
+		::dkCmdBufClearColor(*this, targetId, clearMask, clearData);
+	}
+
+	template <typename T>
+	inline void CmdBuf::clearColor(uint32_t targetId, uint32_t clearMask, T red, T green, T blue, T alpha)
+	{
+		static_assert(sizeof(T) == 4, "Bad size for T");
+		T data[] = { red, green, blue, alpha };
+		::dkCmdBufClearColor(*this, targetId, clearMask, data);
+	}
+
+	inline void CmdBuf::dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)
 	{
 		::dkCmdBufDispatchCompute(*this, numGroupsX, numGroupsY, numGroupsZ);
 	}
 
-	void CmdBuf::dispatchComputeIndirect(DkGpuAddr indirect)
+	inline void CmdBuf::dispatchComputeIndirect(DkGpuAddr indirect)
 	{
 		::dkCmdBufDispatchComputeIndirect(*this, indirect);
 	}
 
-	void CmdBuf::pushConstants(DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data)
+	inline void CmdBuf::pushConstants(DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data)
 	{
 		::dkCmdBufPushConstants(*this, uboAddr, uboSize, offset, size, data);
 	}

@@ -95,6 +95,7 @@ DK_CONSTEXPR void dkDeviceMakerDefaults(DkDeviceMaker* maker)
 #define DK_DEFAULT_MAX_COMPUTE_CONCURRENT_JOBS 128
 #define DK_SHADER_CODE_ALIGNMENT 0x100
 #define DK_IMAGE_DESCRIPTOR_ALIGNMENT 0x20
+#define DK_MAX_RENDER_TARGETS 8
 
 enum
 {
@@ -568,6 +569,8 @@ void dkCmdBufBindStorageBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, D
 void dkCmdBufBindTextures(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHandle const handles[], uint32_t numHandles);
 void dkCmdBufBindImages(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHandle const handles[], uint32_t numHandles);
 void dkCmdBufBindImageDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t numDescriptors);
+void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTargets[], uint32_t numColorTargets, DkImageView const* depthTarget);
+void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, const void* clearData);
 void dkCmdBufDispatchCompute(DkCmdBuf obj, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
 void dkCmdBufDispatchComputeIndirect(DkCmdBuf obj, DkGpuAddr indirect);
 void dkCmdBufPushConstants(DkCmdBuf obj, DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data);
@@ -628,6 +631,24 @@ static inline void dkCmdBufBindTexture(DkCmdBuf obj, DkStage stage, uint32_t id,
 static inline void dkCmdBufBindImage(DkCmdBuf obj, DkStage stage, uint32_t id, DkResHandle handle)
 {
 	dkCmdBufBindImages(obj, stage, id, &handle, 1);
+}
+
+static inline void dkCmdBufClearColorFloat(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, float red, float green, float blue, float alpha)
+{
+	float data[] = { red, green, blue, alpha };
+	dkCmdBufClearColor(obj, targetId, clearMask, data);
+}
+
+static inline void dkCmdBufClearColorSint(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, int32_t red, int32_t green, int32_t blue, int32_t alpha)
+{
+	int32_t data[] = { red, green, blue, alpha };
+	dkCmdBufClearColor(obj, targetId, clearMask, data);
+}
+
+static inline void dkCmdBufClearColorUint(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, uint32_t red, uint32_t green, uint32_t blue, uint32_t alpha)
+{
+	uint32_t data[] = { red, green, blue, alpha };
+	dkCmdBufClearColor(obj, targetId, clearMask, data);
 }
 
 static inline DkImageLayout const* dkImageGetLayout(DkImage const* obj)

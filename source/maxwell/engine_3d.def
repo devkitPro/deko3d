@@ -77,8 +77,9 @@ engine _3D 0xB197;
 	0x05 TileMode bits (
 		0..3  Width;
 		4..7  Height;
-		8..10 Depth;
-		12    Layout;
+		8..11 Depth;
+		12    IsLinear;
+		16    Is3D;
 	);
 	0x06 ArrayMode bits (
 		0..15 Layers;
@@ -150,6 +151,9 @@ engine _3D 0xB197;
 	1 ZeroToOne;
 );
 
+0x360 ClearColor array[4];
+0x364 ClearDepth;
+
 0x367 ColorReductionEnable bool;
 
 0x369 InvalidateShaderCaches bits (
@@ -209,6 +213,16 @@ engine _3D 0xB197;
 0x3F6 SetCoverageModulationTableEnable bool;
 0x3F7 Unknown3f7;
 
+0x3FD ScreenScissorHorizontal bits (
+	0..15  X;
+	16..31 Width;
+);
+
+0x3FE ScreenScissorVertical bits (
+	0..15  Y;
+	16..31 Height;
+);
+
 0x400 Unknown400;
 
 0x433 ColorReductionConfig0;
@@ -240,6 +254,18 @@ engine _3D 0xB197;
 
 0x485 TiledCacheUnkConfig;
 
+0x487 RenderTargetControl bits (
+	0..3   NumTargets;
+	4..6   Map0;
+	7..9   Map1;
+	10..12 Map2;
+	13..15 Map3;
+	16..18 Map4;
+	19..21 Map5;
+	22..24 Map6;
+	25..27 Map7;
+);
+
 0x488 Unknown488;
 
 0x48C DepthTargetArrayMode bits (
@@ -267,9 +293,12 @@ engine _3D 0xB197;
 0x4E6 StencilFrontFuncMask;
 0x4E7 StencilFrontMask;
 
-0x4EB SetWindowOriginMode enum (
-	0 UpperLeft; // as in Direct3D/Vulkan
-	1 LowerLeft; // as in OpenGL
+0x4EB SetWindowOriginMode bits (
+	0 NegateY; // wtf
+	4 Mode enum ( // nouveau calls this TriangleRastFlip
+		0 UpperLeft; // as in Direct3D/Vulkan
+		1 LowerLeft; // as in OpenGL
+	);
 );
 
 0x509 InvalidateSamplerCacheNoWfi bits (
@@ -300,7 +329,7 @@ engine _3D 0xB197;
 0x54A SetShaderExceptions bool;
 
 0x54D MultisampleEnable bool;
-
+0x54E DepthTargetEnable bool;
 0x54F MultisampleControl bits (
 	0 AlphaToCoverage bool;
 	4 AlphaToOne bool;
@@ -385,6 +414,17 @@ engine _3D 0xB197;
 );
 
 0x670 Unknown670;
+
+0x674 ClearBuffers bits (
+	0      Depth bool;
+	1      Stencil bool;
+	2      Red bool;
+	3      Green bool;
+	4      Blue bool;
+	5      Alpha bool;
+	6..9   TargetId;
+	10..20 LayerId;
+);
 
 0x68B PipeNop;
 
