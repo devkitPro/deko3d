@@ -6,6 +6,21 @@ using namespace dk::detail;
 
 namespace
 {
+	uint32_t programId;
+
+	uint32_t getNewProgramId()
+	{
+		uint32_t newId;
+		uint32_t curId = __atomic_load_n(&programId, __ATOMIC_SEQ_CST);
+		do
+		{
+			newId = curId + 1;
+			if (newId == 0)
+				newId = 1; // roll over and skip 0
+		} while (!__atomic_compare_exchange_n(&programId, &curId, newId, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST));
+		return newId;
+	}
+
 	constexpr DkStage DkshProgramTypeToDkStage(uint32_t id)
 	{
 		switch (id)
@@ -53,9 +68,9 @@ void dkShaderInitialize(DkShader* obj, DkShaderMaker const* maker)
 	// Find the DKSH header
 	bool hasSeparateControl = maker->control != nullptr;
 	DkshHeader* phdr = (DkshHeader*)maker->control;
-	uint32_t codeBaseOffset = blk->getCodeSegOffset() + maker->codeOffset;
+	uint32_t codeBaseOffset = maker->codeOffset;
 	if (!hasSeparateControl)
-		phdr = (DkshHeader*)((u8*)blk->getCpuAddr() + maker->codeOffset);
+		phdr = (DkshHeader*)((u8*)blk->getCpuAddr() + codeBaseOffset);
 
 #ifdef DEBUG
 	// Validate the DKSH header
@@ -87,16 +102,22 @@ void dkShaderInitialize(DkShader* obj, DkShaderMaker const* maker)
 	// Initialize the DkShader struct
 	obj->m_magic = DKSH_MAGIC;
 	obj->m_stage = DkshProgramTypeToDkStage(progHdr.type);
+	obj->m_id    = getNewProgramId();
 	obj->m_hdr   = progHdr;
+	obj->m_cbuf1IovaShift8 = (blk->getGpuAddrPitch() + codeBaseOffset + obj->m_hdr.constbuf1_off) >> 8;
 
 	// Fix up code/data offsets
+	codeBaseOffset += blk->getCodeSegOffset();
 	obj->m_hdr.entrypoint    += codeBaseOffset;
 	obj->m_hdr.constbuf1_off += codeBaseOffset;
 
 #ifdef DK_SHADER_DEBUG
+	printf("ID:    0x%08x\n", obj->m_id);
 	printf("Stage: %u\n",     obj->m_stage);
 	printf("Entry: 0x%08x\n", obj->m_hdr.entrypoint);
 	printf("CB1:   0x%08x\n", obj->m_hdr.constbuf1_off);
+	printf("CB1sz: 0x%x\n",   obj->m_hdr.constbuf1_sz);
+	printf("GPR:   %u\n",     obj->m_hdr.num_gprs);
 #endif
 }
 

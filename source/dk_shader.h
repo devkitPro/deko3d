@@ -7,6 +7,8 @@ struct DkShader
 {
 	uint32_t m_magic;
 	DkStage  m_stage;
+	uint32_t m_id;
+	uint32_t m_cbuf1IovaShift8;
 	DkshProgramHeader m_hdr;
 };
 
