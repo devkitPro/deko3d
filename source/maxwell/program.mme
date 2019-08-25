@@ -10,3 +10,61 @@ SelectDriverConstbuf::
 	lsr r2 24 to mem
 	*lsl r2 8 to mem
 	lsl r1 2 to mem
+
+# Binds a program
+# Arguments:
+# - 0: Stage ID (0=VertexA 1=VertexB 2=TessCtrl 3=TessEval 4=Geometry 5=Fragment)
+# - 1: Program ID
+# - 2: Program offset (within code segment)
+# - 3: Number of registers used (GPRs)
+# (the following only for VertexB and above)
+# - 4: Compiler constbuf size
+# - 5: Compiler constbuf iova >> 8
+BindProgram::
+	ldr r1 MmeProgramIds to r7
+	fetch r2 # program id
+
+	# Do nothing if we're reloading the same program
+	sub r7 r2 to r7
+	bza r7 .redundantBind
+
+	# Otherwise let's get rollin'
+	addi r1 MmeProgramIds'0 to addr
+	r2 to mem; fetch r2 # program offset
+	addi r1 MmeProgramOffsets'0 to addr
+	r2 to mem; fetch r3 # num gprs
+	lsl r1 SetProgram_Shift to r7 # also reused as SetProgramNConfigStageId_Shift
+	addi r7 SetProgramNConfig'1 to addr
+	addi r7 SetProgramNConfigEnable to mem # i.e. Enable | (stageId << SetProgramNConfigStageId_Shift)
+	r2 to mem # i.e. write to SetProgramNOffset
+	addi r7 SetProgramNNumRegisters'0 to addr
+	bz r1 .end # for VertexA, we skip constbuf setting
+	r3 to mem # i.e. write to SetProgramNNumRegisters
+
+	# Select the constbuf
+	dec r1 to r1 # adjust stage id for cbuf registers
+	ConstbufSelectorSize'1 to addr; fetch r2 # fetch cbuf size
+	bz r2 .unbindCbuf   # if size is zero then we unbind c[0x1] instead
+	lsl r1 Bind_Shift to r7
+	r2 to mem; fetch r3 # write size; fetch cbuf iova >> 8
+	lsr r3 24 to mem    # write iova high
+	lsl r3 8 to mem     # write iova low
+
+	# Bind the stage's compiler constbuf (i.e. c[0x1])
+	*addi r7 BindNConstbuf'0 to addr
+	BindNConstbufValid | (1 << BindNConstbufIndex_Shift) to mem
+
+.unbindCbuf
+	# Unbind the stage's c[0x1]
+	*addi r7 BindNConstbuf'0 to addr; fetch r3 # dummy fetch for cbuf iova >> 8
+	(1 << BindNConstbufIndex_Shift) to mem
+
+.redundantBind
+	fetch r2  # program offset
+	bz r1 .end
+	fetch r2  # num gprs
+	*fetch r2 # cbuf size
+	fetch r2  # cbuf iova >> 8
+.end
+	exit
+	nop

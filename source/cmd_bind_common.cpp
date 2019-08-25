@@ -2,7 +2,11 @@
 #include "dk_shader.h"
 #include "cmdbuf_writer.h"
 
+#include "mme_macros.h"
+#include "engine_3d.h"
+
 using namespace dk::detail;
+using namespace maxwell;
 
 namespace
 {
@@ -77,7 +81,62 @@ void dkCmdBufBindShaders(DkCmdBuf obj, uint32_t stageMask, DkShader const* const
 	}
 
 	stageMask &= DkStageFlag_GraphicsMask;
-	// TODO: bind shit
+	for (uint32_t i = 0; i < numShaders; i ++)
+	{
+		DkShader const* shader = shaders[i];
+		uint32_t curMask = 1U << shader->m_stage;
+		if (!(stageMask & curMask))
+			continue;
+
+		uint32_t sizeReq = 7;
+		auto& hdr = shader->m_hdr;
+		switch (shader->m_stage)
+		{
+			default:
+				break;
+			case DkStage_Vertex:
+				sizeReq += hdr.vert.alt_num_gprs ? 5 : 1;
+				break;
+			case DkStage_Fragment:
+				sizeReq += 8;
+				break;
+		}
+
+		w.reserve(sizeReq);
+		if (shader->m_stage == DkStage_Vertex)
+		{
+			if (hdr.vert.alt_num_gprs)
+				w << Macro(BindProgram, 0, shader->m_id, hdr.vert.alt_entrypoint, hdr.vert.alt_num_gprs);
+			else
+				w << CmdInline(3D, SetProgram::Config{0}, 0); // disable VertexA
+		}
+
+		w << Macro(BindProgram, 1+unsigned(shader->m_stage),
+			shader->m_id,
+			hdr.entrypoint,
+			hdr.num_gprs,
+			(hdr.constbuf1_sz + 0xFF) &~ 0xFF,
+			shader->m_cbuf1IovaShift8
+		);
+
+		switch (shader->m_stage)
+		{
+			default:
+				break;
+			case DkStage_Fragment:
+				w << MakeInlineCmd(Subchannel3D, 0x084, hdr.frag.early_fragment_tests);
+				w << MakeInlineCmd(Subchannel3D, 0x3c7, hdr.frag.post_depth_coverage);
+				w << MakeIncreasingCmd(Subchannel3D, 0x0d8, hdr.frag.param_d8, 0x20);
+				w << MakeInlineCmd(Subchannel3D, 0x489, hdr.frag.param_489);
+				w << MakeInlineCmd(Subchannel3D, 0x65b, hdr.frag.param_65b);
+				w << MakeInlineCmd(Subchannel3D, 0x1d5, hdr.frag.sample_shading ? 0x30 : 0x01);
+				break;
+		}
+
+		stageMask &= ~curMask;
+	}
+
+	// TODO: Unbind stages not found in the remaining bits of the stage mask
 }
 
 void dkCmdBufBindUniformBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkBufExtents const buffers[], uint32_t numBuffers)

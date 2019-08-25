@@ -478,6 +478,23 @@ engine _3D 0xB197;
 	);
 );
 
+0x800 SetProgram array[6] ( // one for each stage (VertexA/VertexB/TessCtrl/TessEval/Geometry/Fragment)
+	0x00 Config bits (
+		0    Enable bool;
+		4..7 StageId enum (
+			0 VertexA;
+			1 VertexB;
+			2 TessCtrl;
+			3 TessEval;
+			4 Geometry;
+			5 Fragment;
+		);
+	);
+	0x01 Offset;
+	0x03 NumRegisters;
+	0x10 next;
+);
+
 0x8C0 FirmwareCall array[32];
 
 0x8E0 ConstbufSelectorSize bits (0..16 Size;);
