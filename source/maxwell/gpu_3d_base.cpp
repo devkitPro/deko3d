@@ -78,7 +78,7 @@ void tag_DkQueue::setup3DEngine()
 	w << CmdInline(3D, Unknown1d3{}, 0x3F);
 	w << MacroFillRegisterArray<E::WindowRectangle>(0);
 	w << CmdInline(3D, ClearBufferFlags{}, E::ClearBufferFlags::StencilMask{} | E::ClearBufferFlags::Scissor{});
-	w << MacroSetRegisterInArray<E::Scissor>(E::Scissor::Enable{}, 0);
+	w << MacroSetRegisterInArray<E::Scissor>(E::Scissor::Enable{}, 1);
 	w << Cmd(3D, Unknown5aa{}, 0x00030003);
 	w << Cmd(3D, Unknown5e5{}, 0x00020002);
 	w << CmdInline(3D, PrimitiveRestartWithDrawArrays{}, 0);
@@ -110,6 +110,7 @@ void tag_DkQueue::setup3DEngine()
 		E::SetSpaVersion::Major{5} | E::SetSpaVersion::Minor{3} // SM 5.3
 	);
 	w << Cmd(3D, SetShaderLocalMemoryWindow{}, 0x01000000);
+	w << Cmd(3D, SetShaderLocalMemory{}, Iova(m_workBuf.getScratchMem()), Iova(m_workBuf.getScratchMemSize()));
 	w << CmdInline(3D, Unknown44c{}, 0x13);
 	w << CmdInline(3D, Unknown0dd{}, 0x00);
 	w << Cmd(3D, SetRenderLayer{}, E::SetRenderLayer::UseIndexFromVTG{});

@@ -70,6 +70,7 @@ engine _3D 0xB197;
 0x1DF SetShaderLocalMemoryWindow;
 
 0x1E4 SetShaderLocalMemory iova;
+0x1E6 SetShaderLocalMemorySize iova; // 40-bit size
 
 0x200 RenderTarget array[8] (
 	0x00 Addr iova;
