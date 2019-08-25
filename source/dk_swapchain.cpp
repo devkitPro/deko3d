@@ -93,6 +93,7 @@ DkResult tag_DkSwapchain::initialize(void* nativeWindow, DkImage const* const im
 #endif
 
 		// Configure this image
+		m_images[i] = &img;
 		grbuf.nvmap_id = img.m_memBlock->getId();
 		grbuf.stride = widthAligned;
 		grbuf.total_size = img.m_layerSize;
@@ -202,7 +203,13 @@ int dkQueueAcquireImage(DkQueue obj, DkSwapchain swapchain)
 
 void dkQueuePresentImage(DkQueue obj, DkSwapchain swapchain, int imageSlot)
 {
-	// TODO: Decompress the image if necessary
+#ifdef DEBUG
+	if (imageSlot < 0 || (unsigned)imageSlot >= swapchain->getNumImages())
+		return obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+	DkImage const* image = swapchain->getImage(imageSlot);
+	if (image->m_flags & DkImageFlags_HwCompression)
+		obj->decompressSurface(image);
 
 	DkFence fence;
 	obj->signalFence(fence, true);

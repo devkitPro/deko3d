@@ -123,4 +123,6 @@ public:
 	void submitCommands(DkCmdList list);
 	void flush();
 	void waitIdle();
+
+	void decompressSurface(DkImage const* image);
 };

@@ -45,6 +45,26 @@ namespace
 	{
 		return MacroFillRegisters(Array{} + offset, 1U << Array::Shift, Array::Count, value);
 	}
+
+	struct RenderTarget
+	{
+		DkGpuAddr m_iova;
+		uint32_t m_horizontal;
+		uint32_t m_vertical;
+		uint32_t m_format;
+		uint32_t m_tileMode;
+		uint32_t m_arrayMode;
+		uint32_t m_layerStride;
+
+		DkResult fromImageView(DkImageView const* view);
+		constexpr auto genCommands(unsigned id)
+		{
+			return Cmd(3D, RenderTarget::Addr{id},
+				Iova(m_iova),
+				m_horizontal, m_vertical,
+				m_format, m_tileMode, m_arrayMode, m_layerStride);
+		}
+	};
 }
 
 void tag_DkQueue::setup3DEngine()
@@ -222,7 +242,7 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 #endif
 
 	CmdBufWriter w{obj};
-	w.reserve(100);
+	w.reserve(2 + numColorTargets*9 + (8-numColorTargets)*1 + 1 + 4);
 
 	w << Cmd(3D, RenderTargetControl{},
 		E::RenderTargetControl::NumTargets{numColorTargets} | (076543210<<4)
@@ -239,40 +259,24 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 		if (!(view->pImage->m_flags & DkImageFlags_UsageRender))
 			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 #endif
-		DkImage const* image = view->pImage;
-		DkImageType type = view->type ? view->type : image->m_type;
-		DkImageFormat format = view->format ? view->format : image->m_format;
-		FormatTraits const& traits = formatTraits[format];
-		uint32_t targetW = image->m_dimensions[0];
-		uint32_t targetH = image->m_dimensions[1];
-		uint32_t targetD = (image->m_dimsPerLayer==3 || image->m_hasLayers) ? image->m_dimensions[2] : 1;
+		RenderTarget rt;
+#ifdef DEBUG
+		DkResult res = rt.fromImageView(view);
+		if (res != DkResult_Success)
+		{
+			obj->raiseError(DK_FUNC_ERROR_CONTEXT, res);
+			return;
+		}
+#else
+		rt.fromImageView(view);
+#endif
+		w << rt.genCommands(i);
 
 		// Update data
-		if (targetW < minWidth)  minWidth  = targetW;
-		if (targetH < minHeight) minHeight = targetH;
+		DkImage const* image = view->pImage;
+		if (image->m_dimensions[0] < minWidth)  minWidth  = image->m_dimensions[0];
+		if (image->m_dimensions[1] < minHeight) minHeight = image->m_dimensions[1];
 		if (i == 0) msMode = (DkMsMode)image->m_numSamplesLog2;
-
-		// TODO: Make this more robust
-		if (!(image->m_flags & DkImageFlags_PitchLinear))
-		{
-			using TM = E::RenderTarget::TileMode;
-			DkGpuAddr iova = image->m_iova + view->layerOffset * image->m_layerSize;
-			uint32_t tileWidth = 64 / traits.bytesPerBlock;
-			w << Cmd(3D, RenderTarget::Addr{i},
-				Iova(iova),
-				(targetW + tileWidth - 1) &~ (tileWidth - 1),
-				targetH,
-				traits.renderFmt,
-				TM::Width{image->m_tileW} | TM::Height{image->m_tileH} | TM::Depth{image->m_tileD} | TM::Is3D{type==DkImageType_3D},
-				targetD,
-				image->m_layerSize >> 2
-			);
-		}
-		else
-		{
-			// TODO
-			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
-		}
 	}
 
 	// Disable all remaining render targets
@@ -322,6 +326,105 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 		*/
 	}
 	w << CmdInline(3D, MultisampleMode{}, msaaMode);
+}
+
+void tag_DkQueue::decompressSurface(DkImage const* image)
+{
+	RenderTarget rt = {};
+	DkImageView view;
+	dkImageViewDefaults(&view, image);
+	rt.fromImageView(&view);
+
+	CmdBufWriter w{&m_cmdBuf};
+	w.reserve(34);
+
+	w << SetShadowRamControl(SRC::MethodPassthrough);
+	w << rt.genCommands(0);
+	w << CmdInline(3D, MultisampleMode{}, DkMsMode_1x);
+	w << Cmd(3D, ScreenScissorHorizontal{}, rt.m_horizontal<<16, rt.m_vertical<<16);
+	w << CmdInline(3D, SetWindowOriginMode{}, E::SetWindowOriginMode::Mode::LowerLeft); // ??
+	w << CmdInline(3D, SetMultisampleRasterEnable{}, 0);
+
+	w << CmdInline(3D, SurfaceDecompress{}, 0);
+
+	w << SetShadowRamControl(SRC::MethodReplay);
+	w << rt.genCommands(0);
+	w << CmdInline(3D, MultisampleMode{}, DkMsMode_1x);
+	w << Cmd(3D, ScreenScissorHorizontal{}, rt.m_horizontal<<16, rt.m_vertical<<16);
+	w << CmdInline(3D, SetWindowOriginMode{}, E::SetWindowOriginMode::Mode::LowerLeft); // ??
+	w << CmdInline(3D, SetMultisampleRasterEnable{}, 0);
+
+	w << SetShadowRamControl(SRC::MethodTrackWithFilter);
+}
+
+DkResult RenderTarget::fromImageView(DkImageView const* view)
+{
+	DkImage const* image = view->pImage;
+	DkImageType type = view->type ? view->type : image->m_type;
+	DkImageFormat format = view->format ? view->format : image->m_format;
+	FormatTraits const& traits = formatTraits[format];
+
+	bool layered;
+	switch (type)
+	{
+#ifndef DEBUG
+		default:
+#endif
+		case DkImageType_2D:
+		case DkImageType_3D:
+		case DkImageType_2DMS:
+		case DkImageType_Rectangle:
+			layered = false;
+			break;
+		case DkImageType_2DArray:
+		case DkImageType_2DMSArray:
+		case DkImageType_Cubemap:
+		case DkImageType_CubemapArray:
+			layered = true;
+			break;
+#ifdef DEBUG
+		default:
+			return DkResult_BadInput;
+#endif
+	}
+
+	m_iova       = image->m_iova;
+	m_vertical   = image->m_dimensions[1];
+	m_format     = traits.renderFmt;
+
+	using TM = E::RenderTarget::TileMode;
+	if (!(image->m_flags & DkImageFlags_PitchLinear))
+	{
+		uint32_t tileWidth = 64 / traits.bytesPerBlock;
+
+		if (layered)
+		{
+			m_iova += view->layerOffset * image->m_layerSize;
+			if (view->layerCount)
+				m_arrayMode = view->layerCount;
+			else
+				m_arrayMode -= view->layerOffset;
+		}
+
+		m_horizontal  = (image->m_dimensions[0] + tileWidth - 1) &~ (tileWidth - 1);
+		m_tileMode    = TM::Width{image->m_tileW} | TM::Height{image->m_tileH} | TM::Depth{image->m_tileD} | TM::Is3D{type==DkImageType_3D};
+		m_arrayMode   = (type==DkImageType_3D || layered) ? image->m_dimensions[2] : 1;
+		m_layerStride = image->m_layerSize >> 2;
+	}
+	else
+	{
+#ifdef DEBUG
+		if (layered)
+			return DkResult_BadInput;
+#endif
+
+		m_horizontal  = image->m_stride;
+		m_tileMode    = TM::IsLinear{};
+		m_arrayMode   = 0;
+		m_layerStride = 0;
+	}
+
+	return DkResult_Success;
 }
 
 void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, const void* clearData)

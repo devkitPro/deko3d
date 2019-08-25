@@ -28,6 +28,8 @@ engine _3D 0xB197;
 	20    Increment;
 );
 
+0x0b8 SurfaceDecompress;
+
 0x0BB Unknown0bb;
 
 0x0c0 Unknown0c0;

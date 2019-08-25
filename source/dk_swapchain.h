@@ -12,6 +12,9 @@ public:
 	{ }
 	~tag_DkSwapchain();
 
+	uint32_t getNumImages() const noexcept { return m_numImages; }
+	DkImage const* getImage(unsigned i) const noexcept { return m_images[i]; }
+
 	DkResult initialize(void* nativeWindow, DkImage const* const images[], uint32_t numImages);
 	void acquireImage(int& imageSlot, DkFence& fence);
 	void presentImage(int imageSlot, DkFence const& fence);
