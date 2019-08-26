@@ -5,6 +5,8 @@
 #include "mme_macros.h"
 #include "engine_3d.h"
 
+#include "driver_constbuf.h"
+
 using namespace dk::detail;
 using namespace maxwell;
 
@@ -133,10 +135,20 @@ void dkCmdBufBindShaders(DkCmdBuf obj, uint32_t stageMask, DkShader const* const
 				break;
 		}
 
+		w.flush(true);
 		stageMask &= ~curMask;
 	}
 
-	// TODO: Unbind stages not found in the remaining bits of the stage mask
+	// Unbind stages not found in the remaining bits of the stage mask
+	// (except for the Vertex stage, which is always enabled)
+	stageMask &= ~DkStageFlag_Vertex;
+	if (stageMask)
+	{
+		w.reserve(__builtin_popcount(stageMask));
+		for (unsigned i = DkStage_TessCtrl; i < DkStage_MaxGraphics; i ++)
+			if (stageMask & (1U<<i))
+				w << CmdInline(3D, SetProgram::Config{i+1}, Engine3D::SetProgram::Config::StageId{i+1});
+	}
 }
 
 void dkCmdBufBindUniformBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkBufExtents const buffers[], uint32_t numBuffers)
@@ -170,7 +182,18 @@ void dkCmdBufBindUniformBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, D
 		return;
 	}
 
-	// TODO: bind shit
+	w.reserve(5*numBuffers);
+	for (uint32_t i = 0; i < numBuffers; i ++)
+	{
+		DkBufExtents const& buf = buffers[i];
+		if (buf.size)
+		{
+			w << Cmd(3D, ConstbufSelectorSize{}, (buf.size + 0xFF) &~ 0xFF, Iova(buf.addr));
+			w << CmdInline(3D, Bind::Constbuf{stage}, Engine3D::Bind::Constbuf::Valid{} | Engine3D::Bind::Constbuf::Index{2+firstId+i});
+		}
+		else
+			w << CmdInline(3D, Bind::Constbuf{stage}, Engine3D::Bind::Constbuf::Index{2+firstId+i});
+	}
 }
 
 void dkCmdBufBindStorageBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkBufExtents const buffers[], uint32_t numBuffers)
@@ -200,7 +223,14 @@ void dkCmdBufBindStorageBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, D
 		return;
 	}
 
-	// TODO: bind shit
+	static_assert(sizeof(DkBufExtents)        == sizeof(BufDescriptor),           "Bad definition for DkBufExtents");
+	static_assert(offsetof(DkBufExtents,addr) == offsetof(BufDescriptor,address), "Bad definition for DkBufExtents");
+	static_assert(offsetof(DkBufExtents,size) == offsetof(BufDescriptor,size),    "Bad definition for DkBufExtents");
+
+	w.reserve(2 + numBuffers*4);
+	w << MacroInline(SelectDriverConstbuf, offsetof(GraphicsDriverCbuf, data[stage].storageBufs[firstId])/4);
+	w << CmdList<1>{ MakeCmdHeader(NonIncreasing, numBuffers*4, Subchannel3D, Engine3D::LoadConstbufData{}) };
+	w.addRawData(buffers, numBuffers*sizeof(DkBufExtents));
 }
 
 void dkCmdBufBindTextures(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHandle const handles[], uint32_t numHandles)
@@ -229,7 +259,11 @@ void dkCmdBufBindTextures(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHa
 		return;
 	}
 
-	// TODO: bind shit
+	w.reserve(3 + numHandles);
+	w << MacroInline(SelectDriverConstbuf, offsetof(GraphicsDriverCbuf, data[stage].textures[firstId])/4);
+	w << CmdInline(3D, PipeNop{}, 0);
+	w << CmdList<1>{ MakeCmdHeader(NonIncreasing, numHandles, Subchannel3D, Engine3D::LoadConstbufData{}) };
+	w.addRawData(handles, numHandles*sizeof(DkResHandle));
 }
 
 void dkCmdBufBindImages(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHandle const handles[], uint32_t numHandles)
@@ -258,5 +292,9 @@ void dkCmdBufBindImages(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHand
 		return;
 	}
 
-	// TODO: bind shit
+	w.reserve(3 + numHandles);
+	w << MacroInline(SelectDriverConstbuf, offsetof(GraphicsDriverCbuf, data[stage].images[firstId])/4);
+	w << CmdInline(3D, PipeNop{}, 0);
+	w << CmdList<1>{ MakeCmdHeader(NonIncreasing, numHandles, Subchannel3D, Engine3D::LoadConstbufData{}) };
+	w.addRawData(handles, numHandles*sizeof(DkResHandle));
 }

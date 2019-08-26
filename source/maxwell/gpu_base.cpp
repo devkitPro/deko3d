@@ -152,12 +152,13 @@ void dkCmdBufPushConstants(DkCmdBuf obj, DkGpuAddr uboAddr, uint32_t uboSize, ui
 
 	uint32_t sizeWords = size/4;
 	CmdBufWriter w{obj};
-	w.reserve(6 + sizeWords);
+	w.reserve(7 + sizeWords);
 
 	w << Cmd(3D, ConstbufSelectorSize{},
 		(uboSize + 0xFF) &~ 0xFF, Iova(uboAddr), offset
 	);
 
+	w << CmdInline(3D, PipeNop{}, 0);
 	w << CmdList<1>{ MakeCmdHeader(NonIncreasing, sizeWords, Subchannel3D, Engine3D::LoadConstbufData{}) };
 	w.addRawData(data, size);
 }
