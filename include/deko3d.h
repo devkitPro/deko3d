@@ -104,6 +104,8 @@ DK_CONSTEXPR void dkDeviceMakerDefaults(DkDeviceMaker* maker)
 #define DK_SHADER_CODE_ALIGNMENT 0x100
 #define DK_IMAGE_DESCRIPTOR_ALIGNMENT 0x20
 #define DK_MAX_RENDER_TARGETS 8
+#define DK_NUM_VIEWPORTS 16
+#define DK_NUM_SCISSORS 16
 
 enum
 {
@@ -518,6 +520,24 @@ DK_CONSTEXPR DkResHandle dkMakeTextureHandle(uint32_t imageId, uint32_t samplerI
 	return dkMakeImageHandle(imageId) | dkMakeSamplerHandle(samplerId);
 }
 
+typedef struct DkViewport
+{
+	float x;
+	float y;
+	float width;
+	float height;
+	float near;
+	float far;
+} DkViewport;
+
+typedef struct DkScissor
+{
+	uint32_t x;
+	uint32_t y;
+	uint32_t width;
+	uint32_t height;
+} DkScissor;
+
 typedef struct DkDispatchIndirectData
 {
 	uint32_t numGroupsX;
@@ -573,6 +593,8 @@ void dkCmdBufBindTextures(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHa
 void dkCmdBufBindImages(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHandle const handles[], uint32_t numHandles);
 void dkCmdBufBindImageDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t numDescriptors);
 void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTargets[], uint32_t numColorTargets, DkImageView const* depthTarget);
+void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewports[], uint32_t numViewports);
+void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors);
 void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, const void* clearData);
 void dkCmdBufDispatchCompute(DkCmdBuf obj, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
 void dkCmdBufDispatchComputeIndirect(DkCmdBuf obj, DkGpuAddr indirect);

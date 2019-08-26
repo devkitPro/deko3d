@@ -146,6 +146,8 @@ namespace dk
 		void bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles);
 		void bindImageDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors);
 		void bindRenderTargets(detail::ArrayProxy<DkImageView const* const> colorTargets, DkImageView const* depthTarget = nullptr);
+		void setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports);
+		void setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors);
 		void clearColor(uint32_t targetId, uint32_t clearMask, const void* clearData);
 		template<typename T> void clearColor(uint32_t targetId, uint32_t clearMask, T red = T{0}, T green = T{0}, T blue = T{0}, T alpha = T{0});
 		void dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
@@ -454,6 +456,16 @@ namespace dk
 	inline void CmdBuf::bindRenderTargets(detail::ArrayProxy<DkImageView const* const> colorTargets, DkImageView const* depthTarget)
 	{
 		::dkCmdBufBindRenderTargets(*this, colorTargets.data(), colorTargets.size(), depthTarget);
+	}
+
+	inline void CmdBuf::setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports)
+	{
+		::dkCmdBufSetViewports(*this, firstId, viewports.data(), viewports.size());
+	}
+
+	inline void CmdBuf::setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors)
+	{
+		::dkCmdBufSetScissors(*this, firstId, scissors.data(), scissors.size());
 	}
 
 	inline void CmdBuf::clearColor(uint32_t targetId, uint32_t clearMask, const void* clearData)

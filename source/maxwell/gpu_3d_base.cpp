@@ -1,3 +1,4 @@
+#include <math.h>
 #include "../dk_device.h"
 #include "../dk_queue.h"
 #include "../dk_image.h"
@@ -327,6 +328,82 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 		*/
 	}
 	w << CmdInline(3D, MultisampleMode{}, msaaMode);
+}
+
+void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewports[], uint32_t numViewports)
+{
+#ifdef DEBUG
+	if (firstId > DK_NUM_VIEWPORTS || numViewports > DK_NUM_VIEWPORTS || (firstId+numViewports) > DK_NUM_VIEWPORTS)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (numViewports && !viewports)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	bool isOriginOpenGL = obj->getDevice()->isOriginModeOpenGL();
+	bool isDepthOpenGL  = obj->getDevice()->isDepthModeOpenGL();
+
+	CmdBufWriter w{obj};
+	w.reserve(12*numViewports);
+
+	for (uint32_t i = 0; i < numViewports; i ++)
+	{
+		DkViewport const& v = viewports[i];
+		uint32_t id = firstId + i;
+
+		float halfWidth = 0.5f*v.width;
+		float halfHeight = 0.5f*v.height;
+		float depthRange = v.far - v.near;
+
+		float scaleX = halfWidth;
+		float scaleY = isOriginOpenGL ? halfHeight : (-halfHeight);
+		float scaleZ = isDepthOpenGL ? 0.5f*depthRange : depthRange;
+
+		float offsetX = v.x + halfWidth;
+		float offsetY = v.y + halfHeight;
+		float offsetZ = isDepthOpenGL ? 0.5f*(v.near + v.far) : v.near;
+
+		uint32_t viewportX = floorf(v.x);
+		uint32_t viewportY = floorf(v.y);
+		uint32_t viewportW = ceilf(v.x+v.width)-viewportX;
+		uint32_t viewportH = ceilf(v.y+v.height)-viewportY;
+
+		float viewportNear = depthRange >= 0 ? v.near : v.far;
+		float viewportFar  = depthRange >= 0 ? v.far  : v.near;
+
+		w << Cmd(3D, ViewportTransform::ScaleX{id},
+			scaleX, scaleY, scaleZ,
+			offsetX, offsetY, offsetZ);
+		w << Cmd(3D, Viewport::Horizontal{id},
+			viewportX | (viewportW << 16),
+			viewportY | (viewportH << 16),
+			viewportNear,
+			viewportFar);
+	}
+}
+
+void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors)
+{
+#ifdef DEBUG
+	if (firstId > DK_NUM_SCISSORS || numScissors > DK_NUM_SCISSORS || (firstId+numScissors) > DK_NUM_SCISSORS)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (numScissors && !scissors)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	CmdBufWriter w{obj};
+	w.reserve(3*numScissors);
+
+	for (uint32_t i = 0; i < numScissors; i ++)
+	{
+		DkScissor const& s = scissors[i];
+		uint32_t id = firstId + i;
+
+		w << Cmd(3D, Scissor::Horizontal{id},
+			s.x | ((s.x+s.width) <<16),
+			s.y | ((s.y+s.height)<<16)
+		);
+	}
+
 }
 
 void tag_DkQueue::decompressSurface(DkImage const* image)
