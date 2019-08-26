@@ -165,6 +165,21 @@ engine _3D 0xB197;
 	12 Constant bool;
 );
 
+0x36B SetPolygonModeFront enum (
+	0x1B00 Point;
+	0x1B01 Line;
+	0x1B02 Fill;
+);
+0x36C SetPolygonModeBack enum (
+	0x1B00 Point;
+	0x1B01 Line;
+	0x1B02 Fill;
+);
+
+0x370 PolygonOffsetPointEnable bool;
+0x371 PolygonOffsetLineEnable bool;
+0x372 PolygonOffsetFillEnable bool;
+
 0x378 FragmentBarrier;
 
 0x37A PrimitiveRestartWithDrawArrays bool;
@@ -303,6 +318,8 @@ engine _3D 0xB197;
 		1 LowerLeft; // as in OpenGL
 	);
 );
+0x4EC LineWidthSmooth;
+0x4ED LineWidthAliased;
 
 0x509 InvalidateSamplerCacheNoWfi bits (
 	0 Lines enum (
@@ -341,6 +358,8 @@ engine _3D 0xB197;
 0x557 SetTexSamplerPool iova;
 0x559 SetTexSamplerPoolMaximumIndex;
 
+0x55B PolygonOffsetFactor;
+
 0x55D SetTexHeaderPool iova;
 0x55F SetTexHeaderPoolMaximumIndex;
 
@@ -348,6 +367,8 @@ engine _3D 0xB197;
 0x565 StencilTwoSideEnable bool;
 
 0x56D CsaaEnable bool;
+
+0x56F PolygonOffsetUnits;
 
 0x573 SetRenderLayer bits (
 	0..15 Index;
@@ -390,12 +411,25 @@ engine _3D 0xB197;
 
 0x5F4 IndexArrayLimitIova iova; // it looks like a 40-bit iova, official sw sets to 0xFFFFFFFFFF
 
+0x61F PolygonOffsetClamp;
 0x620 IsVertexArrayPerInstance array[16] bool;
 
 0x644 VertexProgramPointSize bits (
 	0 Enable bool;
 	4..11 Unknown4;
 );
+
+0x646 CullFaceEnable bool;
+0x647 SetFrontFace enum (
+	0x900 CW;
+	0x901 CCW;
+);
+0x648 SetCullFace enum (
+	0x404 Front;
+	0x405 Back;
+	0x408 FrontAndBack;
+);
+0x649 SetPixelCenterInteger bool;
 
 0x64B ViewportTransformEnable bool;
 

@@ -146,6 +146,7 @@ namespace dk
 		void bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles);
 		void bindImageDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors);
 		void bindRenderTargets(detail::ArrayProxy<DkImageView const* const> colorTargets, DkImageView const* depthTarget = nullptr);
+		void bindRasterizerState(DkRasterizerState const& state);
 		void setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports);
 		void setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors);
 		void clearColor(uint32_t targetId, uint32_t clearMask, const void* clearData);
@@ -297,6 +298,21 @@ namespace dk
 	{
 		DK_OPAQUE_COMMON_MEMBERS(ImageDescriptor);
 		void initialize(ImageView const& view, bool usesLoadOrStore = false);
+	};
+
+	struct RasterizerState : public ::DkRasterizerState
+	{
+		RasterizerState() : DkRasterizerState{} { ::dkRasterizerStateDefaults(this); }
+		RasterizerState& setDepthClampEnable(bool enable) { this->depthClampEnable = enable; return *this; }
+		RasterizerState& setRasterizerDiscardEnable(bool enable) { this->rasterizerDiscardEnable = enable; return *this; }
+		RasterizerState& setPolygonMode(DkPolygonMode polygonMode) { this->polygonMode = polygonMode; return *this; }
+		RasterizerState& setCullMode(DkFace cullMode) { this->cullMode = cullMode; return *this; }
+		RasterizerState& setFrontFace(DkFrontFace frontFace) { this->frontFace = frontFace; return *this; }
+		RasterizerState& setDepthBiasEnable(bool enable) { this->depthBiasEnable = enable; return *this; }
+		RasterizerState& setDepthBiasConstantFactor(float value) { this->depthBiasConstantFactor = value; return *this; }
+		RasterizerState& setDepthBiasClamp(float value) { this->depthBiasClamp = value; return *this; }
+		RasterizerState& setDepthBiasSlopeFactor(float value) { this->depthBiasSlopeFactor = value; return *this; }
+		RasterizerState& setLineWidth(float width) { this->lineWidth = width; return *this; }
 	};
 
 	struct SwapchainMaker : public ::DkSwapchainMaker
@@ -456,6 +472,11 @@ namespace dk
 	inline void CmdBuf::bindRenderTargets(detail::ArrayProxy<DkImageView const* const> colorTargets, DkImageView const* depthTarget)
 	{
 		::dkCmdBufBindRenderTargets(*this, colorTargets.data(), colorTargets.size(), depthTarget);
+	}
+
+	inline void CmdBuf::bindRasterizerState(DkRasterizerState const& state)
+	{
+		::dkCmdBufBindRasterizerState(*this, &state);
 	}
 
 	inline void CmdBuf::setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports)

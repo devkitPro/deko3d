@@ -538,6 +538,55 @@ typedef struct DkScissor
 	uint32_t height;
 } DkScissor;
 
+typedef enum DkPolygonMode
+{
+	DkPolygonMode_Point = 0,
+	DkPolygonMode_Line  = 1,
+	DkPolygonMode_Fill  = 2,
+} DkPolygonMode;
+
+typedef enum DkFace
+{
+	DkFace_None         = 0,
+	DkFace_Front        = 1,
+	DkFace_Back         = 2,
+	DkFace_FrontAndBack = 3,
+} DkFace;
+
+typedef enum DkFrontFace
+{
+	DkFrontFace_CW  = 0,
+	DkFrontFace_CCW = 1,
+} DkFrontFace;
+
+typedef struct DkRasterizerState
+{
+	uint32_t depthClampEnable : 1;
+	uint32_t rasterizerDiscardEnable : 1;
+	DkPolygonMode polygonMode : 2;
+	DkFace cullMode : 2;
+	DkFrontFace frontFace : 1;
+	uint32_t depthBiasEnable : 1;
+	float depthBiasConstantFactor;
+	float depthBiasClamp;
+	float depthBiasSlopeFactor;
+	float lineWidth;
+} DkRasterizerState;
+
+DK_CONSTEXPR void dkRasterizerStateDefaults(DkRasterizerState* state)
+{
+	state->depthClampEnable = 0;
+	state->rasterizerDiscardEnable = 0;
+	state->polygonMode = DkPolygonMode_Fill;
+	state->cullMode = DkFace_Back;
+	state->frontFace = DkFrontFace_CCW;
+	state->depthBiasEnable = 0;
+	state->depthBiasConstantFactor = 0.0f;
+	state->depthBiasClamp = 0.0f;
+	state->depthBiasSlopeFactor = 0.0f;
+	state->lineWidth = 1.0f;
+}
+
 typedef struct DkDispatchIndirectData
 {
 	uint32_t numGroupsX;
@@ -593,6 +642,7 @@ void dkCmdBufBindTextures(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHa
 void dkCmdBufBindImages(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHandle const handles[], uint32_t numHandles);
 void dkCmdBufBindImageDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t numDescriptors);
 void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTargets[], uint32_t numColorTargets, DkImageView const* depthTarget);
+void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state);
 void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewports[], uint32_t numViewports);
 void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors);
 void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, const void* clearData);
