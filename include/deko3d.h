@@ -106,6 +106,8 @@ DK_CONSTEXPR void dkDeviceMakerDefaults(DkDeviceMaker* maker)
 #define DK_MAX_RENDER_TARGETS 8
 #define DK_NUM_VIEWPORTS 16
 #define DK_NUM_SCISSORS 16
+#define DK_MAX_VERTEX_ATTRIBS 32
+#define DK_MAX_VERTEX_BUFFERS 16
 
 enum
 {
@@ -587,6 +589,61 @@ DK_CONSTEXPR void dkRasterizerStateDefaults(DkRasterizerState* state)
 	state->lineWidth = 1.0f;
 }
 
+typedef enum DkVtxAttribSize
+{
+	// One to four 32-bit components
+	DkVtxAttribSize_1x32 = 0x12,
+	DkVtxAttribSize_2x32 = 0x04,
+	DkVtxAttribSize_3x32 = 0x02,
+	DkVtxAttribSize_4x32 = 0x01,
+
+	// One to four 16-bit components
+	DkVtxAttribSize_1x16 = 0x1b,
+	DkVtxAttribSize_2x16 = 0x0f,
+	DkVtxAttribSize_3x16 = 0x05,
+	DkVtxAttribSize_4x16 = 0x03,
+
+	// One to four 8-bit components
+	DkVtxAttribSize_1x8  = 0x1d,
+	DkVtxAttribSize_2x8  = 0x18,
+	DkVtxAttribSize_3x8  = 0x13,
+	DkVtxAttribSize_4x8  = 0x0a,
+
+	// Misc arrangements
+	DkVtxAttribSize_10_10_10_2 = 0x30,
+	DkVtxAttribSize_11_11_10   = 0x31,
+} DkVtxAttribSize;
+
+typedef enum DkVtxAttribType
+{
+	DkVtxAttribType_None    = 0,
+	DkVtxAttribType_Snorm   = 1,
+	DkVtxAttribType_Unorm   = 2,
+	DkVtxAttribType_Sint    = 3,
+	DkVtxAttribType_Uint    = 4,
+	DkVtxAttribType_Sscaled = 5,
+	DkVtxAttribType_Uscaled = 6,
+	DkVtxAttribType_Float   = 7,
+} DkVtxAttribType;
+
+typedef struct DkVtxAttribState
+{
+	uint32_t bufferId : 5;
+	uint32_t : 1;
+	uint32_t isFixed : 1;
+	uint32_t offset : 14;
+	DkVtxAttribSize size : 6;
+	DkVtxAttribType type : 3;
+	uint32_t : 1;
+	uint32_t isBgra : 1;
+} DkVtxAttribState;
+
+typedef struct DkVtxBufferState
+{
+	uint32_t stride;
+	uint32_t divisor;
+} DkVtxBufferState;
+
 typedef struct DkDispatchIndirectData
 {
 	uint32_t numGroupsX;
@@ -643,6 +700,9 @@ void dkCmdBufBindImages(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHand
 void dkCmdBufBindImageDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t numDescriptors);
 void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTargets[], uint32_t numColorTargets, DkImageView const* depthTarget);
 void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state);
+void dkCmdBufBindVtxAttribState(DkCmdBuf obj, DkVtxAttribState const attribs[], uint32_t numAttribs);
+void dkCmdBufBindVtxBufferState(DkCmdBuf obj, DkVtxBufferState const buffers[], uint32_t numBuffers);
+void dkCmdBufBindVtxBuffers(DkCmdBuf obj, uint32_t firstId, DkBufExtents const buffers[], uint32_t numBuffers);
 void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewports[], uint32_t numViewports);
 void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors);
 void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, const void* clearData);
@@ -706,6 +766,12 @@ static inline void dkCmdBufBindTexture(DkCmdBuf obj, DkStage stage, uint32_t id,
 static inline void dkCmdBufBindImage(DkCmdBuf obj, DkStage stage, uint32_t id, DkResHandle handle)
 {
 	dkCmdBufBindImages(obj, stage, id, &handle, 1);
+}
+
+static inline void dkCmdBufBindVtxBuffer(DkCmdBuf obj, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize)
+{
+	DkBufExtents ext = { bufAddr, bufSize };
+	dkCmdBufBindVtxBuffers(obj, id, &ext, 1);
 }
 
 static inline void dkCmdBufClearColorFloat(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, float red, float green, float blue, float alpha)

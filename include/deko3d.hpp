@@ -146,6 +146,10 @@ namespace dk
 		void bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles);
 		void bindImageDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors);
 		void bindRenderTargets(detail::ArrayProxy<DkImageView const* const> colorTargets, DkImageView const* depthTarget = nullptr);
+		void bindVtxAttribState(detail::ArrayProxy<DkVtxAttribState const> attribs);
+		void bindVtxBufferState(detail::ArrayProxy<DkVtxBufferState const> buffers);
+		void bindVtxBuffer(uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize);
+		void bindVtxBuffers(uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers);
 		void bindRasterizerState(DkRasterizerState const& state);
 		void setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports);
 		void setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors);
@@ -477,6 +481,26 @@ namespace dk
 	inline void CmdBuf::bindRasterizerState(DkRasterizerState const& state)
 	{
 		::dkCmdBufBindRasterizerState(*this, &state);
+	}
+
+	inline void CmdBuf::bindVtxAttribState(detail::ArrayProxy<DkVtxAttribState const> attribs)
+	{
+		::dkCmdBufBindVtxAttribState(*this, attribs.data(), attribs.size());
+	}
+
+	inline void CmdBuf::bindVtxBufferState(detail::ArrayProxy<DkVtxBufferState const> buffers)
+	{
+		::dkCmdBufBindVtxBufferState(*this, buffers.data(), buffers.size());
+	}
+
+	inline void CmdBuf::bindVtxBuffer(uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize)
+	{
+		::dkCmdBufBindVtxBuffer(*this, id, bufAddr, bufSize);
+	}
+
+	inline void CmdBuf::bindVtxBuffers(uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers)
+	{
+		::dkCmdBufBindVtxBuffers(*this, firstId, buffers.data(), buffers.size());
 	}
 
 	inline void CmdBuf::setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports)

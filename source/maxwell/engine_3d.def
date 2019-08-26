@@ -268,6 +268,15 @@ engine _3D 0xB197;
 0x451 UnknownFlush;
 0x452 SetConservativeRasterEnable bool;
 
+0x458 VertexAttribState array[32] bits (
+	0..4   BufferId;
+	6      IsFixed;
+	7..20  Offset;
+	21..26 Size; // see DkVtxAttribSize enum
+	27..29 Type; // see DkVtxAttribType enum
+	31     IsBgra;
+);
+
 0x47E SetMultisampleCoverageToColorEnable bool;
 
 0x485 TiledCacheUnkConfig;
@@ -511,6 +520,18 @@ engine _3D 0xB197;
 		1 OneWord;
 	);
 );
+
+0x700 VertexArray array[16] (
+	0x00 Config bits (
+		0..11 Stride;
+		12    Enable bool;
+	);
+	0x01 Start iova;
+	0x03 Divisor;
+	0x04 next;
+);
+
+0x7C0 VertexArrayLimit array[16] iova;
 
 0x800 SetProgram array[6] ( // one for each stage (VertexA/VertexB/TessCtrl/TessEval/Geometry/Fragment)
 	0x00 Config bits (
