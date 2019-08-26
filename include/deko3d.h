@@ -64,6 +64,14 @@ typedef DkResult (*DkAllocFunc)(void* userData, size_t alignment, size_t size, v
 typedef void (*DkFreeFunc)(void* userData, void* mem);
 typedef void (*DkCmdBufAddMemFunc)(void* userData, DkCmdBuf cmdbuf, size_t minReqSize);
 
+enum
+{
+	DkDeviceFlags_DepthZeroToOne     = 0U << 8,
+	DkDeviceFlags_DepthMinusOneToOne = 1U << 8,
+	DkDeviceFlags_OriginUpperLeft    = 0U << 9,
+	DkDeviceFlags_OriginLowerLeft    = 1U << 9,
+};
+
 typedef struct DkDeviceMaker
 {
 	void* userData;
@@ -79,7 +87,7 @@ DK_CONSTEXPR void dkDeviceMakerDefaults(DkDeviceMaker* maker)
 	maker->cbError = NULL;
 	maker->cbAlloc = NULL;
 	maker->cbFree = NULL;
-	maker->flags = 0;
+	maker->flags = DkDeviceFlags_DepthZeroToOne | DkDeviceFlags_OriginUpperLeft;
 }
 
 #define DK_MEMBLOCK_ALIGNMENT 0x1000
@@ -152,15 +160,11 @@ DK_CONSTEXPR void dkCmdBufMakerDefaults(DkCmdBufMaker* maker, DkDevice device)
 
 enum
 {
-	DkQueueFlags_Graphics              = 1U << 0,
-	DkQueueFlags_Compute               = 1U << 1,
-	DkQueueFlags_Transfer              = 1U << 2,
-	DkQueueFlags_EnableZcull           = 0U << 4,
-	DkQueueFlags_DisableZcull          = 1U << 4,
-	DkQueueFlags_DepthNegativeOneToOne = 0U << 8,
-	DkQueueFlags_DepthZeroToOne        = 1U << 8,
-	DkQueueFlags_OriginLowerLeft       = 0U << 9,
-	DkQueueFlags_OriginUpperLeft       = 1U << 9,
+	DkQueueFlags_Graphics     = 1U << 0,
+	DkQueueFlags_Compute      = 1U << 1,
+	DkQueueFlags_Transfer     = 1U << 2,
+	DkQueueFlags_EnableZcull  = 0U << 4,
+	DkQueueFlags_DisableZcull = 1U << 4,
 };
 
 typedef struct DkQueueMaker
@@ -178,8 +182,7 @@ DK_CONSTEXPR void dkQueueMakerDefaults(DkQueueMaker* maker, DkDevice device)
 	maker->device = device;
 	maker->flags =
 		DkQueueFlags_Graphics | DkQueueFlags_Compute | DkQueueFlags_Transfer |
-		DkQueueFlags_EnableZcull |
-		DkQueueFlags_DepthNegativeOneToOne | DkQueueFlags_OriginLowerLeft;
+		DkQueueFlags_EnableZcull;
 	maker->commandMemorySize = DK_QUEUE_MIN_CMDMEM_SIZE;
 	maker->flushThreshold = DK_QUEUE_MIN_CMDMEM_SIZE/8;
 	maker->perWarpScratchMemorySize = 4*DK_PER_WARP_SCRATCH_MEM_ALIGNMENT;

@@ -147,20 +147,20 @@ void tag_DkQueue::setup3DEngine()
 
 	// For MinusOneToOne mode, we need to do this transform: newZ = 0.5*oldZ + 0.5
 	// For ZeroToOne mode, the incoming depth value is already in the correct range.
-	w << CmdInline(3D, SetDepthMode{}, isDepthModeOpenGL() ? E::SetDepthMode::MinusOneToOne : E::SetDepthMode::ZeroToOne); // this controls pre-transform clipping
-	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::ScaleZ{},
-		isDepthModeOpenGL() ? 0.5f : 1.0f
-	);
-	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::TranslateZ{},
-		isDepthModeOpenGL() ? 0.5f : 0.0f
-	);
+	bool isDepthOpenGL = getDevice()->isDepthModeOpenGL();
+	w << CmdInline(3D, SetDepthMode{}, isDepthOpenGL ? E::SetDepthMode::MinusOneToOne : E::SetDepthMode::ZeroToOne); // this controls pre-transform clipping
+	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::ScaleZ{}, isDepthOpenGL ? 0.5f : 1.0f);
+	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::TranslateZ{}, isDepthOpenGL ? 0.5f : 0.0f);
 
 	// Configure viewport transform XY to convert [-1,1] into [0,1]: newXY = 0.5*oldXY + 0.5
-	// Additionally, for UpperLeft origin mode, the Y value needs to be reversed since viewport seems to expect LowerLeft as origin instead.
-	// Also, I have no idea what SetWindowOriginMode is affecting, possibly gl_FragCoord?
-	w << CmdInline(3D, SetWindowOriginMode{}, isOriginModeOpenGL() ? E::SetWindowOriginMode::Mode::LowerLeft : E::SetWindowOriginMode::Mode::UpperLeft);
+	// Additionally, for UpperLeft origin mode, the Y value needs to be reversed since the incoming Y coordinate points up,
+	// and that needs to be fixed to point down.
+	// Also, SetWindowOriginMode seems to affect how the hardware treats polygons as front-facing or back-facing,
+	// but it doesn't actually flip rendering.
+	bool isOriginOpenGL = getDevice()->isOriginModeOpenGL();
+	w << CmdInline(3D, SetWindowOriginMode{}, isOriginOpenGL ? E::SetWindowOriginMode::Mode::LowerLeft : E::SetWindowOriginMode::Mode::UpperLeft);
 	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::ScaleX{}, +0.5f);
-	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::ScaleY{}, isOriginModeOpenGL() ? +0.5f : -0.5f);
+	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::ScaleY{}, isOriginOpenGL ? +0.5f : -0.5f);
 	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::TranslateX{}, +0.5f);
 	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::TranslateY{}, +0.5f);
 	w << MacroSetRegisterInArray<E::Viewport>(E::Viewport::Horizontal{}, 0U | (1U << 16)); // x=0 w=1

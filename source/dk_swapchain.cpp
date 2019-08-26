@@ -1,4 +1,5 @@
 #include "dk_swapchain.h"
+#include "dk_device.h"
 #include "dk_memblock.h"
 #include "dk_queue.h"
 #include "dk_image.h"
@@ -103,6 +104,12 @@ DkResult tag_DkSwapchain::initialize(void* nativeWindow, DkImage const* const im
 		if (R_FAILED(nwindowConfigureBuffer(m_nwin, i, &grbuf)))
 			return DkResult_Fail;
 	}
+
+	// If the origin mode is lower_left (i.e. OpenGL style), all rendered images are upside down
+	// (as in the BMP format). The compositor, of course, expects images to be stored the normal
+	// way (with Y pointing down), so we must instruct it to vertically flip whatever we feed it.
+	if (getDevice()->isOriginModeOpenGL())
+		nwindowSetTransform(m_nwin, HAL_TRANSFORM_FLIP_V);
 
 	return DkResult_Success;
 }

@@ -56,6 +56,9 @@ public:
 	constexpr dk::detail::CodeSegMgr &getCodeSeg() noexcept { return m_codeSeg; }
 	constexpr dk::detail::GpuInfo const& getGpuInfo() const noexcept { return m_gpuInfo; }
 
+	bool isDepthModeOpenGL() const noexcept { return (m_maker.flags & DkDeviceFlags_DepthMinusOneToOne) != 0; }
+	bool isOriginModeOpenGL() const noexcept { return (m_maker.flags & DkDeviceFlags_OriginLowerLeft) != 0; }
+
 	DkResult initialize() noexcept;
 	~tag_DkDevice();
 

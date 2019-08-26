@@ -112,8 +112,6 @@ public:
 	bool hasCompute() const noexcept { return (m_flags & DkQueueFlags_Compute) != 0; }
 	bool hasTransfer() const noexcept { return (m_flags & DkQueueFlags_Transfer) != 0; }
 	bool hasZcull() const noexcept { return (m_flags & DkQueueFlags_DisableZcull) == 0; }
-	bool isDepthModeOpenGL() const noexcept { return (m_flags & DkQueueFlags_DepthZeroToOne) == 0; }
-	bool isOriginModeOpenGL() const noexcept { return (m_flags & DkQueueFlags_OriginUpperLeft) == 0; }
 	bool isInErrorState() const noexcept { return m_state == Error; }
 
 	~tag_DkQueue();
