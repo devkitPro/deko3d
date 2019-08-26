@@ -24,9 +24,9 @@ BindProgram::
 	ldr r1 MmeProgramIds to r7
 	fetch r2 # program id
 
-	# Do nothing if we're reloading the same program
+	# Use fast bind path if we're reloading the same program
 	sub r7 r2 to r7
-	bza r7 .redundantBind
+	bza r7 .fastBind
 
 	# Otherwise let's get rollin'
 	addi r1 MmeProgramIds'0 to addr
@@ -38,9 +38,10 @@ BindProgram::
 	addi r7 SetProgramNConfigEnable to mem # i.e. Enable | (stageId << SetProgramNConfigStageId_Shift)
 	r2 to mem # i.e. write to SetProgramNOffset
 	addi r7 SetProgramNNumRegisters'0 to addr
-	bz r1 .end # for VertexA, we skip constbuf setting
+	*bnz r1 .cbufConfig # for VertexA, we skip constbuf setting
 	r3 to mem # i.e. write to SetProgramNNumRegisters
 
+.cbufConfig
 	# Select the constbuf
 	dec r1 to r1 # adjust stage id for cbuf registers
 	ConstbufSelectorSize'1 to addr; fetch r2 # fetch cbuf size
@@ -59,12 +60,12 @@ BindProgram::
 	*addi r7 BindNConstbuf'0 to addr; fetch r3 # dummy fetch for cbuf iova >> 8
 	(1 << BindNConstbufIndex_Shift) to mem
 
-.redundantBind
-	fetch r2  # program offset
-	bz r1 .end
-	fetch r2  # num gprs
+.fastBind
+	# The only thing we need to do is reenabling the shader stage.
+	lsl r1 SetProgram_Shift to r7 # also reused as SetProgramNConfigStageId_Shift
+	addi r7 SetProgramNConfig'1 to addr; fetch r2 # dummy fetch for program offset
+	*bnz r1 .cbufDummyFetch # for VertexA, we skip fetching constbuf params
+	addi r7 SetProgramNConfigEnable to mem; fetch r2 # i.e. Enable | (stageId << SetProgramNConfigStageId_Shift) + dummy fetch for num gprs
+.cbufDummyFetch
 	*fetch r2 # cbuf size
 	fetch r2  # cbuf iova >> 8
-.end
-	exit
-	nop
