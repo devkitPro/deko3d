@@ -149,6 +149,8 @@ engine _3D 0xB197;
 	);
 );
 
+0x35D DrawArraysFirst;
+0x35E DrawArraysCount; // seems to trigger drawing?
 0x35F SetDepthMode enum (
 	0 MinusOneToOne;
 	1 ZeroToOne;
@@ -261,6 +263,8 @@ engine _3D 0xB197;
 
 0x442 TiledCacheUnknownConfig2;
 
+0x446 VertexIdBase;
+
 0x44C Unknown44c;
 0x44D TiledCacheUnkFeatureEnable bool;
 
@@ -347,6 +351,9 @@ engine _3D 0xB197;
 	4..25 Tag;
 );
 
+0x50D DrawBaseElement;
+0x50E DrawBaseInstance;
+
 0x514 Unknown514;
 
 0x544 ClipDistanceEnable; // bitmask, one bit for each clip distance (8 in total)
@@ -400,9 +407,31 @@ engine _3D 0xB197;
 0x582 SetProgramRegion iova;
 
 0x584 Unknown584;
+0x585 VertexEndGl;
+0x586 VertexBeginGl bits (
+	0..15 Primitive enum (
+		0  Points;
+		1  Lines;
+		2  LineLoop;
+		3  LineStrip;
+		4  Triangles;
+		5  TriangleStrip;
+		6  TriangleFan;
+		7  Quads;
+		8  QuadStrip;
+		9  Polygon;
+		10 LinesAdjacency;
+		11 LineStripAdjacency;
+		12 TrianglesAdjacency;
+		13 TriangleStripAdjacency;
+		14 Patches;
+	);
+	26 InstanceNext;
+	27 InstanceCont;
+);
 
 0x593 VertexIdConfig bits (
-	12 AddVertexBase bool; // i.e. when cleared behaves like gl_VertexIndex, when set gl_VertexID
+	12 DrawArraysAddStart bool; // during non-indexed drawing: if 0, a[0x2fc] starts at 0; if 1, a[0x2fc] starts at DrawArraysFirst
 );
 
 0x597 PointRasterRules enum (
@@ -418,7 +447,15 @@ engine _3D 0xB197;
 
 0x5E5 Unknown5e5;
 
-0x5F4 IndexArrayLimitIova iova; // it looks like a 40-bit iova, official sw sets to 0xFFFFFFFFFF
+0x5F2 IndexArrayStartIova iova;
+0x5F4 IndexArrayLimitIova iova;
+0x5F6 IndexArrayFormat enum (
+	0 Int8;
+	1 Int16;
+	2 Int32;
+);
+0x5F7 DrawElementsFirst;
+0x5F8 DrawElementsCount; // seems to trigger drawing?
 
 0x61F PolygonOffsetClamp;
 0x620 IsVertexArrayPerInstance array[16] bool;

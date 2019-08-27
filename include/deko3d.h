@@ -644,6 +644,33 @@ typedef struct DkVtxBufferState
 	uint32_t divisor;
 } DkVtxBufferState;
 
+typedef enum DkPrimitive
+{
+	DkPrimitive_Points                 = 0,
+	DkPrimitive_Lines                  = 1,
+	DkPrimitive_LineLoop               = 2,
+	DkPrimitive_LineStrip              = 3,
+	DkPrimitive_Triangles              = 4,
+	DkPrimitive_TriangleStrip          = 5,
+	DkPrimitive_TriangleFan            = 6,
+	DkPrimitive_Quads                  = 7,
+	DkPrimitive_QuadStrip              = 8,
+	DkPrimitive_Polygon                = 9,
+	DkPrimitive_LinesAdjacency         = 10,
+	DkPrimitive_LineStripAdjacency     = 11,
+	DkPrimitive_TrianglesAdjacency     = 12,
+	DkPrimitive_TriangleStripAdjacency = 13,
+	DkPrimitive_Patches                = 14,
+} DkPrimitive;
+
+typedef struct DkDrawIndirectData
+{
+	uint32_t vertexCount;
+	uint32_t instanceCount;
+	uint32_t firstVertex;
+	uint32_t firstInstance;
+} DkDrawIndirectData;
+
 typedef struct DkDispatchIndirectData
 {
 	uint32_t numGroupsX;
@@ -706,6 +733,8 @@ void dkCmdBufBindVtxBuffers(DkCmdBuf obj, uint32_t firstId, DkBufExtents const b
 void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewports[], uint32_t numViewports);
 void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors);
 void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, const void* clearData);
+void dkCmdBufDraw(DkCmdBuf obj, DkPrimitive prim, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
+void dkCmdBufDrawIndirect(DkCmdBuf obj, DkPrimitive prim, DkGpuAddr indirect);
 void dkCmdBufDispatchCompute(DkCmdBuf obj, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
 void dkCmdBufDispatchComputeIndirect(DkCmdBuf obj, DkGpuAddr indirect);
 void dkCmdBufPushConstants(DkCmdBuf obj, DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data);

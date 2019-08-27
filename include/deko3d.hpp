@@ -155,6 +155,8 @@ namespace dk
 		void setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors);
 		void clearColor(uint32_t targetId, uint32_t clearMask, const void* clearData);
 		template<typename T> void clearColor(uint32_t targetId, uint32_t clearMask, T red = T{0}, T green = T{0}, T blue = T{0}, T alpha = T{0});
+		void draw(DkPrimitive prim, uint32_t numVertices, uint32_t numInstances, uint32_t firstVertex, uint32_t firstInstance);
+		void drawIndirect(DkPrimitive prim, DkGpuAddr indirect);
 		void dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
 		void dispatchComputeIndirect(DkGpuAddr indirect);
 		void pushConstants(DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data);
@@ -524,6 +526,16 @@ namespace dk
 		static_assert(sizeof(T) == 4, "Bad size for T");
 		T data[] = { red, green, blue, alpha };
 		::dkCmdBufClearColor(*this, targetId, clearMask, data);
+	}
+
+	inline void CmdBuf::draw(DkPrimitive prim, uint32_t numVertices, uint32_t numInstances, uint32_t firstVertex, uint32_t firstInstance)
+	{
+		::dkCmdBufDraw(*this, prim, numVertices, numInstances, firstVertex, firstInstance);
+	}
+
+	inline void CmdBuf::drawIndirect(DkPrimitive prim, DkGpuAddr indirect)
+	{
+		::dkCmdBufDrawIndirect(*this, prim, indirect);
 	}
 
 	inline void CmdBuf::dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)

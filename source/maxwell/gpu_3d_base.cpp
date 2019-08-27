@@ -97,7 +97,7 @@ void tag_DkQueue::setup3DEngine()
 	w << CmdInline(3D, Unknown450{}, 0x10);
 	w << CmdInline(3D, Unknown584{}, 0x0E);
 	w << MacroFillArray<E::IsVertexArrayPerInstance>(0);
-	w << CmdInline(3D, VertexIdConfig{}, E::VertexIdConfig::AddVertexBase{});
+	w << CmdInline(3D, VertexIdConfig{}, E::VertexIdConfig::DrawArraysAddStart{});
 	w << CmdInline(3D, ZcullStatCountersEnable{}, 1);
 	w << CmdInline(3D, LineWidthSeparate{}, 1);
 	w << CmdInline(3D, Unknown0c3{}, 0);
@@ -530,4 +530,25 @@ void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, con
 	w << CmdInline(3D, SetMultisampleRasterEnable{}, 0);
 
 	w << SetShadowRamControl(SRC::MethodTrackWithFilter);
+}
+
+void dkCmdBufDraw(DkCmdBuf obj, DkPrimitive prim, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+{
+	CmdBufWriter w{obj};
+	w.reserve(7);
+
+	if (firstInstance)
+		w << MacroInline(SelectDriverConstbuf, 0); // needed for updating gl_BaseInstance in the driver constbuf
+	w << Macro(Draw, prim, vertexCount, instanceCount, firstVertex, firstInstance);
+}
+
+void dkCmdBufDrawIndirect(DkCmdBuf obj, DkPrimitive prim, DkGpuAddr indirect)
+{
+	CmdBufWriter w{obj};
+	w.reserve(3);
+
+	w << MacroInline(SelectDriverConstbuf, 0); // needed for updating gl_BaseInstance in the driver constbuf
+	w << CmdList<2>{ MakeCmdHeader(IncreaseOnce, 5, Subchannel3D, MmeMacroDraw), prim };
+	w.split(CtrlCmdGpfifoEntry::NoPrefetch);
+	w.addRaw(indirect, 4, CtrlCmdGpfifoEntry::AutoKick);
 }

@@ -1,0 +1,45 @@
+
+# Non-indexed single-draw
+# Arguments:
+# - 0: Primitive
+# - 1: Vertex count
+# - 2: Instance count
+# - 3: First vertex (does *NOT* update gl_BaseVertex)
+# - 4: First instance (updates gl_BaseInstance)
+Draw::
+	fetch r6 # Fetch vertex count
+	1 to r2 # r2 = 1 (needed for later)
+	fetch r7 # Fetch instance count
+	DrawArraysFirst'0 to addr; fetch mem # Fetch first vertex
+	*bnz r7 .cancelExit # Early exit if instance count is zero
+	DrawBaseInstance'0 to addr; fetch r5 # Fetch base instance
+.cancelExit
+	bz r5 .drawLoop # skip constbuf update if base instance is 0
+	r5 to mem # (Unconditional write to DrawBaseInstance even if it's 0)
+
+	# Update gl_BaseInstance (c[0x0][0x004] in the deko3d driver constbuf)
+	# It is assumed that the caller of this macro used SelectDriverConstbuf
+	# previously (unless the BaseInstance parameter is a constant zero)
+	LoadConstbufOffset'1 to addr
+	0x004 to mem
+	r5 to mem
+
+.drawLoop
+	# Draw current instance
+	VertexBeginGl'0 to addr
+	r1 to mem
+	DrawArraysCount'0 to addr
+	r6 to mem
+	VertexEndGl'0 to addr'mem
+
+	# Decrement instance counter and loop if there are more instances to draw
+	dec r7 to r7
+	bnz r7 .drawLoop
+	ei VertexBeginGlInstanceNext_Shift:r1 0:r2 2 to r1 # i.e. r1 |= 1<<VertexBeginGlInstanceNext_Shift (and clear InstanceCont)
+
+	# We're done; now reset gl_BaseInstance back to 0 if needed
+	*bnz r5 .resetBaseInstance
+	LoadConstbufOffset'1 to addr
+.resetBaseInstance
+	*0x004 to mem
+	0 to mem
