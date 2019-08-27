@@ -150,13 +150,17 @@ namespace dk
 		void bindVtxBufferState(detail::ArrayProxy<DkVtxBufferState const> buffers);
 		void bindVtxBuffer(uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize);
 		void bindVtxBuffers(uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers);
+		void bindIdxBuffer(DkIdxFormat format, DkGpuAddr address);
 		void bindRasterizerState(DkRasterizerState const& state);
 		void setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports);
 		void setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors);
+		void setPrimitiveRestart(bool enable, uint32_t index);
 		void clearColor(uint32_t targetId, uint32_t clearMask, const void* clearData);
 		template<typename T> void clearColor(uint32_t targetId, uint32_t clearMask, T red = T{0}, T green = T{0}, T blue = T{0}, T alpha = T{0});
 		void draw(DkPrimitive prim, uint32_t numVertices, uint32_t numInstances, uint32_t firstVertex, uint32_t firstInstance);
 		void drawIndirect(DkPrimitive prim, DkGpuAddr indirect);
+		void drawIndexed(DkPrimitive prim, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
+		void drawIndexedIndirect(DkPrimitive prim, DkGpuAddr indirect);
 		void dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
 		void dispatchComputeIndirect(DkGpuAddr indirect);
 		void pushConstants(DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data);
@@ -505,6 +509,11 @@ namespace dk
 		::dkCmdBufBindVtxBuffers(*this, firstId, buffers.data(), buffers.size());
 	}
 
+	inline void CmdBuf::bindIdxBuffer(DkIdxFormat format, DkGpuAddr address)
+	{
+		::dkCmdBufBindIdxBuffer(*this, format, address);
+	}
+
 	inline void CmdBuf::setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports)
 	{
 		::dkCmdBufSetViewports(*this, firstId, viewports.data(), viewports.size());
@@ -513,6 +522,11 @@ namespace dk
 	inline void CmdBuf::setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors)
 	{
 		::dkCmdBufSetScissors(*this, firstId, scissors.data(), scissors.size());
+	}
+
+	inline void CmdBuf::setPrimitiveRestart(bool enable, uint32_t index)
+	{
+		::dkCmdBufSetPrimitiveRestart(*this, enable, index);
 	}
 
 	inline void CmdBuf::clearColor(uint32_t targetId, uint32_t clearMask, const void* clearData)
@@ -536,6 +550,16 @@ namespace dk
 	inline void CmdBuf::drawIndirect(DkPrimitive prim, DkGpuAddr indirect)
 	{
 		::dkCmdBufDrawIndirect(*this, prim, indirect);
+	}
+
+	inline void CmdBuf::drawIndexed(DkPrimitive prim, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+	{
+		::dkCmdBufDrawIndexed(*this, prim, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+	}
+
+	inline void CmdBuf::drawIndexedIndirect(DkPrimitive prim, DkGpuAddr indirect)
+	{
+		::dkCmdBufDrawIndexedIndirect(*this, prim, indirect);
 	}
 
 	inline void CmdBuf::dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)

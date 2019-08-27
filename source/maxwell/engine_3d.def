@@ -263,7 +263,7 @@ engine _3D 0xB197;
 
 0x442 TiledCacheUnknownConfig2;
 
-0x446 VertexIdBase;
+0x446 VertexIdBase; // theory: this is the base value for gl_VertexID (a[0x2fc])
 
 0x44C Unknown44c;
 0x44D TiledCacheUnkFeatureEnable bool;
@@ -351,7 +351,7 @@ engine _3D 0xB197;
 	4..25 Tag;
 );
 
-0x50D DrawBaseElement;
+0x50D DrawBaseVertex; // It is unknown if this is only used during indexed drawing as the vertex offset, or if it affects non-indexed drawing too.
 0x50E DrawBaseInstance;
 
 0x514 Unknown514;
@@ -430,8 +430,10 @@ engine _3D 0xB197;
 	27 InstanceCont;
 );
 
+0x591 PrimitiveRestartEnable bool;
+0x592 PrimitiveRestartIndex;
 0x593 VertexIdConfig bits (
-	12 DrawArraysAddStart bool; // during non-indexed drawing: if 0, a[0x2fc] starts at 0; if 1, a[0x2fc] starts at DrawArraysFirst
+	12 DrawArraysAddStart bool; // Adds the value of DrawArraysFirst to gl_VertexID (a[0x2fc]), during non-indexed drawing
 );
 
 0x597 PointRasterRules enum (
@@ -450,9 +452,9 @@ engine _3D 0xB197;
 0x5F2 IndexArrayStartIova iova;
 0x5F4 IndexArrayLimitIova iova;
 0x5F6 IndexArrayFormat enum (
-	0 Int8;
-	1 Int16;
-	2 Int32;
+	0 Uint8;
+	1 Uint16;
+	2 Uint32;
 );
 0x5F7 DrawElementsFirst;
 0x5F8 DrawElementsCount; // seems to trigger drawing?

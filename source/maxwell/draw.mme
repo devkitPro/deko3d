@@ -43,3 +43,60 @@ Draw::
 .resetBaseInstance
 	*0x004 to mem
 	0 to mem
+
+# Indexed single-draw
+# Arguments:
+# - 0: Primitive
+# - 1: Index count
+# - 2: Instance count
+# - 3: First index
+# - 4: Vertex offset (updates gl_BaseVertex)
+# - 5: First instance (updates gl_BaseInstance)
+DrawIndexed::
+	fetch r6 # Fetch index count
+	1 to r2 # r2 = 1 (needed for later)
+	fetch r7 # Fetch instance count
+	DrawElementsFirst'0 to addr; fetch mem # Fetch first index
+	fetch r3 # Fetch vertex offset
+	*bnz r7 .cancelExit # Early exit if instance count is zero
+	DrawBaseVertex'1 to addr; fetch r4 # Fetch base instance
+.cancelExit
+	r3 to mem # Update DrawBaseVertex
+	r4 to mem # Update DrawBaseInstance
+	VertexIdBase'0 to addr
+	r3 to mem # Update VertexIdBase
+	orr r3 r4 to r5
+	bz r5 .drawLoop # Skip constbuf update if vertex offset and first instance are both zero
+	LoadConstbufOffset'1 to addr
+
+	# Update gl_BaseVertex and gl_BaseInstance in the deko3d driver constbuf
+	# It is assumed that the caller of this macro used SelectDriverConstbuf
+	# previously (unless said parameters are a constant zero)
+	0x000 to mem
+	r3 to mem
+	r4 to mem
+
+	# After this point, r3 and r4 are no longer needed; consider them clobbered
+
+.drawLoop
+	# Draw current instance
+	VertexBeginGl'0 to addr
+	r1 to mem
+	DrawElementsCount'0 to addr
+	r6 to mem
+	VertexEndGl'0 to addr'mem
+
+	# Decrement instance counter and loop if there are more instances to draw
+	dec r7 to r7
+	bnz r7 .drawLoop
+	ei VertexBeginGlInstanceNext_Shift:r1 0:r2 2 to r1 # i.e. r1 |= 1<<VertexBeginGlInstanceNext_Shift (and clear InstanceCont)
+
+	# We're done; now reset gl_BaseVertex and gl_BaseInstance back to 0 if needed
+	*bnz r5 .resetBaseVertexBaseInstance
+	LoadConstbufOffset'1 to addr
+.resetBaseVertexBaseInstance
+	0x000 to mem
+	0 to mem
+	0 to mem
+	*DrawBaseVertex'0 to addr'mem # just in case reset this
+	VertexIdBase'0 to addr'mem    # and this too

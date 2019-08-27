@@ -544,6 +544,13 @@ void dkCmdBufDraw(DkCmdBuf obj, DkPrimitive prim, uint32_t vertexCount, uint32_t
 
 void dkCmdBufDrawIndirect(DkCmdBuf obj, DkPrimitive prim, DkGpuAddr indirect)
 {
+#ifdef DEBUG
+	if (indirect == DK_GPU_ADDR_INVALID)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (indirect & 3)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
+#endif
+
 	CmdBufWriter w{obj};
 	w.reserve(3);
 
@@ -551,4 +558,32 @@ void dkCmdBufDrawIndirect(DkCmdBuf obj, DkPrimitive prim, DkGpuAddr indirect)
 	w << CmdList<2>{ MakeCmdHeader(IncreaseOnce, 5, Subchannel3D, MmeMacroDraw), prim };
 	w.split(CtrlCmdGpfifoEntry::NoPrefetch);
 	w.addRaw(indirect, 4, CtrlCmdGpfifoEntry::AutoKick);
+}
+
+void dkCmdBufDrawIndexed(DkCmdBuf obj, DkPrimitive prim, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+{
+	CmdBufWriter w{obj};
+	w.reserve(8);
+
+	if (vertexOffset || firstInstance)
+		w << MacroInline(SelectDriverConstbuf, 0); // needed for updating gl_BaseVertex/gl_BaseInstance in the driver constbuf
+	w << Macro(DrawIndexed, prim, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+}
+
+void dkCmdBufDrawIndexedIndirect(DkCmdBuf obj, DkPrimitive prim, DkGpuAddr indirect)
+{
+#ifdef DEBUG
+	if (indirect == DK_GPU_ADDR_INVALID)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (indirect & 3)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
+#endif
+
+	CmdBufWriter w{obj};
+	w.reserve(3);
+
+	w << MacroInline(SelectDriverConstbuf, 0); // needed for updating gl_BaseVertex/gl_BaseInstance in the driver constbuf
+	w << CmdList<2>{ MakeCmdHeader(IncreaseOnce, 6, Subchannel3D, MmeMacroDrawIndexed), prim };
+	w.split(CtrlCmdGpfifoEntry::NoPrefetch);
+	w.addRaw(indirect, 5, CtrlCmdGpfifoEntry::AutoKick);
 }

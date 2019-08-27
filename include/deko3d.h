@@ -663,6 +663,13 @@ typedef enum DkPrimitive
 	DkPrimitive_Patches                = 14,
 } DkPrimitive;
 
+typedef enum DkIdxFormat
+{
+	DkIdxFormat_Uint8  = 0,
+	DkIdxFormat_Uint16 = 1,
+	DkIdxFormat_Uint32 = 2,
+} DkIdxFormat;
+
 typedef struct DkDrawIndirectData
 {
 	uint32_t vertexCount;
@@ -670,6 +677,15 @@ typedef struct DkDrawIndirectData
 	uint32_t firstVertex;
 	uint32_t firstInstance;
 } DkDrawIndirectData;
+
+typedef struct DkDrawIndexedIndirectData
+{
+	uint32_t indexCount;
+	uint32_t instanceCount;
+	uint32_t firstIndex;
+	int32_t  vertexOffset;
+	uint32_t firstInstance;
+} DkDrawIndexedIndirectData;
 
 typedef struct DkDispatchIndirectData
 {
@@ -730,11 +746,15 @@ void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state);
 void dkCmdBufBindVtxAttribState(DkCmdBuf obj, DkVtxAttribState const attribs[], uint32_t numAttribs);
 void dkCmdBufBindVtxBufferState(DkCmdBuf obj, DkVtxBufferState const buffers[], uint32_t numBuffers);
 void dkCmdBufBindVtxBuffers(DkCmdBuf obj, uint32_t firstId, DkBufExtents const buffers[], uint32_t numBuffers);
+void dkCmdBufBindIdxBuffer(DkCmdBuf obj, DkIdxFormat format, DkGpuAddr address);
 void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewports[], uint32_t numViewports);
 void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors);
+void dkCmdBufSetPrimitiveRestart(DkCmdBuf obj, bool enable, uint32_t index);
 void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, const void* clearData);
 void dkCmdBufDraw(DkCmdBuf obj, DkPrimitive prim, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 void dkCmdBufDrawIndirect(DkCmdBuf obj, DkPrimitive prim, DkGpuAddr indirect);
+void dkCmdBufDrawIndexed(DkCmdBuf obj, DkPrimitive prim, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
+void dkCmdBufDrawIndexedIndirect(DkCmdBuf obj, DkPrimitive prim, DkGpuAddr indirect);
 void dkCmdBufDispatchCompute(DkCmdBuf obj, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
 void dkCmdBufDispatchComputeIndirect(DkCmdBuf obj, DkGpuAddr indirect);
 void dkCmdBufPushConstants(DkCmdBuf obj, DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data);
