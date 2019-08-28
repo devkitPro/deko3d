@@ -589,6 +589,67 @@ DK_CONSTEXPR void dkRasterizerStateDefaults(DkRasterizerState* state)
 	state->lineWidth = 1.0f;
 }
 
+typedef enum DkCompareOp
+{
+	DkCompareOp_Never    = 1,
+	DkCompareOp_Less     = 2,
+	DkCompareOp_Equal    = 3,
+	DkCompareOp_Lequal   = 4,
+	DkCompareOp_Greater  = 5,
+	DkCompareOp_NotEqual = 6,
+	DkCompareOp_Gequal   = 7,
+	DkCompareOp_Always   = 8,
+} DkCompareOp;
+
+typedef enum DkStencilOp
+{
+	DkStencilOp_Keep     = 1,
+	DkStencilOp_Zero     = 2,
+	DkStencilOp_Replace  = 3,
+	DkStencilOp_Incr     = 4,
+	DkStencilOp_Decr     = 5,
+	DkStencilOp_Invert   = 6,
+	DkStencilOp_IncrWrap = 7,
+	DkStencilOp_DecrWrap = 8,
+} DkStencilOp;
+
+typedef struct DkDepthStencilState
+{
+	uint32_t depthTestEnable : 1;
+	uint32_t depthWriteEnable : 1;
+	uint32_t stencilTestEnable : 1;
+	uint32_t : 1;
+	DkCompareOp depthCompareOp : 4;
+	uint32_t : 24;
+
+	DkStencilOp stencilFrontFailOp : 4;
+	DkStencilOp stencilFrontPassOp : 4;
+	DkStencilOp stencilFrontDepthFailOp : 4;
+	DkCompareOp stencilFrontCompareOp : 4;
+	DkStencilOp stencilBackFailOp : 4;
+	DkStencilOp stencilBackPassOp : 4;
+	DkStencilOp stencilBackDepthFailOp : 4;
+	DkCompareOp stencilBackCompareOp : 4;
+} DkDepthStencilState;
+
+DK_CONSTEXPR void dkDepthStencilStateDefaults(DkDepthStencilState* state)
+{
+	state->depthTestEnable = true;
+	state->depthWriteEnable = true;
+	state->stencilTestEnable = false;
+	state->depthCompareOp = DkCompareOp_Less;
+
+	state->stencilFrontFailOp = DkStencilOp_Keep;
+	state->stencilFrontPassOp = DkStencilOp_Replace;
+	state->stencilFrontDepthFailOp = DkStencilOp_Keep;
+	state->stencilFrontCompareOp = DkCompareOp_Never;
+
+	state->stencilBackFailOp = DkStencilOp_Keep;
+	state->stencilBackPassOp = DkStencilOp_Replace;
+	state->stencilBackDepthFailOp = DkStencilOp_Keep;
+	state->stencilBackCompareOp = DkCompareOp_Never;
+}
+
 typedef enum DkVtxAttribSize
 {
 	// One to four 32-bit components
@@ -743,6 +804,7 @@ void dkCmdBufBindImages(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHand
 void dkCmdBufBindImageDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t numDescriptors);
 void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTargets[], uint32_t numColorTargets, DkImageView const* depthTarget);
 void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state);
+void dkCmdBufBindDepthStencilState(DkCmdBuf obj, DkDepthStencilState const* state);
 void dkCmdBufBindVtxAttribState(DkCmdBuf obj, DkVtxAttribState const attribs[], uint32_t numAttribs);
 void dkCmdBufBindVtxBufferState(DkCmdBuf obj, DkVtxBufferState const buffers[], uint32_t numBuffers);
 void dkCmdBufBindVtxBuffers(DkCmdBuf obj, uint32_t firstId, DkBufExtents const buffers[], uint32_t numBuffers);

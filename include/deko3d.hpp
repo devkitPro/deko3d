@@ -149,12 +149,13 @@ namespace dk
 		void bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles);
 		void bindImageDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors);
 		void bindRenderTargets(detail::ArrayProxy<DkImageView const* const> colorTargets, DkImageView const* depthTarget = nullptr);
+		void bindRasterizerState(DkRasterizerState const& state);
+		void bindDepthStencilState(DkDepthStencilState const& state);
 		void bindVtxAttribState(detail::ArrayProxy<DkVtxAttribState const> attribs);
 		void bindVtxBufferState(detail::ArrayProxy<DkVtxBufferState const> buffers);
 		void bindVtxBuffer(uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize);
 		void bindVtxBuffers(uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers);
 		void bindIdxBuffer(DkIdxFormat format, DkGpuAddr address);
-		void bindRasterizerState(DkRasterizerState const& state);
 		void setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports);
 		void setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors);
 		void setPrimitiveRestart(bool enable, uint32_t index);
@@ -331,6 +332,23 @@ namespace dk
 		RasterizerState& setLineWidth(float width) { this->lineWidth = width; return *this; }
 	};
 
+	struct DepthStencilState : public ::DkDepthStencilState
+	{
+		DepthStencilState() : DkDepthStencilState{} { ::dkDepthStencilStateDefaults(this); }
+		DepthStencilState& setDepthTestEnable(bool enable) { this->depthTestEnable = enable; return *this; }
+		DepthStencilState& setDepthWriteEnable(bool enable) { this->depthWriteEnable = enable; return *this; }
+		DepthStencilState& setStencilTestEnable(bool enable) { this->stencilTestEnable = enable; return *this; }
+		DepthStencilState& setDepthCompareOp(DkCompareOp op) { this->depthCompareOp = op; return *this; }
+		DepthStencilState& setStencilFrontFailOp(DkStencilOp op) { this->stencilFrontFailOp = op; return *this; }
+		DepthStencilState& setStencilFrontPassOp(DkStencilOp op) { this->stencilFrontPassOp = op; return *this; }
+		DepthStencilState& setStencilFrontDepthFailOp(DkStencilOp op) { this->stencilFrontDepthFailOp = op; return *this; }
+		DepthStencilState& setStencilFrontCompareOp(DkCompareOp op) { this->stencilFrontCompareOp = op; return *this; }
+		DepthStencilState& setStencilBackFailOp(DkStencilOp op) { this->stencilBackFailOp = op; return *this; }
+		DepthStencilState& setStencilBackPassOp(DkStencilOp op) { this->stencilBackPassOp = op; return *this; }
+		DepthStencilState& setStencilBackDepthFailOp(DkStencilOp op) { this->stencilBackDepthFailOp = op; return *this; }
+		DepthStencilState& setStencilBackCompareOp(DkCompareOp op) { this->stencilBackCompareOp = op; return *this; }
+	};
+
 	struct SwapchainMaker : public ::DkSwapchainMaker
 	{
 		SwapchainMaker(DkDevice device, void* nativeWindow, DkImage const* const pImages[], uint32_t numImages) noexcept : DkSwapchainMaker{} { ::dkSwapchainMakerDefaults(this, device, nativeWindow, pImages, numImages); }
@@ -493,6 +511,11 @@ namespace dk
 	inline void CmdBuf::bindRasterizerState(DkRasterizerState const& state)
 	{
 		::dkCmdBufBindRasterizerState(*this, &state);
+	}
+
+	inline void CmdBuf::bindDepthStencilState(DkDepthStencilState const& state)
+	{
+		::dkCmdBufBindDepthStencilState(*this, &state);
 	}
 
 	inline void CmdBuf::bindVtxAttribState(detail::ArrayProxy<DkVtxAttribState const> attribs)

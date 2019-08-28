@@ -1,0 +1,29 @@
+
+# Binds depth/stencil state
+# Arguments:
+# - 0: First word of DkDepthStencilState
+# - 1: Second word of DkDepthStencilState
+BindDepthStencilState::
+	DepthTestEnable'0 to addr; fetch r2
+	bit r1 0 to r7 mem
+	bz r7 .checkStencil
+	DepthWriteEnable'0 to addr
+	bit r1 1 to mem
+	DepthTestFunc'0 to addr
+	bfl 4:r1 4 to mem
+
+.checkStencil
+	StencilEnable'0 to addr
+	bit r1 2 to r7 mem
+	*bnz r7 .cancelExit
+	StencilFrontOpFail'1 to addr
+.cancelExit
+	bfl 0:r2 4 to mem   # StencilFrontOpFail
+	bfl 8:r2 4 to mem   # StencilFrontOpZFail
+	bfl 4:r2 4 to mem   # StencilFrontOpZPass
+	bfl 12:r2 4 to mem  # StencilFrontFunc
+	StencilBackOpFail'1 to addr
+	bfl 16:r2 4 to mem  # StencilBackOpFail
+	bfl 24:r2 4 to mem  # StencilBackOpZFail
+	*bfl 20:r2 4 to mem # StencilBackOpZPass
+	bfl 28:r2 4 to mem  # StencilBackFunc

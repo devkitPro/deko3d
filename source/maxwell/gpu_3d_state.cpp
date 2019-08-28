@@ -47,3 +47,19 @@ void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state)
 
 	w << Cmd(3D, LineWidthSmooth{}, state->lineWidth, state->lineWidth);
 }
+
+void dkCmdBufBindDepthStencilState(DkCmdBuf obj, DkDepthStencilState const* state)
+{
+#ifdef DEBUG
+	if (!state)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	CmdBufWriter w{obj};
+	w.reserve(3);
+
+	static_assert(sizeof(DkDepthStencilState) == 8, "Bad definition for DkDepthStencilState");
+
+	w << CmdList<1>{ MakeCmdHeader(IncreaseOnce, 2, Subchannel3D, MmeMacroBindDepthStencilState) };
+	w.addRawData(state, 8);
+}

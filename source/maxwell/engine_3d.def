@@ -344,10 +344,29 @@ engine _3D 0xB197;
 0x4A4 Unknown4a4;
 
 0x4B2 InvalidateZcullNoWfi; // Theoretical
+0x4B3 DepthTestEnable bool;
 
 0x4B6 Unknown4b6 array[2];
 
 0x4B9 BlendIndependent bool;
+0x4BA DepthWriteEnable bool;
+
+0x4C3 DepthTestFunc enum (
+	1 Never;
+	2 Less;
+	3 Equal;
+	4 Lequal;
+	5 Greater;
+	6 NotEqual;
+	7 Gequal;
+	8 Always;
+);
+
+0x4E0 StencilEnable bool;
+0x4E1 StencilFrontOpFail;
+0x4E2 StencilFrontOpZFail;
+0x4E3 StencilFrontOpZPass;
+0x4E4 StencilFrontFunc;
 
 0x4E6 StencilFrontFuncMask;
 0x4E7 StencilFrontMask;
@@ -409,6 +428,10 @@ engine _3D 0xB197;
 
 0x564 ZcullRegion; //???
 0x565 StencilTwoSideEnable bool;
+0x566 StencilBackOpFail;
+0x567 StencilBackOpZFail;
+0x568 StencilBackOpZPass;
+0x569 StencilBackFunc;
 
 0x56D CsaaEnable bool;
 
