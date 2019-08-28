@@ -23,6 +23,17 @@ struct NvLongSemaphore
 	u64 timestamp;
 };
 
+struct ZcullStorageInfo
+{
+	u32 width;
+	u32 height;
+	u32 depth;
+	u32 imageSize;
+	u32 layerSize;
+	u32 zetaType;
+	u32 totalSize;
+};
+
 }
 
 class tag_DkDevice
@@ -88,6 +99,8 @@ public:
 	{
 		return ++m_semaphores[id];
 	}
+
+	void calcZcullStorageInfo(dk::detail::ZcullStorageInfo& out, uint32_t width, uint32_t height, uint32_t depth, DkImageFormat format, DkMsMode msMode);
 
 	void raiseError(const char* context, DkResult result) const
 	{

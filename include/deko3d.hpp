@@ -157,6 +157,9 @@ namespace dk
 		void setPrimitiveRestart(bool enable, uint32_t index);
 		void clearColor(uint32_t targetId, uint32_t clearMask, const void* clearData);
 		template<typename T> void clearColor(uint32_t targetId, uint32_t clearMask, T red = T{0}, T green = T{0}, T blue = T{0}, T alpha = T{0});
+		void clearDepthStencil(bool clearDepth, float depthValue, uint8_t stencilMask, uint8_t stencilValue);
+		void discardColor(uint32_t targetId);
+		void discardDepthStencil();
 		void draw(DkPrimitive prim, uint32_t numVertices, uint32_t numInstances, uint32_t firstVertex, uint32_t firstInstance);
 		void drawIndirect(DkPrimitive prim, DkGpuAddr indirect);
 		void drawIndexed(DkPrimitive prim, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
@@ -540,6 +543,21 @@ namespace dk
 		static_assert(sizeof(T) == 4, "Bad size for T");
 		T data[] = { red, green, blue, alpha };
 		::dkCmdBufClearColor(*this, targetId, clearMask, data);
+	}
+
+	inline void CmdBuf::clearDepthStencil(bool clearDepth, float depthValue, uint8_t stencilMask, uint8_t stencilValue)
+	{
+		::dkCmdBufClearDepthStencil(*this, clearDepth, depthValue, stencilMask, stencilValue);
+	}
+
+	inline void CmdBuf::discardColor(uint32_t targetId)
+	{
+		::dkCmdBufDiscardColor(*this, targetId);
+	}
+
+	inline void CmdBuf::discardDepthStencil()
+	{
+		::dkCmdBufDiscardDepthStencil(*this);
 	}
 
 	inline void CmdBuf::draw(DkPrimitive prim, uint32_t numVertices, uint32_t numInstances, uint32_t firstVertex, uint32_t firstInstance)

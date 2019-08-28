@@ -5,15 +5,33 @@
 ClearColor::
 	ei RenderTarget_Shift:rz ClearBuffersTargetId_Shift:r1 ClearBuffersTargetId_Size to r2
 	ldr r2 RenderTargetNArrayMode to r2
-	bz r2 .nothing
+	*bnz r2 CommonClearLoop
 	ClearBuffers'0 to addr
 
-.loop
+# Performs a ClearBuffers operation on all layers of the depth/stencil render target
+# Arguments:
+# - 0: Argument to Engine3D::ClearBuffers
+ClearDepthStencil::
+	ldi DepthTargetArrayMode to r2
+	*bnz r2 CommonClearLoop
+	ClearBuffers'0 to addr
+
+# Common loop for use by ClearColor/ClearDepthStencil
+CommonClearLoop:
 	dec r2 to r2
 	r1 to mem
-	*bnz r2 .loop
+	*bnz r2 CommonClearLoop
 	addi r1 1<<ClearBuffersLayerId_Shift to r1
 
-.nothing
-	exit
-	nop
+# Invalidates Zcull state if there is a change in the depth target
+# Arguments:
+# - 0: Depth target iova >> 8
+ConditionalZcullInvalidate::
+	ldi MmeDepthRenderTargetIova to r2
+	sub r1 r2 to r2
+	*bnz r2 .invalidateZcull
+	MmeDepthRenderTargetIova'0 to addr
+
+.invalidateZcull
+	*r1 to mem
+	InvalidateZcullNoWfi'0x19 to addr'mem

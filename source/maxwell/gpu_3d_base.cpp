@@ -57,13 +57,22 @@ namespace
 		uint32_t m_arrayMode;
 		uint32_t m_layerStride;
 
-		DkResult fromImageView(DkImageView const* view);
+		DkResult fromImageView(DkImageView const* view, bool isDepth = false);
 		constexpr auto genCommands(unsigned id)
 		{
 			return Cmd(3D, RenderTarget::Addr{id},
 				Iova(m_iova),
 				m_horizontal, m_vertical,
 				m_format, m_tileMode, m_arrayMode, m_layerStride);
+		}
+
+		constexpr auto genCommandsDepth()
+		{
+			return
+				Cmd(3D, DepthTargetAddr{}, Iova(m_iova), m_format, m_tileMode, m_layerStride) +
+				CmdInline(3D, DepthTargetEnable{}, 0) +
+				CmdInline(3D, DepthTargetEnable{}, 1) +
+				Cmd(3D, DepthTargetHorizontal{}, m_horizontal, m_vertical, m_arrayMode);
 		}
 	};
 }
@@ -191,7 +200,7 @@ void tag_DkQueue::setup3DEngine()
 	w << CmdInline(3D, StencilBackFuncMask{}, 0xFF);
 	w << CmdInline(3D, StencilBackMask{}, 0xFF);
 
-	w << CmdInline(3D, DepthTargetArrayMode{}, E::DepthTargetArrayMode::NumLayers{1});
+	w << CmdInline(3D, DepthTargetArrayMode{}, E::DepthTargetArrayMode::Layers{1});
 	w << CmdInline(3D, SetConservativeRasterEnable{}, 0);
 	w << Macro(WriteHardwareReg, 0x00418800, 0x00000000, 0x01800000);
 	w << CmdInline(3D, Unknown0bb{}, 0);
@@ -244,7 +253,7 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 #endif
 
 	CmdBufWriter w{obj};
-	w.reserve(2 + numColorTargets*9 + (8-numColorTargets)*1 + 1 + 4);
+	w.reserve(2 + numColorTargets*9 + (8-numColorTargets)*1 + (depthTarget ? (12+14) : 1) + 4);
 
 	w << Cmd(3D, RenderTargetControl{},
 		E::RenderTargetControl::NumTargets{numColorTargets} | (076543210<<4)
@@ -278,7 +287,7 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 		DkImage const* image = view->pImage;
 		if (image->m_dimensions[0] < minWidth)  minWidth  = image->m_dimensions[0];
 		if (image->m_dimensions[1] < minHeight) minHeight = image->m_dimensions[1];
-		if (i == 0) msMode = (DkMsMode)image->m_numSamplesLog2;
+		msMode = (DkMsMode)image->m_numSamplesLog2;
 	}
 
 	// Disable all remaining render targets
@@ -295,8 +304,41 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 	}
 	else
 	{
-		// TODO
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
+		RenderTarget rt;
+#ifdef DEBUG
+		DkResult res = rt.fromImageView(depthTarget, true);
+		if (res != DkResult_Success)
+		{
+			obj->raiseError(DK_FUNC_ERROR_CONTEXT, res);
+			return;
+		}
+#else
+		rt.fromImageView(depthTarget, true);
+#endif
+		w << rt.genCommandsDepth();
+
+		DkImage const* image = depthTarget->pImage;
+		ZcullStorageInfo zinfo;
+		obj->getDevice()->calcZcullStorageInfo(zinfo,
+			image->m_dimensions[0], image->m_dimensions[1], rt.m_arrayMode,
+			depthTarget->format ? depthTarget->format : image->m_format,
+			(DkMsMode)image->m_bytesPerBlockLog2);
+
+		// Configure Zcull
+		w << Cmd(3D, ZcullImageSizeAliquots{}, zinfo.imageSize<<16, zinfo.layerSize);
+		w << CmdInline(3D, ZcullZetaType{}, zinfo.zetaType);
+		w << Cmd(3D, ZcullWidth{}, zinfo.width, zinfo.height, zinfo.depth);
+		w << CmdInline(3D, ZcullWindowOffsetX{}, 0);
+		w << CmdInline(3D, ZcullWindowOffsetY{}, 0);
+		w << CmdInline(3D, ZcullUnknown0{}, 0);
+		w << CmdInline(3D, ZcullUnkFeatureEnable{}, 0);
+		w << Macro(ConditionalZcullInvalidate, rt.m_iova >> 8);
+		// mme scratch "weird zcull feature enable" is set here
+
+		// Update data
+		if (image->m_dimensions[0] < minWidth)  minWidth  = image->m_dimensions[0];
+		if (image->m_dimensions[1] < minHeight) minHeight = image->m_dimensions[1];
+		if (!numColorTargets) msMode = (DkMsMode)image->m_numSamplesLog2;
 	}
 
 	// Configure screen scissor
@@ -435,12 +477,20 @@ void tag_DkQueue::decompressSurface(DkImage const* image)
 	w << SetShadowRamControl(SRC::MethodTrackWithFilter);
 }
 
-DkResult RenderTarget::fromImageView(DkImageView const* view)
+DkResult RenderTarget::fromImageView(DkImageView const* view, bool isDepth)
 {
 	DkImage const* image = view->pImage;
 	DkImageType type = view->type ? view->type : image->m_type;
 	DkImageFormat format = view->format ? view->format : image->m_format;
 	FormatTraits const& traits = formatTraits[format];
+
+#ifdef DEBUG
+	bool formatIsDepth = traits.depthBits || traits.stencilBits;
+	if (isDepth != formatIsDepth)
+		return DkResult_BadInput;
+	if (isDepth && (type == DkImageType_3D || (image->m_flags & DkImageFlags_PitchLinear)))
+		return DkResult_BadInput;
+#endif
 
 	bool layered;
 	switch (type)
@@ -473,7 +523,7 @@ DkResult RenderTarget::fromImageView(DkImageView const* view)
 	using TM = E::RenderTarget::TileMode;
 	if (!(image->m_flags & DkImageFlags_PitchLinear))
 	{
-		uint32_t tileWidth = 64 / traits.bytesPerBlock;
+		uint32_t tileWidth = (64 / traits.bytesPerBlock) << image->m_tileW;
 
 		if (layered)
 		{
@@ -513,6 +563,8 @@ void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, con
 	if (!clearData)
 		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 #endif
+	if (!clearMask)
+		return;
 
 	CmdBufWriter w{obj};
 	w.reserve(12);
@@ -530,6 +582,61 @@ void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, con
 	w << CmdInline(3D, SetMultisampleRasterEnable{}, 0);
 
 	w << SetShadowRamControl(SRC::MethodTrackWithFilter);
+}
+
+void dkCmdBufClearDepthStencil(DkCmdBuf obj, bool clearDepth, float depthValue, uint8_t stencilMask, uint8_t stencilValue)
+{
+	if (!clearDepth || !stencilMask)
+		return;
+
+	CmdBufWriter w{obj};
+	w.reserve(13);
+
+	using CB = E::ClearBuffers;
+	uint32_t clearArg = 0;
+
+	if (clearDepth)
+	{
+		using ZCD = E::ZcullClearDepth;
+		bool isDepthLessThanHalf = depthValue<0.5f;
+		bool isDepthOneOrZero    = depthValue==1.0f || depthValue==0.0f;
+		w << Cmd(3D, ZcullClearDepth{}, ZCD::IsLessThanHalf{isDepthLessThanHalf} | ZCD::IsOneOrZero{isDepthOneOrZero});
+		w << Cmd(3D, ZcullClearMode{}, 0xFF000005); // ??
+		w << Cmd(3D, ClearDepth{}, depthValue);
+		clearArg |= CB::Depth{};
+	}
+
+	if (stencilMask)
+	{
+		w << SetShadowRamControl(SRC::MethodPassthrough);
+		w << CmdInline(3D, StencilFrontMask{}, stencilMask);
+		w << CmdInline(3D, ClearStencil{}, stencilValue);
+	}
+
+	w << MacroInline(ClearDepthStencil, clearArg);
+
+	if (stencilMask)
+	{
+		w << SetShadowRamControl(SRC::MethodReplay);
+		w << CmdInline(3D, StencilFrontMask{}, 0);
+		w << SetShadowRamControl(SRC::MethodTrackWithFilter);
+	}
+}
+
+void dkCmdBufDiscardColor(DkCmdBuf obj, uint32_t targetId)
+{
+	CmdBufWriter w{obj};
+	w.reserve(1);
+
+	w << CmdInline(3D, DiscardRenderTarget{}, E::DiscardRenderTarget::Color{targetId});
+}
+
+void dkCmdBufDiscardDepthStencil(DkCmdBuf obj)
+{
+	CmdBufWriter w{obj};
+	w.reserve(1);
+
+	w << CmdInline(3D, DiscardRenderTarget{}, E::DiscardRenderTarget::DepthStencil{});
 }
 
 void dkCmdBufDraw(DkCmdBuf obj, DkPrimitive prim, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)

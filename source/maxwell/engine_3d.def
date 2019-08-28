@@ -30,6 +30,7 @@ engine _3D 0xB197;
 
 0x0b8 SurfaceDecompress;
 
+0x0BA ZcullUnkFeatureEnable bool;
 0x0BB Unknown0bb;
 
 0x0c0 Unknown0c0;
@@ -71,6 +72,14 @@ engine _3D 0xB197;
 
 0x1E4 SetShaderLocalMemory iova;
 0x1E6 SetShaderLocalMemorySize iova; // 40-bit size
+
+0x1F0 ZcullWidth;
+0x1F1 ZcullHeight;
+0x1F2 ZcullDepth;
+0x1F3 ZcullUnknown0;
+
+0x1F8 ZcullImageSizeAliquots;
+0x1F9 ZcullLayerSizeAliquots;
 
 0x200 RenderTarget array[8] (
 	0x00 Addr iova;
@@ -160,6 +169,7 @@ engine _3D 0xB197;
 0x364 ClearDepth;
 
 0x367 ColorReductionEnable bool;
+0x368 ClearStencil;
 
 0x369 InvalidateShaderCaches bits (
 	0  Instruction bool;
@@ -178,9 +188,16 @@ engine _3D 0xB197;
 	0x1B02 Fill;
 );
 
+0x36F ZcullClearDepth bits (
+	0  IsLessThanHalf bool;
+	16 IsOneOrZero bool;
+);
+
 0x370 PolygonOffsetPointEnable bool;
 0x371 PolygonOffsetLineEnable bool;
 0x372 PolygonOffsetFillEnable bool;
+
+0x376 ZcullClearMode; // unknown, 0xFF000005 observed
 
 0x378 FragmentBarrier;
 
@@ -209,7 +226,6 @@ engine _3D 0xB197;
 0x3DA TiledCacheUnknownConfig0;
 0x3DB TiledCacheUnknownConfig1;
 0x3DC TiledCacheUnknownConfig3;
-
 0x3DD InvalidateTextureDataCache bits (
 	// Theoretical register, same as InvalidateTextureDataCacheNoWfi but with implicit Wfi
 	0 Lines enum (
@@ -218,7 +234,10 @@ engine _3D 0xB197;
 	);
 	4..25 Tag;
 );
-
+0x3DE DiscardRenderTarget bits (
+	0    DepthStencil bool;
+	4..6 Color;
+);
 0x3DF TiledCacheBarrier;
 0x3E0 TiledCacheFlush enum (
 	0 Flush;
@@ -232,7 +251,14 @@ engine _3D 0xB197;
 
 0x3F6 SetCoverageModulationTableEnable bool;
 0x3F7 Unknown3f7;
-
+0x3F8 DepthTargetAddr iova;
+0x3FA DepthTargetFormat;
+0x3FB DepthTargetTileMode bits (
+	0..3  Width;
+	4..7  Height;
+	8..11 Depth;
+);
+0x3FC DepthTargetLayerStride;
 0x3FD ScreenScissorHorizontal bits (
 	0..15  X;
 	16..31 Width;
@@ -299,9 +325,11 @@ engine _3D 0xB197;
 
 0x488 Unknown488;
 
+0x48A DepthTargetHorizontal;
+0x48B DepthTargetVertical;
 0x48C DepthTargetArrayMode bits (
-	0..15 NumLayers; // ??
-	16 Unknown16 bool;
+	0..15 Layers;
+	16    Volume bool; //???
 );
 0x48D LinkedTsc bool; //???
 
@@ -386,6 +414,7 @@ engine _3D 0xB197;
 
 0x56F PolygonOffsetUnits;
 
+0x572 ZcullZetaType;
 0x573 SetRenderLayer bits (
 	0..15 Index;
 	16 UseIndexFromVTG bool;
@@ -394,6 +423,9 @@ engine _3D 0xB197;
 0x574 MultisampleMode; // uses maxwell::MsaaMode enum
 
 0x579 EdgeFlag bool;
+
+0x57F ZcullWindowOffsetX;
+0x580 ZcullWindowOffsetY;
 
 0x581 PointCoordReplace bits (
 	0..1  Unknown0;
@@ -616,7 +648,7 @@ engine _3D 0xB197;
 
 0xD18 MmeDriverConstbufIova;
 0xD19 MmeDriverConstbufSize;
-0xD20 MmeProgramIds array[6];
-0xD26 MmeProgramOffsets array[6];
+0xD1A MmeProgramIds array[6];
+0xD20 MmeProgramOffsets array[6];
 
-0xD30 MmeDepthRenderTargetIova;
+0xD26 MmeDepthRenderTargetIova;
