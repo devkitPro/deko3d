@@ -20,6 +20,7 @@ namespace dk
 			T m_handle;
 		protected:
 			void _clear() noexcept { m_handle = nullptr; }
+			void _set(T h) noexcept { _clear(); m_handle = h; }
 		public:
 			using Type = T;
 			constexpr Handle() noexcept : m_handle{} { }
@@ -33,13 +34,15 @@ namespace dk
 		template <typename T>
 		struct UniqueHandle final : public T
 		{
-			UniqueHandle() = delete;
+			UniqueHandle() noexcept : T{} { }
 			UniqueHandle(UniqueHandle&) = delete;
 			constexpr UniqueHandle(T&& rhs) noexcept : T{rhs} { rhs = nullptr; }
 			~UniqueHandle()
 			{
 				if (*this) T::destroy();
 			}
+			UniqueHandle& operator=(UniqueHandle const&) = delete;
+			UniqueHandle& operator=(UniqueHandle&& rhs) { T::_set(rhs); rhs._clear(); return *this; }
 		};
 
 		template <typename T>
