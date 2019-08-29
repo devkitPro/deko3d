@@ -158,6 +158,8 @@ namespace dk
 		void bindIdxBuffer(DkIdxFormat format, DkGpuAddr address);
 		void setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports);
 		void setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors);
+		void setDepthBounds(bool enable, float near, float far);
+		void setStencil(DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask);
 		void setPrimitiveRestart(bool enable, uint32_t index);
 		void clearColor(uint32_t targetId, uint32_t clearMask, const void* clearData);
 		template<typename T> void clearColor(uint32_t targetId, uint32_t clearMask, T red = T{0}, T green = T{0}, T blue = T{0}, T alpha = T{0});
@@ -551,6 +553,16 @@ namespace dk
 	inline void CmdBuf::setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors)
 	{
 		::dkCmdBufSetScissors(*this, firstId, scissors.data(), scissors.size());
+	}
+
+	inline void CmdBuf::setDepthBounds(bool enable, float near, float far)
+	{
+		::dkCmdBufSetDepthBounds(*this, enable, near, far);
+	}
+
+	inline void CmdBuf::setStencil(DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask)
+	{
+		::dkCmdBufSetStencil(*this, face, mask, funcRef, funcMask);
 	}
 
 	inline void CmdBuf::setPrimitiveRestart(bool enable, uint32_t index)

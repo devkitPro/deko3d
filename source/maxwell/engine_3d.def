@@ -216,6 +216,7 @@ engine _3D 0xB197;
 	0x04 next;
 );
 
+0x3D5 StencilBackFuncRef;
 0x3D6 StencilBackFuncMask;
 0x3D7 StencilBackMask;
 0x3D8 TiledCacheEnable bool;
@@ -245,6 +246,9 @@ engine _3D 0xB197;
 );
 0x3E1 VertexRunoutBufferIova iova;
 0x3E3 Unknown3e3;
+
+0x3E7 DepthBoundsNear;
+0x3E8 DepthBoundsFar;
 
 0x3ED SetMultisampleRasterEnable bool;
 0x3EF MsaaMask array[4];
@@ -367,7 +371,7 @@ engine _3D 0xB197;
 0x4E2 StencilFrontOpZFail;
 0x4E3 StencilFrontOpZPass;
 0x4E4 StencilFrontFunc;
-
+0x4E5 StencilFrontFuncRef;
 0x4E6 StencilFrontFuncMask;
 0x4E7 StencilFrontMask;
 
@@ -552,6 +556,8 @@ engine _3D 0xB197;
 	0 AllowZIncrease; // "disables coarse rejection/pass for GT/LT direction"
 	4 AllowZDecrease; // "disables coarse rejection/pass for LT/GT direction"
 );
+
+0x66F DepthBoundsEnable bool;
 
 0x670 Unknown670;
 

@@ -63,3 +63,33 @@ void dkCmdBufBindDepthStencilState(DkCmdBuf obj, DkDepthStencilState const* stat
 	w << CmdList<1>{ MakeCmdHeader(IncreaseOnce, 2, Subchannel3D, MmeMacroBindDepthStencilState) };
 	w.addRawData(state, 8);
 }
+
+void dkCmdBufSetDepthBounds(DkCmdBuf obj, bool enable, float near, float far)
+{
+	CmdBufWriter w{obj};
+	w.reserve(4);
+
+	w << CmdInline(3D, DepthBoundsEnable{}, enable);
+	if (enable)
+		w << Cmd(3D, DepthBoundsNear{}, near, far);
+}
+
+void dkCmdBufSetStencil(DkCmdBuf obj, DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask)
+{
+	CmdBufWriter w{obj};
+	w.reserve(6);
+
+	if (unsigned(face) & DkFace_Front)
+	{
+		w << CmdInline(3D, StencilFrontMask{}, mask);
+		w << CmdInline(3D, StencilFrontFuncRef{}, funcRef);
+		w << CmdInline(3D, StencilFrontFuncMask{}, funcMask);
+	}
+
+	if (unsigned(face) & DkFace_Back)
+	{
+		w << CmdInline(3D, StencilBackMask{}, mask);
+		w << CmdInline(3D, StencilBackFuncRef{}, funcRef);
+		w << CmdInline(3D, StencilBackFuncMask{}, funcMask);
+	}
+}

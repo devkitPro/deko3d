@@ -611,6 +611,7 @@ void dkCmdBufClearDepthStencil(DkCmdBuf obj, bool clearDepth, float depthValue, 
 		w << SetShadowRamControl(SRC::MethodPassthrough);
 		w << CmdInline(3D, StencilFrontMask{}, stencilMask);
 		w << CmdInline(3D, ClearStencil{}, stencilValue);
+		clearArg |= CB::Stencil{};
 	}
 
 	w << MacroInline(ClearDepthStencil, clearArg);

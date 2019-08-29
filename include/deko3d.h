@@ -642,12 +642,12 @@ DK_CONSTEXPR void dkDepthStencilStateDefaults(DkDepthStencilState* state)
 	state->stencilFrontFailOp = DkStencilOp_Keep;
 	state->stencilFrontPassOp = DkStencilOp_Replace;
 	state->stencilFrontDepthFailOp = DkStencilOp_Keep;
-	state->stencilFrontCompareOp = DkCompareOp_Never;
+	state->stencilFrontCompareOp = DkCompareOp_Always;
 
 	state->stencilBackFailOp = DkStencilOp_Keep;
 	state->stencilBackPassOp = DkStencilOp_Replace;
 	state->stencilBackDepthFailOp = DkStencilOp_Keep;
-	state->stencilBackCompareOp = DkCompareOp_Never;
+	state->stencilBackCompareOp = DkCompareOp_Always;
 }
 
 typedef enum DkVtxAttribSize
@@ -811,6 +811,8 @@ void dkCmdBufBindVtxBuffers(DkCmdBuf obj, uint32_t firstId, DkBufExtents const b
 void dkCmdBufBindIdxBuffer(DkCmdBuf obj, DkIdxFormat format, DkGpuAddr address);
 void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewports[], uint32_t numViewports);
 void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors);
+void dkCmdBufSetDepthBounds(DkCmdBuf obj, bool enable, float near, float far);
+void dkCmdBufSetStencil(DkCmdBuf obj, DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask);
 void dkCmdBufSetPrimitiveRestart(DkCmdBuf obj, bool enable, uint32_t index);
 void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, const void* clearData);
 void dkCmdBufClearDepthStencil(DkCmdBuf obj, bool clearDepth, float depthValue, uint8_t stencilMask, uint8_t stencilValue);
