@@ -36,8 +36,7 @@ DK_DECL_OPAQUE(DkShader, 8, 96);
 DK_DECL_OPAQUE(DkImageLayout, 8, 128); // size todo
 DK_DECL_OPAQUE(DkImage, 8, 128); // size todo
 DK_DECL_OPAQUE(DkImageDescriptor, 4, 32);
-DK_DECL_HANDLE(DkSampler);
-DK_DECL_HANDLE(DkSamplerPool);
+DK_DECL_OPAQUE(DkSamplerDescriptor, 4, 32);
 DK_DECL_HANDLE(DkSwapchain);
 
 typedef enum
@@ -103,6 +102,7 @@ DK_CONSTEXPR void dkDeviceMakerDefaults(DkDeviceMaker* maker)
 #define DK_DEFAULT_MAX_COMPUTE_CONCURRENT_JOBS 128
 #define DK_SHADER_CODE_ALIGNMENT 0x100
 #define DK_IMAGE_DESCRIPTOR_ALIGNMENT 0x20
+#define DK_SAMPLER_DESCRIPTOR_ALIGNMENT 0x20
 #define DK_MAX_RENDER_TARGETS 8
 #define DK_NUM_VIEWPORTS 16
 #define DK_NUM_SCISSORS 16
@@ -501,6 +501,94 @@ DK_CONSTEXPR void dkImageViewDefaults(DkImageView* obj, DkImage const* pImage)
 	obj->mipLevelCount = 0; // no override
 }
 
+typedef enum DkFilter
+{
+	DkFilter_Nearest = 1,
+	DkFilter_Linear  = 2,
+} DkFilter;
+
+typedef enum DkMipFilter
+{
+	DkMipFilter_None    = 1,
+	DkMipFilter_Nearest = 2,
+	DkMipFilter_Linear  = 3,
+} DkMipFilter;
+
+typedef enum DkWrapMode
+{
+	DkWrapMode_Repeat              = 0,
+	DkWrapMode_MirroredRepeat      = 1,
+	DkWrapMode_ClampToEdge         = 2,
+	DkWrapMode_ClampToBorder       = 3,
+	DkWrapMode_Clamp               = 4,
+	DkWrapMode_MirrorClampToEdge   = 5,
+	DkWrapMode_MirrorClampToBorder = 6,
+	DkWrapMode_MirrorClamp         = 7,
+} DkWrapMode;
+
+typedef enum DkCompareOp
+{
+	DkCompareOp_Never    = 1,
+	DkCompareOp_Less     = 2,
+	DkCompareOp_Equal    = 3,
+	DkCompareOp_Lequal   = 4,
+	DkCompareOp_Greater  = 5,
+	DkCompareOp_NotEqual = 6,
+	DkCompareOp_Gequal   = 7,
+	DkCompareOp_Always   = 8,
+} DkCompareOp;
+
+typedef enum DkSamplerReduction
+{
+	DkSamplerReduction_WeightedAverage = 0,
+	DkSamplerReduction_Min = 1,
+	DkSamplerReduction_Max = 2,
+} DkSamplerReduction;
+
+typedef struct DkSampler
+{
+	DkFilter minFilter;
+	DkFilter magFilter;
+	DkMipFilter mipFilter;
+	DkWrapMode wrapMode[3];
+	float lodClampMin;
+	float lodClampMax;
+	float lodBias;
+	float lodSnap;
+	bool compareEnable;
+	DkCompareOp compareOp;
+	union
+	{
+		float value_f;
+		uint32_t value_ui;
+		int32_t value_i;
+	} borderColor[4];
+	float maxAnisotropy;
+	DkSamplerReduction reductionMode;
+} DkSampler;
+
+DK_CONSTEXPR void dkSamplerDefaults(DkSampler* obj)
+{
+	obj->minFilter = DkFilter_Nearest;
+	obj->magFilter = DkFilter_Nearest;
+	obj->mipFilter = DkMipFilter_None;
+	obj->wrapMode[0] = DkWrapMode_Repeat;
+	obj->wrapMode[1] = DkWrapMode_Repeat;
+	obj->wrapMode[2] = DkWrapMode_Repeat;
+	obj->lodClampMin = 0.0f;
+	obj->lodClampMax = 1000.0f;
+	obj->lodBias = 0.0f;
+	obj->lodSnap = 0.0f;
+	obj->compareEnable = false;
+	obj->compareOp = DkCompareOp_Less;
+	obj->borderColor[0].value_ui = 0;
+	obj->borderColor[1].value_ui = 0;
+	obj->borderColor[2].value_ui = 0;
+	obj->borderColor[3].value_ui = 0;
+	obj->maxAnisotropy = 1.0f;
+	obj->reductionMode = DkSamplerReduction_WeightedAverage;
+}
+
 typedef struct DkBufExtents
 {
 	DkGpuAddr addr;
@@ -588,18 +676,6 @@ DK_CONSTEXPR void dkRasterizerStateDefaults(DkRasterizerState* state)
 	state->depthBiasSlopeFactor = 0.0f;
 	state->lineWidth = 1.0f;
 }
-
-typedef enum DkCompareOp
-{
-	DkCompareOp_Never    = 1,
-	DkCompareOp_Less     = 2,
-	DkCompareOp_Equal    = 3,
-	DkCompareOp_Lequal   = 4,
-	DkCompareOp_Greater  = 5,
-	DkCompareOp_NotEqual = 6,
-	DkCompareOp_Gequal   = 7,
-	DkCompareOp_Always   = 8,
-} DkCompareOp;
 
 typedef enum DkStencilOp
 {
@@ -802,6 +878,7 @@ void dkCmdBufBindStorageBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, D
 void dkCmdBufBindTextures(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHandle const handles[], uint32_t numHandles);
 void dkCmdBufBindImages(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHandle const handles[], uint32_t numHandles);
 void dkCmdBufBindImageDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t numDescriptors);
+void dkCmdBufBindSamplerDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t numDescriptors);
 void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTargets[], uint32_t numColorTargets, DkImageView const* depthTarget);
 void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state);
 void dkCmdBufBindDepthStencilState(DkCmdBuf obj, DkDepthStencilState const* state);
@@ -849,6 +926,8 @@ void dkImageInitialize(DkImage* obj, DkImageLayout const* layout, DkMemBlock mem
 DkGpuAddr dkImageGetGpuAddr(DkImage const* obj);
 
 void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view, bool usesLoadOrStore);
+
+void dkSamplerDescriptorInitialize(DkSamplerDescriptor* obj, DkSampler const* sampler);
 
 DkSwapchain dkSwapchainCreate(DkSwapchainMaker const* maker);
 void dkSwapchainDestroy(DkSwapchain obj);

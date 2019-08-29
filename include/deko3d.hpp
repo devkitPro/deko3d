@@ -148,6 +148,7 @@ namespace dk
 		void bindImage(DkStage stage, uint32_t id, DkResHandle handle);
 		void bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles);
 		void bindImageDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors);
+		void bindSamplerDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors);
 		void bindRenderTargets(detail::ArrayProxy<DkImageView const* const> colorTargets, DkImageView const* depthTarget = nullptr);
 		void bindRasterizerState(DkRasterizerState const& state);
 		void bindDepthStencilState(DkDepthStencilState const& state);
@@ -317,6 +318,71 @@ namespace dk
 	{
 		DK_OPAQUE_COMMON_MEMBERS(ImageDescriptor);
 		void initialize(ImageView const& view, bool usesLoadOrStore = false);
+	};
+
+	struct Sampler : public ::DkSampler
+	{
+		Sampler() noexcept : DkSampler{} { ::dkSamplerDefaults(this); }
+		Sampler& setFilter(DkFilter min = DkFilter_Nearest, DkFilter mag = DkFilter_Nearest, DkMipFilter mip = DkMipFilter_None)
+		{
+			this->minFilter = min;
+			this->magFilter = mag;
+			this->mipFilter = mip;
+			return *this;
+		}
+		Sampler& setWrapMode(DkWrapMode u = DkWrapMode_Repeat, DkWrapMode v = DkWrapMode_Repeat, DkWrapMode p = DkWrapMode_Repeat)
+		{
+			this->wrapMode[0] = u;
+			this->wrapMode[1] = v;
+			this->wrapMode[2] = p;
+			return *this;
+		}
+		Sampler& setLodClamp(float min, float max)
+		{
+			this->lodClampMin = min;
+			this->lodClampMax = max;
+			return *this;
+		}
+		Sampler& setLodBias(float bias) { this->lodBias = bias; return *this; }
+		Sampler& setLodSnap(float snap) { this->lodSnap = snap; return *this; }
+		Sampler& setDepthCompare(bool enable, DkCompareOp op = DkCompareOp_Less)
+		{
+			this->compareEnable = enable;
+			this->compareOp = op;
+			return *this;
+		}
+		Sampler& setBorderColor(float r, float g, float b, float a)
+		{
+			this->borderColor[0].value_f = r;
+			this->borderColor[1].value_f = g;
+			this->borderColor[2].value_f = b;
+			this->borderColor[3].value_f = a;
+			return *this;
+		}
+		Sampler& setBorderColor(uint32_t r, uint32_t g, uint32_t b, uint32_t a)
+		{
+			this->borderColor[0].value_ui = r;
+			this->borderColor[1].value_ui = g;
+			this->borderColor[2].value_ui = b;
+			this->borderColor[3].value_ui = a;
+			return *this;
+		}
+		Sampler& setBorderColor(int32_t r, int32_t g, int32_t b, int32_t a)
+		{
+			this->borderColor[0].value_i = r;
+			this->borderColor[1].value_i = g;
+			this->borderColor[2].value_i = b;
+			this->borderColor[3].value_i = a;
+			return *this;
+		}
+		Sampler& setMaxAnisotropy(float max) { this->maxAnisotropy = max; return *this; }
+		Sampler& setReductionMode(DkSamplerReduction mode) { this->reductionMode = mode; return *this; }
+	};
+
+	struct SamplerDescriptor : public detail::Opaque<::DkSamplerDescriptor>
+	{
+		DK_OPAQUE_COMMON_MEMBERS(SamplerDescriptor);
+		void initialize(Sampler const& sampler);
 	};
 
 	struct RasterizerState : public ::DkRasterizerState
@@ -503,6 +569,11 @@ namespace dk
 	inline void CmdBuf::bindImageDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors)
 	{
 		::dkCmdBufBindImageDescriptorSet(*this, setAddr, numDescriptors);
+	}
+
+	inline void CmdBuf::bindSamplerDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors)
+	{
+		::dkCmdBufBindSamplerDescriptorSet(*this, setAddr, numDescriptors);
 	}
 
 	inline void CmdBuf::bindRenderTargets(detail::ArrayProxy<DkImageView const* const> colorTargets, DkImageView const* depthTarget)
@@ -732,6 +803,11 @@ namespace dk
 	inline void ImageDescriptor::initialize(ImageView const& view, bool usesLoadOrStore)
 	{
 		::dkImageDescriptorInitialize(this, &view, usesLoadOrStore);
+	}
+
+	inline void SamplerDescriptor::initialize(Sampler const& sampler)
+	{
+		::dkSamplerDescriptorInitialize(this, &sampler);
 	}
 
 	inline Swapchain SwapchainMaker::create()
