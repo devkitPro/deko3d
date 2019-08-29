@@ -198,7 +198,7 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	if ((obj->m_flags & DkImageFlags_Usage2DEngine) && !(traits.flags & FormatTraitFlags_CanUse2DEngine))
 		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (obj->m_flags & DkImageFlags_UsageRender)
+	if (obj->m_flags & DkImageFlags_UsagePresent)
 	{
 		if (obj->m_flags & DkImageFlags_PitchLinear)
 			return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);

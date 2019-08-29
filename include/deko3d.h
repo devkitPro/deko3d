@@ -925,7 +925,7 @@ uint32_t dkImageLayoutGetAlignment(DkImageLayout const* obj);
 void dkImageInitialize(DkImage* obj, DkImageLayout const* layout, DkMemBlock memBlock, uint32_t offset);
 DkGpuAddr dkImageGetGpuAddr(DkImage const* obj);
 
-void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view, bool usesLoadOrStore);
+void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view, bool usesLoadOrStore, bool decayMS);
 
 void dkSamplerDescriptorInitialize(DkSamplerDescriptor* obj, DkSampler const* sampler);
 

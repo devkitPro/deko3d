@@ -57,6 +57,9 @@ namespace
 		uint32_t m_arrayMode;
 		uint32_t m_layerStride;
 
+		uint32_t m_width;
+		uint32_t m_height;
+
 		DkResult fromImageView(DkImageView const* view, bool isDepth = false);
 		constexpr auto genCommands(unsigned id)
 		{
@@ -461,7 +464,7 @@ void tag_DkQueue::decompressSurface(DkImage const* image)
 	w << SetShadowRamControl(SRC::MethodPassthrough);
 	w << rt.genCommands(0);
 	w << CmdInline(3D, MultisampleMode{}, DkMsMode_1x);
-	w << Cmd(3D, ScreenScissorHorizontal{}, rt.m_horizontal<<16, rt.m_vertical<<16);
+	w << Cmd(3D, ScreenScissorHorizontal{}, rt.m_width<<16, rt.m_height<<16);
 	w << CmdInline(3D, SetWindowOriginMode{}, E::SetWindowOriginMode::Mode::LowerLeft); // ??
 	w << CmdInline(3D, SetMultisampleRasterEnable{}, 0);
 
@@ -470,7 +473,7 @@ void tag_DkQueue::decompressSurface(DkImage const* image)
 	w << SetShadowRamControl(SRC::MethodReplay);
 	w << rt.genCommands(0);
 	w << CmdInline(3D, MultisampleMode{}, DkMsMode_1x);
-	w << Cmd(3D, ScreenScissorHorizontal{}, rt.m_horizontal<<16, rt.m_vertical<<16);
+	w << Cmd(3D, ScreenScissorHorizontal{}, rt.m_width<<16, rt.m_height<<16);
 	w << CmdInline(3D, SetWindowOriginMode{}, E::SetWindowOriginMode::Mode::LowerLeft); // ??
 	w << CmdInline(3D, SetMultisampleRasterEnable{}, 0);
 
@@ -516,9 +519,11 @@ DkResult RenderTarget::fromImageView(DkImageView const* view, bool isDepth)
 #endif
 	}
 
-	m_iova       = image->m_iova;
-	m_vertical   = image->m_dimensions[1];
-	m_format     = traits.renderFmt;
+	m_iova   = image->m_iova;
+	m_format = traits.renderFmt;
+	m_width  = image->m_dimensions[0];
+	m_height = image->m_dimensions[1];
+	// TODO: Mipmap shit
 
 	using TM = E::RenderTarget::TileMode;
 	if (!(image->m_flags & DkImageFlags_PitchLinear))
@@ -534,7 +539,8 @@ DkResult RenderTarget::fromImageView(DkImageView const* view, bool isDepth)
 				m_arrayMode -= view->layerOffset;
 		}
 
-		m_horizontal  = (image->m_dimensions[0] + tileWidth - 1) &~ (tileWidth - 1);
+		m_horizontal  = (m_width*image->m_samplesX + tileWidth - 1) &~ (tileWidth - 1);
+		m_vertical    = m_height*image->m_samplesY;
 		m_tileMode    = TM::Width{image->m_tileW} | TM::Height{image->m_tileH} | TM::Depth{image->m_tileD} | TM::Is3D{type==DkImageType_3D};
 		m_arrayMode   = (type==DkImageType_3D || layered) ? image->m_dimensions[2] : 1;
 		m_layerStride = image->m_layerSize >> 2;
@@ -547,6 +553,7 @@ DkResult RenderTarget::fromImageView(DkImageView const* view, bool isDepth)
 #endif
 
 		m_horizontal  = image->m_stride;
+		m_vertical    = m_height;
 		m_tileMode    = TM::IsLinear{};
 		m_arrayMode   = 0;
 		m_layerStride = 0;

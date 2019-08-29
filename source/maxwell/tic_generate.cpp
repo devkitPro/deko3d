@@ -26,7 +26,7 @@ namespace
 	}
 };
 
-void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view, bool usesLoadOrStore)
+void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view, bool usesLoadOrStore, bool decayMS)
 {
 	memset(obj, 0, sizeof(*obj));
 
@@ -102,7 +102,7 @@ void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view
 		obj->lod_iso_quality = LodQuality_High;
 	}
 
-	switch (image->m_numSamplesLog2)
+	if (!decayMS) switch (image->m_numSamplesLog2)
 	{
 		default:
 		case DkMsMode_1x:
@@ -129,7 +129,7 @@ void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view
 	uint32_t height = image->m_dimensions[1];
 	uint32_t depth = image->m_dimensions[2];
 
-	if (usesLoadOrStore)
+	if (decayMS)
 	{
 		width *= image->m_samplesX;
 		height *= image->m_samplesY;

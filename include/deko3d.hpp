@@ -317,7 +317,7 @@ namespace dk
 	struct ImageDescriptor : public detail::Opaque<::DkImageDescriptor>
 	{
 		DK_OPAQUE_COMMON_MEMBERS(ImageDescriptor);
-		void initialize(ImageView const& view, bool usesLoadOrStore = false);
+		void initialize(ImageView const& view, bool usesLoadOrStore = false, bool decayMS = false);
 	};
 
 	struct Sampler : public ::DkSampler
@@ -800,9 +800,9 @@ namespace dk
 		return *static_cast<ImageLayout const*>(::dkImageGetLayout(this));
 	}
 
-	inline void ImageDescriptor::initialize(ImageView const& view, bool usesLoadOrStore)
+	inline void ImageDescriptor::initialize(ImageView const& view, bool usesLoadOrStore, bool decayMS)
 	{
-		::dkImageDescriptorInitialize(this, &view, usesLoadOrStore);
+		::dkImageDescriptorInitialize(this, &view, usesLoadOrStore, decayMS);
 	}
 
 	inline void SamplerDescriptor::initialize(Sampler const& sampler)
