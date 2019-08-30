@@ -726,6 +726,16 @@ DK_CONSTEXPR void dkDepthStencilStateDefaults(DkDepthStencilState* state)
 	state->stencilBackCompareOp = DkCompareOp_Always;
 }
 
+typedef enum DkTiledCacheOp
+{
+	DkTiledCacheOp_Disable    = 0,
+	DkTiledCacheOp_Enable     = 1,
+	DkTiledCacheOp_Flush      = 2,
+	DkTiledCacheOp_FlushAlt   = 3,
+	DkTiledCacheOp_UnkDisable = 4,
+	DkTiledCacheOp_UnkEnable  = 5,
+} DkTiledCacheOp;
+
 typedef enum DkVtxAttribSize
 {
 	// One to four 32-bit components
@@ -891,6 +901,8 @@ void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissor
 void dkCmdBufSetDepthBounds(DkCmdBuf obj, bool enable, float near, float far);
 void dkCmdBufSetStencil(DkCmdBuf obj, DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask);
 void dkCmdBufSetPrimitiveRestart(DkCmdBuf obj, bool enable, uint32_t index);
+void dkCmdBufSetTileSize(DkCmdBuf obj, uint32_t width, uint32_t height);
+void dkCmdBufTiledCacheOp(DkCmdBuf obj, DkTiledCacheOp op);
 void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, const void* clearData);
 void dkCmdBufClearDepthStencil(DkCmdBuf obj, bool clearDepth, float depthValue, uint8_t stencilMask, uint8_t stencilValue);
 void dkCmdBufDiscardColor(DkCmdBuf obj, uint32_t targetId);

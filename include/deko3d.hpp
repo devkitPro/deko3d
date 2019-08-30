@@ -162,6 +162,8 @@ namespace dk
 		void setDepthBounds(bool enable, float near, float far);
 		void setStencil(DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask);
 		void setPrimitiveRestart(bool enable, uint32_t index);
+		void setTileSize(uint32_t width, uint32_t height);
+		void tiledCacheOp(DkTiledCacheOp op);
 		void clearColor(uint32_t targetId, uint32_t clearMask, const void* clearData);
 		template<typename T> void clearColor(uint32_t targetId, uint32_t clearMask, T red = T{0}, T green = T{0}, T blue = T{0}, T alpha = T{0});
 		void clearDepthStencil(bool clearDepth, float depthValue, uint8_t stencilMask, uint8_t stencilValue);
@@ -639,6 +641,16 @@ namespace dk
 	inline void CmdBuf::setPrimitiveRestart(bool enable, uint32_t index)
 	{
 		::dkCmdBufSetPrimitiveRestart(*this, enable, index);
+	}
+
+	inline void CmdBuf::setTileSize(uint32_t width, uint32_t height)
+	{
+		::dkCmdBufSetTileSize(*this, width, height);
+	}
+
+	inline void CmdBuf::tiledCacheOp(DkTiledCacheOp op)
+	{
+		::dkCmdBufTiledCacheOp(*this, op);
 	}
 
 	inline void CmdBuf::clearColor(uint32_t targetId, uint32_t clearMask, const void* clearData)

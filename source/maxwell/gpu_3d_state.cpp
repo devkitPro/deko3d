@@ -93,3 +93,51 @@ void dkCmdBufSetStencil(DkCmdBuf obj, DkFace face, uint8_t mask, uint8_t funcRef
 		w << CmdInline(3D, StencilBackFuncMask{}, funcMask);
 	}
 }
+
+void dkCmdBufSetTileSize(DkCmdBuf obj, uint32_t width, uint32_t height)
+{
+#ifdef DEBUG
+	if (width < 16 || width > 16384)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (width & (width - 1))
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (height < 16 || height > 16384)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (height & (height - 1))
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	CmdBufWriter w{obj};
+	w.reserve(2);
+
+	w << Cmd(3D, TiledCacheTileSize{}, E::TiledCacheTileSize::Width{width} | E::TiledCacheTileSize::Height{height});
+}
+
+void dkCmdBufTiledCacheOp(DkCmdBuf obj, DkTiledCacheOp op)
+{
+	CmdBufWriter w{obj};
+	w.reserve(1);
+
+	switch (op)
+	{
+		default:
+		case DkTiledCacheOp_Disable:
+			w << CmdInline(3D, TiledCacheEnable{}, 0);
+			break;
+		case DkTiledCacheOp_Enable:
+			w << CmdInline(3D, TiledCacheEnable{}, 1);
+			break;
+		case DkTiledCacheOp_Flush:
+			w << CmdInline(3D, TiledCacheFlush{}, 0);
+			break;
+		case DkTiledCacheOp_FlushAlt:
+			w << CmdInline(3D, TiledCacheFlush{}, 1);
+			break;
+		case DkTiledCacheOp_UnkDisable:
+			w << CmdInline(3D, TiledCacheUnkFeatureEnable{}, 0);
+			break;
+		case DkTiledCacheOp_UnkEnable:
+			w << CmdInline(3D, TiledCacheUnkFeatureEnable{}, 1);
+			break;
+	}
+}
