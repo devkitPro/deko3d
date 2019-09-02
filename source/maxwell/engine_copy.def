@@ -1,3 +1,59 @@
 
 // MAXWELL_DMA_COPY_A
 engine Copy 0xB0B5;
+
+0x0c0 Execute bits (
+	0..1 CopyMode;
+	2    Flush;
+	3..4 Query enum (
+		0 None;
+		1 OneWord;
+		2 FourWords;
+	);
+	5..6 Interrupt enum (
+		0 None;
+		1 Block;
+		2 NonBlock;
+	);
+	7    SrcIsBlockLinear bool;
+	8    DstIsBlockLinear bool;
+	9    Enable2D bool;
+	10   EnableSwizzle bool;
+);
+
+0x100 SrcAddr iova;
+0x102 DstAddr iova;
+0x104 SrcPitch;
+0x105 DstPitch;
+0x106 XCount;
+0x107 YCount;
+
+0x1c0 Const array[2];
+0x1c2 Swizzle bits (
+	0..3   X; // 0=x 1=y 2=z 3=w 4=Const[0] 5=Const[0] 6=0
+	4..7   Y;
+	8..11  Z;
+	12..15 W;
+	16..17 SizeMinus1;
+	20..22 SrcNumComponentsMinus1;
+	24..26 DstNumComponentsMinus1;
+);
+0x1c3 DstTileMode; // you know the drill
+0x1c4 DstSizeX;
+0x1c5 DstSizeY;
+0x1c6 DstSizeZ;
+0x1c7 DstPosZ;
+0x1c8 DstPosXY bits (
+	0..15  X;
+	16..31 Y;
+);
+
+0x1ca SrcTileMode; // you know the drill
+0x1cb SrcSizeX;
+0x1cc SrcSizeY;
+0x1cd SrcSizeZ;
+0x1ce SrcPosZ;
+0x1cf SrcPosXY bits (
+	0..15  X;
+	16..31 Y;
+);
