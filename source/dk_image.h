@@ -38,3 +38,33 @@ struct DkImage : public DkImageLayout
 DK_OPAQUE_CHECK(DkImageLayout);
 DK_OPAQUE_CHECK(DkImage);
 
+namespace dk::detail
+{
+	struct ImageInfo
+	{
+		DkGpuAddr m_iova;
+		uint32_t m_horizontal;
+		uint32_t m_vertical;
+		uint32_t m_format;
+		uint32_t m_tileMode;
+		uint32_t m_arrayMode;
+		uint32_t m_layerStride;
+
+		uint32_t m_width;
+		uint32_t m_height;
+		uint32_t m_widthMs;
+		uint32_t m_heightMs;
+		uint8_t m_bytesPerBlock;
+		bool m_isLinear;
+
+		enum
+		{
+			ColorRenderTarget = 0,
+			DepthRenderTarget = 1,
+			Transfer2D        = 2,
+			TransferCopy      = 3,
+		};
+
+		DkResult fromImageView(DkImageView const* view, unsigned usage);
+	};
+}

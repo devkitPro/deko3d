@@ -2,6 +2,9 @@
 #include "dk_device.h"
 #include "dk_memblock.h"
 
+#include "engine_3d.h"
+#include "engine_2d.h"
+
 using namespace dk::detail;
 using namespace maxwell;
 
@@ -83,6 +86,105 @@ void DkImageLayout::calcLayerSize()
 
 		m_layerSize += uint64_t(levelWidthTiles*levelHeightTiles*levelDepthTiles) << (9 + levelTileWShift + levelTileHShift + levelTileDShift);
 	}
+}
+
+DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
+{
+	DkImage const* image = view->pImage;
+	DkImageType type = view->type ? view->type : image->m_type;
+	DkImageFormat format = view->format ? view->format : image->m_format;
+	FormatTraits const& traits = formatTraits[format];
+
+	bool isRenderTarget = usage == ColorRenderTarget || usage == DepthRenderTarget;
+#ifdef DEBUG
+	bool formatIsDepth = traits.depthBits || traits.stencilBits;
+	if (isRenderTarget && !(image->m_flags & DkImageFlags_UsageRender))
+		return DkResult_BadInput;
+	if (usage == Transfer2D && !(image->m_flags & DkImageFlags_Usage2DEngine))
+		return DkResult_BadInput;
+	if (usage == ColorRenderTarget && formatIsDepth)
+		return DkResult_BadInput;
+	if (usage == DepthRenderTarget && !formatIsDepth)
+		return DkResult_BadInput;
+	if (usage == DepthRenderTarget && (type == DkImageType_3D || (image->m_flags & DkImageFlags_PitchLinear)))
+		return DkResult_BadInput;
+#endif
+
+	bool layered;
+	switch (type)
+	{
+#ifndef DEBUG
+		default:
+#endif
+		case DkImageType_2D:
+		case DkImageType_3D:
+		case DkImageType_2DMS:
+		case DkImageType_Rectangle:
+			layered = false;
+			break;
+		case DkImageType_2DArray:
+		case DkImageType_2DMSArray:
+		case DkImageType_Cubemap:
+		case DkImageType_CubemapArray:
+			layered = true;
+			break;
+#ifdef DEBUG
+		default:
+			return DkResult_BadInput;
+#endif
+	}
+
+	m_iova   = image->m_iova;
+	m_format = isRenderTarget ? traits.renderFmt : traits.engine2dFmt;
+	m_width  = adjustBlockSize(image->m_dimensions[0], traits.blockWidth);
+	m_height = adjustBlockSize(image->m_dimensions[1], traits.blockHeight);
+	m_widthMs = adjustBlockSize(image->m_dimensions[0]*image->m_samplesX, traits.blockWidth);
+	m_heightMs = adjustBlockSize(image->m_dimensions[1]*image->m_samplesY, traits.blockHeight);
+	m_bytesPerBlock = traits.bytesPerBlock;
+	// TODO: Mipmap shit
+
+	using TM   = Engine3D::RenderTarget::TileMode;
+	using TM2D = Engine2D::SrcTileMode;
+	if (!(image->m_flags & DkImageFlags_PitchLinear))
+	{
+		uint32_t tileWidth = (64 / traits.bytesPerBlock) << image->m_tileW;
+
+		if (layered)
+		{
+			m_iova += view->layerOffset * image->m_layerSize;
+			if (view->layerCount)
+				m_arrayMode = view->layerCount;
+			else
+				m_arrayMode -= view->layerOffset;
+		}
+
+		m_horizontal  = (m_widthMs + tileWidth - 1) &~ (tileWidth - 1);
+		m_vertical    = m_heightMs;
+		if (isRenderTarget)
+			m_tileMode = TM::Width{image->m_tileW} | TM::Height{image->m_tileH} | TM::Depth{image->m_tileD} | TM::Is3D{type==DkImageType_3D};
+		else
+			m_tileMode = TM2D::Width{image->m_tileW} | TM2D::Height{image->m_tileH} | TM2D::Depth{image->m_tileD};
+		m_arrayMode   = (type==DkImageType_3D || layered) ? image->m_dimensions[2] : 1;
+		m_layerStride = image->m_layerSize >> 2;
+		m_isLinear = false;
+	}
+	else
+	{
+#ifdef DEBUG
+		if (layered)
+			return DkResult_BadInput;
+#endif
+
+		m_horizontal  = image->m_stride;
+		m_vertical    = m_height;
+		if (isRenderTarget)
+			m_tileMode = TM::IsLinear{};
+		m_arrayMode   = 0;
+		m_layerStride = 0;
+		m_isLinear = true;
+	}
+
+	return DkResult_Success;
 }
 
 void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker)
