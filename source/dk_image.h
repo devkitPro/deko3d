@@ -67,4 +67,14 @@ namespace dk::detail
 
 		DkResult fromImageView(DkImageView const* view, unsigned usage);
 	};
+
+	enum
+	{
+		Blit2D_SetupEngine  = 1U << 0,
+		Blit2D_OriginCorner = 1U << 1,
+		Blit2D_UseFilter    = 1U << 2,
+	};
+
+	void BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, uint32_t srcX, uint32_t srcY, uint32_t dstX, uint32_t dstY, uint32_t width, uint32_t height);
+	void Blit2DEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, uint32_t srcX, uint32_t srcY, uint32_t dstX, uint32_t dstY, uint32_t dstW, uint32_t dstH, uint32_t dudx, uint32_t dvdy, uint32_t fractBits, uint32_t flags);
 }

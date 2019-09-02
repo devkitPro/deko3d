@@ -3,6 +3,7 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdalign.h>
 
 #if __cplusplus >= 201402L
@@ -841,6 +842,45 @@ typedef struct DkDispatchIndirectData
 	uint32_t numGroupsZ;
 } DkDispatchIndirectData;
 
+enum
+{
+	// Flip bits (for all)
+	DkBlitFlag_Flip_Mask = 7U << 0,
+	DkBlitFlag_FlipX     = 1U << 0, // only for BlitImage and CopyDataToImage
+	DkBlitFlag_FlipY     = 1U << 1,
+	DkBlitFlag_FlipZ     = 1U << 2,
+
+	// Filter mode (for BlitImage)
+	DkBlitFlag_Filter_Mask   = 1U << 4,
+	DkBlitFlag_FilterNearest = 0U << 4,
+	DkBlitFlag_FilterLinear  = 1U << 4,
+
+	// Blit mode (for BlitImage)
+	DkBlitFlag_Mode_Mask        = 7U << 5,
+	DkBlitFlag_ModeBlit         = 0U << 5,
+	DkBlitFlag_ModeAlphaMask    = 1U << 5,
+	DkBlitFlag_ModeAlphaBlend   = 2U << 5,
+	DkBlitFlag_ModePremultBlit  = 3U << 5,
+	DkBlitFlag_ModePremultBlend = 4U << 5,
+};
+
+typedef struct DkBlitRect
+{
+	uint32_t x;
+	uint32_t y;
+	uint32_t z;
+	uint32_t width;
+	uint32_t height;
+	uint32_t depth;
+} DkBlitRect;
+
+typedef struct DkCopyBuf
+{
+	DkGpuAddr addr;
+	uint32_t rowLength;
+	uint32_t imageHeight;
+} DkCopyBuf;
+
 typedef struct DkSwapchainMaker
 {
 	DkDevice device;
@@ -914,6 +954,13 @@ void dkCmdBufDrawIndexedIndirect(DkCmdBuf obj, DkPrimitive prim, DkGpuAddr indir
 void dkCmdBufDispatchCompute(DkCmdBuf obj, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ);
 void dkCmdBufDispatchComputeIndirect(DkCmdBuf obj, DkGpuAddr indirect);
 void dkCmdBufPushConstants(DkCmdBuf obj, DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data);
+void dkCmdBufPushData(DkCmdBuf obj, DkGpuAddr addr, const void* data, uint32_t size);
+void dkCmdBufCopyBuffer(DkCmdBuf obj, DkGpuAddr srcAddr, DkGpuAddr dstAddr, uint32_t size);
+void dkCmdBufCopyImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags);
+void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags, uint32_t factor);
+void dkCmdBufResolveImage(DkCmdBuf obj, DkImageView const* srcView, DkImageView const* dstView);
+void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags);
+void dkCmdBufCopyImageToBuffer(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkCopyBuf const* dst, uint32_t flags);
 
 DkQueue dkQueueCreate(DkQueueMaker const* maker);
 void dkQueueDestroy(DkQueue obj);

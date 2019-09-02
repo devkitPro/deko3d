@@ -1,6 +1,7 @@
 #include "dk_image.h"
 #include "dk_device.h"
 #include "dk_memblock.h"
+#include "cmdbuf_writer.h"
 
 #include "engine_3d.h"
 #include "engine_2d.h"
@@ -448,4 +449,29 @@ void dkImageInitialize(DkImage* obj, DkImageLayout const* layout, DkMemBlock mem
 DkGpuAddr dkImageGetGpuAddr(DkImage const* obj)
 {
 	return obj->m_iova;
+}
+
+void dkCmdBufCopyImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags)
+{
+	obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
+}
+
+void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags, uint32_t factor)
+{
+	obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
+}
+
+void dkCmdBufResolveImage(DkCmdBuf obj, DkImageView const* srcView, DkImageView const* dstView)
+{
+	obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
+}
+
+void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags)
+{
+	obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
+}
+
+void dkCmdBufCopyImageToBuffer(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkCopyBuf const* dst, uint32_t flags)
+{
+	obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
 }

@@ -30,6 +30,15 @@ engine _2D 0x902D;
 
 0x0a4 ClipEnable bool;
 
+0x0a9 BlendAlphaFactor bits ( // aka BETA1; 1.31 fixed point (<0 clamped to 0; only 8 fract bits used)
+	23..30 Value;
+);
+0x0aa BlendPremultFactor bits ( // aka BETA4
+	0..7   Red;
+	8..15  Green;
+	16..23 Blue;
+	24..31 Alpha;
+);
 0x0ab Operation enum (
 	0 SrcCopyAnd;     // if (SRC.A) DST = SRC;
 	1 RopAnd;         // R = ROP(DST, SRC, PATTERN); if (R.A) DST = R;

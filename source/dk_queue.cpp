@@ -49,6 +49,8 @@ DkResult tag_DkQueue::initialize()
 	setupEngines();
 	if (hasGraphics())
 		setup3DEngine();
+	if (hasTransfer())
+		setupTransfer();
 	if (hasCompute())
 	{
 		m_computeQueue = new(this+1) ComputeQueue(this);
