@@ -458,7 +458,106 @@ void dkCmdBufCopyImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect cons
 
 void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags, uint32_t factor)
 {
-	obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
+#ifdef DEBUG
+	if (!srcView || !srcView->pImage || !srcRect)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (!dstView || !dstView->pImage || !dstRect)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	DkResult res;
+	ImageInfo srcInfo, dstInfo;
+
+	res = srcInfo.fromImageView(srcView, ImageInfo::Transfer2D);
+#ifdef DEBUG
+	if (res != DkResult_Success)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, res);
+#endif
+
+	res = dstInfo.fromImageView(dstView, ImageInfo::Transfer2D);
+#ifdef DEBUG
+	if (res != DkResult_Success)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, res);
+#endif
+
+#ifndef DEBUG
+	(void)res;
+#endif
+
+	bool isSrcTexCompressed = srcView->pImage->m_blockW > 1;
+#ifdef DEBUG
+	bool isDstTexCompressed = dstView->pImage->m_blockW > 1;
+	if (isSrcTexCompressed != isDstTexCompressed)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (isSrcTexCompressed && srcInfo.m_format != dstInfo.m_format)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	BlitParams params;
+	params.srcX = srcRect->x;
+	params.srcY = srcRect->y;
+	params.dstX = dstRect->x;
+	params.dstY = dstRect->y;
+	params.width = dstRect->width;
+	params.height = dstRect->height;
+	int32_t srcW = srcRect->width;
+	int32_t srcH = srcRect->height;
+
+	if (isSrcTexCompressed)
+	{
+		uint32_t blockW = srcView->pImage->m_blockW;
+		uint32_t blockH = srcView->pImage->m_blockH;
+		params.srcX = adjustBlockSize(params.srcX, blockW);
+		params.srcY = adjustBlockSize(params.srcY, blockH);
+		params.srcX = adjustBlockSize(params.dstX, blockW);
+		params.srcY = adjustBlockSize(params.dstY, blockH);
+		params.width = adjustBlockSize(params.width, blockW);
+		params.height = adjustBlockSize(params.height, blockH);
+		srcW = adjustBlockSize(srcW, blockW);
+		srcH = adjustBlockSize(srcH, blockH);
+	}
+	else
+	{
+		if (srcView->pImage->m_numSamplesLog2 != DkMsMode_1x)
+		{
+			params.srcX *= srcView->pImage->m_samplesX;
+			params.srcY *= srcView->pImage->m_samplesY;
+			srcW *= srcView->pImage->m_samplesX;
+			srcH *= srcView->pImage->m_samplesY;
+		}
+
+		if (dstView->pImage->m_numSamplesLog2 != DkMsMode_1x)
+		{
+			params.dstX *= dstView->pImage->m_samplesX;
+			params.dstY *= dstView->pImage->m_samplesY;
+			params.width *= dstView->pImage->m_samplesX;
+			params.height *= dstView->pImage->m_samplesY;
+		}
+
+		if (flags & DkBlitFlag_FlipX)
+		{
+			params.srcX += srcW;
+			srcW = -srcW;
+		}
+
+		if (flags & DkBlitFlag_FlipY)
+		{
+			params.srcY += srcH;
+			srcH = -srcH;
+		}
+	}
+
+	int32_t dudx = (srcW << DiffFractBits) / (int32_t)params.width;
+	int32_t dvdy = (srcH << DiffFractBits) / (int32_t)params.height;
+
+	params.srcX = (params.srcX << SrcFractBits) + (dudx >> (DiffFractBits-SrcFractBits+1));
+	params.srcY = (params.srcY << SrcFractBits) + (dvdy >> (DiffFractBits-SrcFractBits+1));
+
+	uint32_t newFlags = Blit2D_SetupEngine | Blit2D_OriginCorner | (flags & DkBlitFlag_Mode_Mask);
+	if (flags & DkBlitFlag_FilterLinear)
+		newFlags |= Blit2D_UseFilter;
+
+	Blit2DEngine(obj, srcInfo, dstInfo, params, dudx, dvdy, newFlags, factor);
 }
 
 void dkCmdBufResolveImage(DkCmdBuf obj, DkImageView const* srcView, DkImageView const* dstView)

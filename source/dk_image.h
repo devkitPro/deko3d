@@ -86,7 +86,7 @@ namespace dk::detail
 	};
 
 	// Fractional bits for dudx/dvdy and srcX/Y parameters for Blit2DEngine
-	constexpr unsigned DiffFractBits = 12;
+	constexpr unsigned DiffFractBits = 15;
 	constexpr unsigned SrcFractBits = 4;
 
 	void BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, BlitParams const& params);
