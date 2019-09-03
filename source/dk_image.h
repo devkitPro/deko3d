@@ -75,6 +75,20 @@ namespace dk::detail
 		Blit2D_UseFilter    = 1U << 2,
 	};
 
-	void BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, uint32_t srcX, uint32_t srcY, uint32_t dstX, uint32_t dstY, uint32_t width, uint32_t height);
-	void Blit2DEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, uint32_t srcX, uint32_t srcY, uint32_t dstX, uint32_t dstY, uint32_t dstW, uint32_t dstH, uint32_t dudx, uint32_t dvdy, uint32_t fractBits, uint32_t flags);
+	struct BlitParams
+	{
+		uint32_t srcX;
+		uint32_t srcY;
+		uint32_t dstX;
+		uint32_t dstY;
+		uint32_t width;
+		uint32_t height;
+	};
+
+	// Fractional bits for dudx/dvdy and srcX/Y parameters for Blit2DEngine
+	constexpr unsigned DiffFractBits = 12;
+	constexpr unsigned SrcFractBits = 4;
+
+	void BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, BlitParams const& params);
+	void Blit2DEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, BlitParams const& params, int32_t dudx, int32_t dvdy, uint32_t flags, uint32_t factor);
 }

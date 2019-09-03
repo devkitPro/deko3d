@@ -11,6 +11,7 @@ engine _2D 0x902D;
 );
 0x083 DestArrayMode;
 
+0x085 DestPitch;
 0x086 DestHorizontal;
 0x087 DestVertical;
 0x088 DestAddr iova;
@@ -24,6 +25,7 @@ engine _2D 0x902D;
 );
 0x08f SrcArrayMode;
 
+0x091 SrcPitch;
 0x092 SrcHorizontal;
 0x093 SrcVertical;
 0x094 SrcAddr iova;

@@ -18,12 +18,12 @@ void tag_DkQueue::setupTransfer()
 {
 	CmdBufWriter w{&m_cmdBuf};
 
-	w << CmdInline(2D, Operation{}, E2D::Operation::SrcCopy);
+	w << Cmd(2D, BlendAlphaFactor{}, E2D::BlendAlphaFactor::Value{0xFF});
 	w << CmdInline(2D, ClipEnable{}, 0);
 	w << CmdInline(2D, Unknown221{}, 0x3f);
 }
 
-void dk::detail::BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, uint32_t srcX, uint32_t srcY, uint32_t dstX, uint32_t dstY, uint32_t width, uint32_t height)
+void dk::detail::BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, BlitParams const& params)
 {
 	CmdBufWriter w{obj};
 	w.reserve(2*7 + 4 + 10);
@@ -34,17 +34,20 @@ void dk::detail::BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo co
 	bool useSwizzle = false;
 
 	if (src.m_isLinear)
-		srcIova += srcY * src.m_horizontal + srcX * src.m_bytesPerBlock;
+		srcIova += params.srcY * src.m_horizontal + params.srcX * src.m_bytesPerBlock;
 	else if (src.m_widthMs * src.m_bytesPerBlock > 0x10000)
 		useSwizzle = true;
 
 	if (dst.m_isLinear)
-		dstIova += dstY * dst.m_horizontal + dstX * dst.m_bytesPerBlock;
+		dstIova += params.dstY * dst.m_horizontal + params.dstX * dst.m_bytesPerBlock;
 	else if (dst.m_widthMs * dst.m_bytesPerBlock > 0x10000)
 		useSwizzle = true;
 
 	uint32_t srcHorizFactor = 1;
 	uint32_t dstHorizFactor = 1;
+	uint32_t srcX = params.srcX;
+	uint32_t dstX = params.dstX;
+	uint32_t width = params.width;
 
 	if (!useSwizzle)
 	{
@@ -63,7 +66,7 @@ void dk::detail::BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo co
 			src.m_vertical,
 			1U << ((src.m_tileMode >> 8) & 0xF),
 			0,
-			Copy::SrcPosXY::X{srcX} | Copy::SrcPosXY::Y{srcY});
+			Copy::SrcPosXY::X{srcX} | Copy::SrcPosXY::Y{params.srcY});
 	}
 	else
 	{
@@ -79,7 +82,7 @@ void dk::detail::BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo co
 			dst.m_vertical,
 			1U << ((dst.m_tileMode >> 8) & 0xF),
 			0,
-			Copy::DstPosXY::X{dstX} | Copy::DstPosXY::Y{dstY});
+			Copy::DstPosXY::X{dstX} | Copy::DstPosXY::Y{params.dstY});
 	}
 	else
 	{
@@ -103,13 +106,98 @@ void dk::detail::BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo co
 	}
 
 	w << Cmd(Copy, SrcAddr{}, Iova(srcIova), Iova(dstIova));
-	w << Cmd(Copy, XCount{}, width, height);
+	w << Cmd(Copy, XCount{}, width, params.height);
 	w << Cmd(Copy, Execute{}, copyFlags);
 }
 
-void dk::detail::Blit2DEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, uint32_t srcX, uint32_t srcY, uint32_t dstX, uint32_t dstY, uint32_t dstW, uint32_t dstH, uint32_t dudx, uint32_t dvdy, uint32_t fractBits, uint32_t flags)
+void dk::detail::Blit2DEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, BlitParams const& params, int32_t dudx, int32_t dvdy, uint32_t flags, uint32_t factor)
 {
-	// TODO
+	CmdBufWriter w{obj};
+	w.reserve((3 + 10*2 + 1) + 14);
+
+	if (flags & Blit2D_SetupEngine)
+	{
+		using BO = E2D::Operation;
+		uint32_t blitOp;
+		bool hasFactor = false;
+		switch (flags & DkBlitFlag_Mode_Mask)
+		{
+			default:
+			case DkBlitFlag_ModeBlit:
+				blitOp = BO::SrcCopy;
+				break;
+			case DkBlitFlag_ModeAlphaMask:
+				blitOp = BO::SrcCopyAnd;
+				break;
+			case DkBlitFlag_ModeAlphaBlend:
+				blitOp = BO::Blend;
+				break;
+			case DkBlitFlag_ModePremultBlit:
+				blitOp = BO::SrcCopyPremult;
+				hasFactor = true;
+				break;
+			case DkBlitFlag_ModePremultBlend:
+				blitOp = BO::BlendPremult;
+				hasFactor = true;
+				break;
+		}
+
+		w << CmdInline(2D, Operation{}, blitOp);
+		if (hasFactor)
+			w << Cmd(2D, BlendPremultFactor{}, factor);
+
+		if (!src.m_isLinear)
+		{
+			w << Cmd(2D, SrcFormat{}, src.m_format, 0, src.m_tileMode, src.m_arrayMode);
+			w << Cmd(2D, SrcHorizontal{}, src.m_horizontal, src.m_vertical, Iova(src.m_iova));
+		}
+		else
+		{
+			w << Cmd(2D, SrcFormat{}, src.m_format, 1);
+			w << Cmd(2D, SrcPitch{}, src.m_horizontal, src.m_width, src.m_height, Iova(src.m_iova));
+		}
+
+		if (!dst.m_isLinear)
+		{
+			w << Cmd(2D, DestFormat{}, dst.m_format, 0, dst.m_tileMode, dst.m_arrayMode);
+			w << Cmd(2D, DestHorizontal{}, dst.m_horizontal, dst.m_vertical, Iova(dst.m_iova));
+		}
+		else
+		{
+			w << Cmd(2D, DestFormat{}, dst.m_format, 1);
+			w << Cmd(2D, DestPitch{}, dst.m_horizontal, dst.m_width, dst.m_height, Iova(dst.m_iova));
+		}
+
+		w << CmdInline(2D, Unknown0b5{}, 1);
+	}
+	else
+	{
+		w << Cmd(2D, SrcAddr{}, Iova(src.m_iova));
+		w << Cmd(2D, DestAddr{}, Iova(dst.m_iova));
+	}
+
+	uint32_t blitCtrlFlags = 0;
+	using BC = E2D::BlitControl;
+	if (flags & Blit2D_OriginCorner)
+		blitCtrlFlags |= BC::Origin::Corner;
+	if (flags & Blit2D_UseFilter)
+		blitCtrlFlags |= BC::Filter::Linear;
+
+	w << CmdInline(2D, BlitControl{}, blitCtrlFlags);
+	w << Cmd(2D, BlitDestX{},
+		params.dstX,
+		params.dstY,
+		params.width,
+		params.height,
+		dudx << (32 - DiffFractBits),
+		dudx >> DiffFractBits,
+		dvdy << (32 - DiffFractBits),
+		dvdy >> DiffFractBits,
+		params.srcX << (32 - SrcFractBits),
+		params.srcX >> SrcFractBits,
+		params.srcY << (32 - SrcFractBits),
+		params.srcY >> SrcFractBits
+	);
 }
 
 void dkCmdBufPushData(DkCmdBuf obj, DkGpuAddr addr, const void* data, uint32_t size)
