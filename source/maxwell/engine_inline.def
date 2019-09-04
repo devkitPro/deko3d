@@ -1,3 +1,71 @@
 
 // KEPLER_INLINE_TO_MEMORY_B
 engine Inline 0xA140;
+
+0x060 LineLengthIn;
+0x061 LineCount;
+0x062 OffsetOut iova;
+0x064 PitchOut;
+0x065 SetDstBlockSize bits (
+	0..3 Width enum (
+		0 OneGob;
+	);
+	4..7 Height enum (
+		0 OneGob;
+		1 TwoGobs;
+		2 FourGobs;
+		3 EightGobs;
+		4 SixteenGobs;
+		5 ThirtyTwoGobs;
+	);
+	8..11 Depth enum (
+		0 OneGob;
+		1 TwoGobs;
+		2 FourGobs;
+		3 EightGobs;
+		4 SixteenGobs;
+		5 ThirtyTwoGobs;
+	);
+);
+0x066 SetDstWidth;
+0x067 SetDstHeight;
+0x068 SetDstDepth;
+0x069 SetDstLayer;
+0x06A SetOriginBytesX;
+0x06B SetOriginSamplesY;
+0x06C LaunchDma bits (
+	0 DstMemoryLayout enum (
+		0 BlockLinear;
+		1 Pitch;
+	);
+	1 ReductionEnable bool;
+	2..3 ReductionFormat enum (
+		0 Unsigned32;
+		1 Signed32;
+	);
+	4..5 CompletionType enum (
+		0 FlushDisable;
+		1 FlushOnly;
+		2 ReleaseSemaphore;
+	);
+	6 SysmembarDisable bool;
+	8..9 InterruptType enum (
+		0 None;
+		1 Interrupt;
+	);
+	12 SemaphoreStructSize enum (
+		0 FourWords;
+		1 OneWord;
+	);
+	13..15 ReductionOp enum (
+		0 Add;
+		1 Min;
+		2 Max;
+		3 Inc;
+		4 Dec;
+		5 And;
+		6 Or;
+		7 Xor;
+	);
+);
+0x06D LoadInlineData;

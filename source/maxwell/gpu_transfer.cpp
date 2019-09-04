@@ -6,6 +6,7 @@
 #include "engine_3d.h"
 #include "engine_2d.h"
 #include "engine_copy.h"
+#include "engine_inline.h"
 
 using namespace maxwell;
 using namespace dk::detail;
@@ -13,6 +14,7 @@ using namespace dk::detail;
 using E3D  = Engine3D;
 using E2D  = Engine2D;
 using Copy = EngineCopy;
+using Inl  = EngineInline;
 
 void tag_DkQueue::setupTransfer()
 {
@@ -202,10 +204,64 @@ void dk::detail::Blit2DEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo cons
 
 void dkCmdBufPushData(DkCmdBuf obj, DkGpuAddr addr, const void* data, uint32_t size)
 {
-	obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
+#ifdef DEBUG
+	if (addr == DK_GPU_ADDR_INVALID || !data)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (size > 0x7FFC)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (size & 3)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
+#endif
+	if (!size)
+		return;
+
+	CmdBufWriter w{obj};
+	w.reserve(1 + 7 + size/4 + 1);
+
+	w << CmdInline(3D, NoOperation{}, 0);
+	w << Cmd(Inline, LineLengthIn{},
+		size,      // LineLengthIn
+		1,         // LineCount
+		Iova(addr) // OffsetOut
+	);
+	w << CmdInline(Inline, LaunchDma{},
+		Inl::LaunchDma::DstMemoryLayout::Pitch | Inl::LaunchDma::CompletionType::FlushOnly
+	);
+	w << CmdList<1>{ MakeCmdHeader(NonIncreasing, size/4, SubchannelInline, Inl::LoadInlineData{}) };
+	w.addRawData(data, size);
+	w << CmdInline(3D, NoOperation{}, 0);
 }
 
 void dkCmdBufCopyBuffer(DkCmdBuf obj, DkGpuAddr srcAddr, DkGpuAddr dstAddr, uint32_t size)
 {
-	obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
+#ifdef DEBUG
+	if (srcAddr == DK_GPU_ADDR_INVALID || dstAddr == DK_GPU_ADDR_INVALID)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+	if (!size)
+		return;
+
+	CmdBufWriter w{obj};
+
+	w.reserve(2); // one more for extra flush
+	w << CmdInline(3D, NoOperation{}, 0);
+
+	while (size)
+	{
+		uint32_t curSize = size > 0x3FFFFF ? 0x3FFFFF : size;
+
+		using E = Copy::Execute;
+		w.reserve(9); // one more for extra flush
+		w << Cmd(Copy, SrcAddr{}, Iova(srcAddr), Iova(dstAddr));
+		w << Cmd(Copy, XCount{}, curSize);
+		w << CmdInline(Copy, Execute{},
+			E::CopyMode{2} | E::Flush{} | E::SrcIsPitchLinear{} | E::DstIsPitchLinear{}
+		);
+
+		size -= curSize;
+		srcAddr += curSize;
+		dstAddr += curSize;
+	}
+
+	w << CmdInline(3D, NoOperation{}, 0);
 }
