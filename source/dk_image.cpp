@@ -567,7 +567,97 @@ void dkCmdBufResolveImage(DkCmdBuf obj, DkImageView const* srcView, DkImageView 
 
 void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags)
 {
-	obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
+#ifdef DEBUG
+	if (!src || src->addr == DK_GPU_ADDR_INVALID)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (!dstView || !dstView->pImage)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (!dstRect)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	ImageInfo dstInfo;
+	DkResult res = dstInfo.fromImageView(dstView, ImageInfo::TransferCopy);
+#ifdef DEBUG
+	if (res != DkResult_Success)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, res);
+#endif
+
+#ifndef DEBUG
+	(void)res;
+#endif
+
+	ImageInfo srcInfo = {};
+	srcInfo.m_iova = src->addr;
+	srcInfo.m_horizontal = src->rowLength ? src->rowLength : dstRect->width*dstInfo.m_bytesPerBlock;
+	srcInfo.m_vertical = dstRect->height;
+	srcInfo.m_format = dstInfo.m_format;
+	srcInfo.m_arrayMode = dstRect->depth;
+	srcInfo.m_layerStride = src->imageHeight ? src->imageHeight : srcInfo.m_vertical*srcInfo.m_horizontal;
+	srcInfo.m_width = dstRect->width;
+	srcInfo.m_height = dstRect->height;
+	srcInfo.m_widthMs = srcInfo.m_width;
+	srcInfo.m_heightMs = srcInfo.m_height;
+	srcInfo.m_bytesPerBlock = dstInfo.m_bytesPerBlock;
+	srcInfo.m_isLinear = true;
+
+	bool canUse2D = true;
+	if (srcInfo.m_iova & (DK_IMAGE_LINEAR_STRIDE_ALIGNMENT-1))
+		canUse2D = false; // Technically there are ways to work around this by extending width a bit, but w/e
+	if (srcInfo.m_horizontal & (DK_IMAGE_LINEAR_STRIDE_ALIGNMENT-1))
+		canUse2D = false;
+	if (!(formatTraits[dstView->format ? dstView->format : dstView->pImage->m_format].flags & FormatTraitFlags_CanUse2DEngine))
+		canUse2D = false;
+
+#ifdef DEBUG
+	bool needs2D = false;
+	if (flags & (DkBlitFlag_FlipX))
+		needs2D = true;
+
+	if (needs2D && !canUse2D)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
+#endif
+
+	BlitParams params;
+	params.srcX = 0;
+	params.srcY = 0;
+	params.dstX = dstRect->x;
+	params.dstY = dstRect->y;
+	params.width = dstRect->width;
+	params.height = dstRect->height;
+
+	if (canUse2D)
+	{
+		int dudx = 1, dvdy = 1;
+
+		if (flags & DkBlitFlag_FlipX)
+		{
+			params.srcX = params.width;
+			dudx = -1;
+		}
+
+		if (flags & DkBlitFlag_FlipY)
+		{
+			params.srcY = params.height;
+			dvdy = -1;
+		}
+
+		params.srcX = (params.srcX<<SrcFractBits) + (dudx<<(SrcFractBits-1));
+		params.srcY = (params.srcY<<SrcFractBits) + (dvdy<<(SrcFractBits-1));
+		uint32_t blitFlags = Blit2D_SetupEngine | Blit2D_OriginCorner;
+
+		Blit2DEngine(obj, srcInfo, dstInfo, params, dudx<<DiffFractBits, dvdy<<DiffFractBits, blitFlags, 0);
+	}
+	else
+	{
+		if (flags & DkBlitFlag_FlipY)
+		{
+			srcInfo.m_iova += (params.height-1)*srcInfo.m_horizontal;
+			srcInfo.m_horizontal = -srcInfo.m_horizontal;
+		}
+
+		BlitCopyEngine(obj, srcInfo, dstInfo, params);
+	}
 }
 
 void dkCmdBufCopyImageToBuffer(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkCopyBuf const* dst, uint32_t flags)

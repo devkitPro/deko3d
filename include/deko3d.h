@@ -109,6 +109,7 @@ DK_CONSTEXPR void dkDeviceMakerDefaults(DkDeviceMaker* maker)
 #define DK_NUM_SCISSORS 16
 #define DK_MAX_VERTEX_ATTRIBS 32
 #define DK_MAX_VERTEX_BUFFERS 16
+#define DK_IMAGE_LINEAR_STRIDE_ALIGNMENT 32
 
 enum
 {
