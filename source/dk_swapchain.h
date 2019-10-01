@@ -8,7 +8,7 @@ class tag_DkSwapchain : public dk::detail::ObjBase
 	uint32_t m_numImages;
 public:
 	constexpr tag_DkSwapchain(DkDevice dev) noexcept : ObjBase{dev},
-		m_nwin{}, m_images{(DkImage const**)(this+1)}, m_numImages{}
+		m_nwin{}, m_images{(DkImage const**)(void*)(this+1)}, m_numImages{}
 	{ }
 	~tag_DkSwapchain();
 
