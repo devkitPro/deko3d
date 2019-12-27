@@ -406,6 +406,16 @@ typedef enum DkImageFormat
 	DkImageFormat_BGRA8_Unorm,
 	DkImageFormat_BGRX8_Unorm_sRGB,
 	DkImageFormat_BGRA8_Unorm_sRGB,
+	DkImageFormat_R_ETC2_Unorm,
+	DkImageFormat_R_ETC2_Snorm,
+	DkImageFormat_RG_ETC2_Unorm,
+	DkImageFormat_RG_ETC2_Snorm,
+	DkImageFormat_RGB_ETC2, // compatible with ETC1
+	DkImageFormat_RGB_PTA_ETC2,
+	DkImageFormat_RGBA_ETC2,
+	DkImageFormat_RGB_ETC2_sRGB,
+	DkImageFormat_RGB_PTA_ETC2_sRGB,
+	DkImageFormat_RGBA_ETC2_sRGB,
 
 	DkImageFormat_Count,
 } DkImageFormat;
