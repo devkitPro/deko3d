@@ -166,7 +166,9 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 		else
 			m_tileMode = TM2D::Width{image->m_tileW} | TM2D::Height{image->m_tileH} | TM2D::Depth{image->m_tileD};
 		m_arrayMode   = (type==DkImageType_3D || layered) ? image->m_dimensions[2] : 1;
-		m_layerStride = image->m_layerSize >> 2;
+		m_layerStride = image->m_layerSize;
+		if (isRenderTarget)
+			m_layerStride >>= 2;
 		m_isLinear = false;
 	}
 	else
