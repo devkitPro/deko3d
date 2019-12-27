@@ -15,7 +15,7 @@ namespace
 		__nx_applet_exit_mode = 1;
 		exit(1);
 #else
-		fatalSimple(MAKERESULT(359, result));
+		fatalThrow(MAKERESULT(359, result));
 #endif
 	}
 
