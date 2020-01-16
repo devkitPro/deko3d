@@ -25,7 +25,7 @@ struct DkImageLayout
 	uint32_t m_alignment;
 	uint32_t m_stride; // {for pitch-linear only}
 
-	void calcLayerSize();
+	uint64_t calcLevelOffset(unsigned level) const;
 };
 
 struct DkImage : public DkImageLayout
@@ -40,6 +40,24 @@ DK_OPAQUE_CHECK(DkImage);
 
 namespace dk::detail
 {
+	constexpr DkImageType GetBaseImageType(DkImageType type)
+	{
+		switch (type)
+		{
+			default:
+				return type;
+			case DkImageType_1DArray:
+				return DkImageType_1D;
+			case DkImageType_2DArray:
+			case DkImageType_Rectangle:
+			case DkImageType_Cubemap:
+			case DkImageType_CubemapArray:
+				return DkImageType_2D;
+			case DkImageType_2DMSArray:
+				return DkImageType_2DMS;
+		}
+	}
+
 	struct ImageInfo
 	{
 		DkGpuAddr m_iova;

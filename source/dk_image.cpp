@@ -48,19 +48,24 @@ namespace
 	{
 		return (size + blockSize - 1) / blockSize;
 	}
+
+	constexpr uint32_t adjustSize(uint32_t size, unsigned level, uint32_t blockSize)
+	{
+		return adjustBlockSize(adjustMipSize(size, level), blockSize);
+	}
 }
 
-void DkImageLayout::calcLayerSize()
+uint64_t DkImageLayout::calcLevelOffset(unsigned level) const
 {
 	uint32_t tileWidth  = 64 / m_bytesPerBlock; // non-sparse tile width is always zero
 	uint32_t tileHeight = 8 << m_tileH;
 	uint32_t tileDepth  = 1 << m_tileD;
 
-	m_layerSize = 0;
-	for (unsigned i = 0; i < m_mipLevels; i ++)
+	u64 offset = 0;
+	for (unsigned i = 0; i < level; i ++)
 	{
-		uint32_t levelWidth  = adjustBlockSize(adjustMipSize(m_dimensions[0]*m_samplesX, i), m_blockW);
-		uint32_t levelHeight = m_dimsPerLayer>=2 ? adjustBlockSize(adjustMipSize(m_dimensions[1]*m_samplesY, i), m_blockH) : 1;
+		uint32_t levelWidth  = adjustSize(m_dimensions[0]*m_samplesX, i, m_blockW);
+		uint32_t levelHeight = m_dimsPerLayer>=2 ? adjustSize(m_dimensions[1]*m_samplesY, i, m_blockH) : 1;
 		uint32_t levelDepth  = m_dimsPerLayer>=3 ? adjustMipSize(m_dimensions[2], i) : 1;
 		uint32_t levelWidthBytes = levelWidth << m_bytesPerBlockLog2;
 
@@ -85,8 +90,10 @@ void DkImageLayout::calcLayerSize()
 			levelWidthTiles = (levelWidthTiles + align - 1) &~ (align - 1);
 		}
 
-		m_layerSize += uint64_t(levelWidthTiles*levelHeightTiles*levelDepthTiles) << (9 + levelTileWShift + levelTileHShift + levelTileDShift);
+		offset += uint64_t(levelWidthTiles*levelHeightTiles*levelDepthTiles) << (9 + levelTileWShift + levelTileHShift + levelTileDShift);
 	}
+
+	return offset;
 }
 
 DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
@@ -95,6 +102,22 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 	DkImageType type = view->type ? view->type : image->m_type;
 	DkImageFormat format = view->format ? view->format : image->m_format;
 	FormatTraits const& traits = formatTraits[format];
+
+#ifdef DEBUG
+	// Check type compatibility
+	if (GetBaseImageType(type) != GetBaseImageType(image->m_type))
+		return DkResult_BadInput;
+	if (format != image->m_format)
+	{
+		// Check format compatibility
+		if (traits.bytesPerBlock != image->m_bytesPerBlock)
+			return DkResult_BadInput;
+		if (traits.blockWidth != image->m_blockW)
+			return DkResult_BadInput;
+		if (traits.blockHeight != image->m_blockH)
+			return DkResult_BadInput;
+	}
+#endif
 
 	bool isRenderTarget = usage == ColorRenderTarget || usage == DepthRenderTarget;
 #ifdef DEBUG
@@ -108,6 +131,10 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 	if (usage == DepthRenderTarget && !formatIsDepth)
 		return DkResult_BadInput;
 	if (usage == DepthRenderTarget && (type == DkImageType_3D || (image->m_flags & DkImageFlags_PitchLinear)))
+		return DkResult_BadInput;
+	if (view->mipLevelOffset >= image->m_mipLevels)
+		return DkResult_BadInput;
+	if (type == DkImageType_3D && view->layerOffset)
 		return DkResult_BadInput;
 #endif
 
@@ -137,35 +164,62 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 
 	m_iova   = image->m_iova;
 	m_format = isRenderTarget ? traits.renderFmt : traits.engine2dFmt;
-	m_width  = adjustBlockSize(image->m_dimensions[0], traits.blockWidth);
-	m_height = adjustBlockSize(image->m_dimensions[1], traits.blockHeight);
-	m_widthMs = adjustBlockSize(image->m_dimensions[0]*image->m_samplesX, traits.blockWidth);
-	m_heightMs = adjustBlockSize(image->m_dimensions[1]*image->m_samplesY, traits.blockHeight);
+	m_width  = adjustSize(image->m_dimensions[0], view->mipLevelOffset, traits.blockWidth);
+	m_height = adjustSize(image->m_dimensions[1], view->mipLevelOffset, traits.blockHeight);
+	m_widthMs = adjustSize(image->m_dimensions[0]*image->m_samplesX, view->mipLevelOffset, traits.blockWidth);
+	m_heightMs = adjustSize(image->m_dimensions[1]*image->m_samplesY, view->mipLevelOffset, traits.blockHeight);
 	m_bytesPerBlock = traits.bytesPerBlock;
-	// TODO: Mipmap shit
 
 	using TM   = Engine3D::RenderTarget::TileMode;
 	using TM2D = Engine2D::SrcTileMode;
 	if (!(image->m_flags & DkImageFlags_PitchLinear))
 	{
-		uint32_t tileWidth = (64 / traits.bytesPerBlock) << image->m_tileW;
-
-		if (layered)
+		unsigned tileWShift = image->m_tileW;
+		unsigned tileHShift = image->m_tileH;
+		unsigned tileDShift = image->m_tileD;
+		if (view->mipLevelOffset)
 		{
-			m_iova += view->layerOffset * image->m_layerSize;
-			if (view->layerCount)
-				m_arrayMode = view->layerCount;
+			m_iova += image->calcLevelOffset(view->mipLevelOffset);
+			if (type != DkImageType_3D)
+				tileHShift = adjustTileSize(tileHShift, 8, m_heightMs);
 			else
-				m_arrayMode -= view->layerOffset;
+				tileDShift = adjustTileSize(tileDShift, 1, adjustMipSize(image->m_dimensions[2], view->mipLevelOffset));
 		}
 
+		if (view->layerOffset)
+		{
+#ifdef DEBUG
+			if (view->layerOffset >= image->m_dimensions[2])
+				return DkResult_BadInput;
+#endif
+			m_iova += view->layerOffset * image->m_layerSize;
+		}
+
+		if (type == DkImageType_3D)
+			m_arrayMode = image->m_dimensions[2];
+		else if (layered)
+		{
+			if (view->layerCount)
+			{
+#ifdef DEBUG
+				if (view->layerOffset + view->layerCount > image->m_dimensions[2])
+					return DkResult_BadInput;
+#endif
+				m_arrayMode = view->layerCount;
+			}
+			else
+				m_arrayMode = image->m_dimensions[2] - view->layerOffset;
+		}
+		else
+			m_arrayMode = 1;
+
+		uint32_t tileWidth = (64 / traits.bytesPerBlock) << tileWShift;
 		m_horizontal  = (m_widthMs + tileWidth - 1) &~ (tileWidth - 1);
 		m_vertical    = m_heightMs;
 		if (isRenderTarget)
-			m_tileMode = TM::Width{image->m_tileW} | TM::Height{image->m_tileH} | TM::Depth{image->m_tileD} | TM::Is3D{type==DkImageType_3D};
+			m_tileMode = TM::Width{tileWShift} | TM::Height{tileHShift} | TM::Depth{tileDShift} | TM::Is3D{type==DkImageType_3D};
 		else
-			m_tileMode = TM2D::Width{image->m_tileW} | TM2D::Height{image->m_tileH} | TM2D::Depth{image->m_tileD};
-		m_arrayMode   = (type==DkImageType_3D || layered) ? image->m_dimensions[2] : 1;
+			m_tileMode = TM2D::Width{tileWShift} | TM2D::Height{tileHShift} | TM2D::Depth{tileDShift};
 		m_layerStride = image->m_layerSize;
 		if (isRenderTarget)
 			m_layerStride >>= 2;
@@ -290,6 +344,10 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 			break;
 	}
 
+	// Ensure non-3D and non-layered types have a sensible value as their "number of layers"
+	if (obj->m_type != DkImageType_3D && !obj->m_hasLayers)
+		obj->m_dimensions[2] = 1;
+
 	auto& traits = formatTraits[obj->m_format];
 	obj->m_bytesPerBlock = traits.bytesPerBlock;
 	obj->m_bytesPerBlockLog2 = __builtin_clz(obj->m_bytesPerBlock) ^ 0x1f;
@@ -403,7 +461,7 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 		(obj->m_flags & DkImageFlags_HwCompression) != 0,
 		(obj->m_flags & DkImageFlags_D16EnableZbc) != 0);
 
-	obj->calcLayerSize();
+	obj->m_layerSize = obj->calcLevelOffset(obj->m_mipLevels);
 	if (obj->m_hasLayers)
 		obj->m_storageSize = obj->m_dimensions[2] * obj->m_layerSize;
 	else
