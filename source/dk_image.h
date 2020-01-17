@@ -3,7 +3,10 @@
 
 #include "maxwell/image_formats.h"
 
-struct DkImageLayout
+namespace dk::detail
+{
+
+struct ImageLayout
 {
 	DkImageType m_type;
 	uint32_t m_flags;
@@ -28,15 +31,17 @@ struct DkImageLayout
 	uint64_t calcLevelOffset(unsigned level) const;
 };
 
-struct DkImage : public DkImageLayout
+struct Image : public ImageLayout
 {
 	DkGpuAddr m_iova;
 	DkMemBlock m_memBlock;
 	uint32_t m_memOffset;
 };
 
-DK_OPAQUE_CHECK(DkImageLayout);
-DK_OPAQUE_CHECK(DkImage);
+}
+
+DK_OPAQUE_CHECK(ImageLayout);
+DK_OPAQUE_CHECK(Image);
 
 namespace dk::detail
 {

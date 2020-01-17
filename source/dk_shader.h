@@ -3,7 +3,10 @@
 
 #include "dksh.h"
 
-struct DkShader
+namespace dk::detail
+{
+
+struct Shader
 {
 	uint32_t m_magic;
 	DkStage  m_stage;
@@ -12,4 +15,6 @@ struct DkShader
 	DkshProgramHeader m_hdr;
 };
 
-DK_OPAQUE_CHECK(DkShader);
+}
+
+DK_OPAQUE_CHECK(Shader);

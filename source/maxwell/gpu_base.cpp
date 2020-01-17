@@ -12,7 +12,7 @@
 using namespace maxwell;
 using namespace dk::detail;
 
-void tag_DkQueue::setupEngines()
+void Queue::setupEngines()
 {
 	CmdBufWriter w{&m_cmdBuf};
 	w.reserveAdd(
@@ -25,7 +25,7 @@ void tag_DkQueue::setupEngines()
 	);
 }
 
-void tag_DkQueue::postSubmitFlush()
+void Queue::postSubmitFlush()
 {
 	// Invalidate texture cache, texture/sampler descriptor cache, shader code cache, and L2 cache
 	// This is done to ensure the visibility of CPU updates between calls to dkQueueFlush()

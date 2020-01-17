@@ -4,7 +4,7 @@
 
 namespace dk::detail
 {
-	class QueueWorkBuf : public tag_DkMemBlock
+	class QueueWorkBuf : public MemBlock
 	{
 		// Work memory needed for Graphics/Compute-capable queues
 		uint32_t m_scratchMemOffset;
@@ -43,7 +43,7 @@ namespace dk::detail
 
 		DkResult initialize() noexcept
 		{
-			return tag_DkMemBlock::initialize(
+			return MemBlock::initialize(
 				DkMemBlockFlags_GpuCached | DkMemBlockFlags_ZeroFillInit,
 				nullptr,
 				m_totalSize);

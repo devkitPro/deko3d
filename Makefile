@@ -31,13 +31,13 @@ INCLUDES	:=	include
 #---------------------------------------------------------------------------------
 ARCH	:=	-march=armv8-a -mtune=cortex-a57 -mtp=soft -fPIC -ftls-model=local-exec
 
-CFLAGS	:=	-g -Wall -Werror -save-temps \
+CFLAGS	:=	-g -Wall -Werror \
 			-ffunction-sections \
 			-fdata-sections \
 			$(ARCH) \
 			$(BUILD_CFLAGS)
 
-CFLAGS	+=	$(INCLUDE) -D__SWITCH__ -DDK_NO_OPAQUE_DUMMY
+CFLAGS	+=	$(INCLUDE) -D__SWITCH__ -D__DK_INTERNAL__
 
 # Extra optimizations for the Release build. This list is equivalent to -O3,
 # with opts that hurt code size (i.e. aggressive loop unrolling) disabled.

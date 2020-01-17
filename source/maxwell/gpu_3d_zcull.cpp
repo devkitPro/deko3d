@@ -4,7 +4,7 @@
 using namespace dk::detail;
 using namespace maxwell;
 
-void tag_DkDevice::calcZcullStorageInfo(dk::detail::ZcullStorageInfo& out, uint32_t width, uint32_t height, uint32_t depth, DkImageFormat format, DkMsMode msMode)
+void Device::calcZcullStorageInfo(ZcullStorageInfo& out, uint32_t width, uint32_t height, uint32_t depth, DkImageFormat format, DkMsMode msMode)
 {
 	FormatTraits const& traits = formatTraits[format];
 	const nvioctl_zcull_info& zcullInfo = *getGpuInfo().zcullInfo;

@@ -1,7 +1,10 @@
 #pragma once
 #include "dk_private.h"
 
-struct DkFence
+namespace dk::detail
+{
+
+struct Fence
 {
 	enum Type
 	{
@@ -34,4 +37,6 @@ struct DkFence
 	DkResult wait(s32 timeout_us = -1);
 };
 
-DK_OPAQUE_CHECK(DkFence);
+}
+
+DK_OPAQUE_CHECK(Fence);

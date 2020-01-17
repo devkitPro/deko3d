@@ -6,7 +6,7 @@
 
 using namespace dk::detail;
 
-QueueWorkBuf::QueueWorkBuf(DkQueueMaker const& maker) : tag_DkMemBlock{maker.device},
+QueueWorkBuf::QueueWorkBuf(DkQueueMaker const& maker) : MemBlock{maker.device},
 	m_scratchMemOffset{}, m_scratchMemSize{},
 	m_graphicsCbufOffset{}, m_graphicsCbufSize{},
 	m_vtxRunoutBufOffset{}, m_vtxRunoutBufSize{},

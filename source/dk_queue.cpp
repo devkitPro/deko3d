@@ -10,7 +10,7 @@
 using namespace maxwell;
 using namespace dk::detail;
 
-DkResult tag_DkQueue::initialize()
+DkResult Queue::initialize()
 {
 	DkResult res;
 
@@ -68,7 +68,7 @@ DkResult tag_DkQueue::initialize()
 	return DkResult_Success;
 }
 
-tag_DkQueue::~tag_DkQueue()
+Queue::~Queue()
 {
 	if (m_state == Healthy)
 		waitIdle();
@@ -80,7 +80,7 @@ tag_DkQueue::~tag_DkQueue()
 	getDevice()->returnQueueId(m_id);
 }
 
-void tag_DkQueue::addCmdMemory(size_t minReqSize)
+void Queue::addCmdMemory(size_t minReqSize)
 {
 	uint32_t inFlightSize = getInFlightCmdSize();
 	uint32_t idealSize = minReqSize;
@@ -104,7 +104,7 @@ void tag_DkQueue::addCmdMemory(size_t minReqSize)
 	m_cmdBuf.addMemory(&m_cmdBufMemBlock, offset, availableSize < idealSize ? availableSize : idealSize);
 }
 
-bool tag_DkQueue::waitFenceRing(bool peek)
+bool Queue::waitFenceRing(bool peek)
 {
 	uint32_t id;
 	int32_t timeout = peek ? 0 : -1;
@@ -122,7 +122,7 @@ bool tag_DkQueue::waitFenceRing(bool peek)
 	return waited;
 }
 
-void tag_DkQueue::flushRing(bool fenceFlush)
+void Queue::flushRing(bool fenceFlush)
 {
 	uint32_t id;
 	bool peek = true;
@@ -139,7 +139,7 @@ void tag_DkQueue::flushRing(bool fenceFlush)
 	m_fenceRing.updateProducer(id+1);
 }
 
-void tag_DkQueue::onCmdBufAddMem(size_t minReqSize)
+void Queue::onCmdBufAddMem(size_t minReqSize)
 {
 	bool shouldAddMem = false;
 	if (getInFlightCmdSize() + 2*minReqSize < m_cmdBufFlushThreshold)
@@ -156,7 +156,7 @@ void tag_DkQueue::onCmdBufAddMem(size_t minReqSize)
 	}
 }
 
-void tag_DkQueue::appendGpfifoEntries(CtrlCmdGpfifoEntry const* entries, uint32_t numEntries)
+void Queue::appendGpfifoEntries(CtrlCmdGpfifoEntry const* entries, uint32_t numEntries)
 {
 	for (unsigned i = 0; i < numEntries; i ++)
 	{
@@ -175,7 +175,7 @@ void tag_DkQueue::appendGpfifoEntries(CtrlCmdGpfifoEntry const* entries, uint32_
 	}
 }
 
-void tag_DkQueue::waitFence(DkFence& fence)
+void Queue::waitFence(DkFence& fence)
 {
 #ifdef DK_QUEUE_DEBUG
 	printf("  waitFence %p\n", &fence);
@@ -212,7 +212,7 @@ void tag_DkQueue::waitFence(DkFence& fence)
 	}
 }
 
-void tag_DkQueue::signalFence(DkFence& fence, bool flush)
+void Queue::signalFence(DkFence& fence, bool flush)
 {
 #ifdef DK_QUEUE_DEBUG
 	printf("  signalFence %p %d\n", &fence, flush);
@@ -259,7 +259,7 @@ void tag_DkQueue::signalFence(DkFence& fence, bool flush)
 	nvGpuChannelGetFence(&m_gpuChannel, &fence.m_internal.m_fence);
 }
 
-void tag_DkQueue::submitCommands(DkCmdList list)
+void Queue::submitCommands(DkCmdList list)
 {
 	CtrlCmdHeader const *cur, *next;
 	for (cur = reinterpret_cast<CtrlCmdHeader*>(list); cur; cur = next)
@@ -314,7 +314,7 @@ void tag_DkQueue::submitCommands(DkCmdList list)
 	}
 }
 
-void tag_DkQueue::flush()
+void Queue::flush()
 {
 	if (isInErrorState())
 	{
@@ -343,7 +343,7 @@ void tag_DkQueue::flush()
 	}
 }
 
-void tag_DkQueue::waitIdle()
+void Queue::waitIdle()
 {
 	if (isInErrorState())
 		return;
@@ -381,7 +381,7 @@ DkQueue dkQueueCreate(DkQueueMaker const* maker)
 
 		int32_t id = maker->device->reserveQueueId();
 		if (id >= 0)
-			obj = new(maker->device, extraSize) tag_DkQueue(*maker, id);
+			obj = new(maker->device, extraSize) Queue(*maker, id);
 	}
 	if (obj)
 	{

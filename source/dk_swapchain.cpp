@@ -38,7 +38,7 @@ namespace
 	}
 }
 
-DkResult tag_DkSwapchain::initialize(void* nativeWindow, DkImage const* const images[], uint32_t numImages)
+DkResult Swapchain::initialize(void* nativeWindow, DkImage const* const images[], uint32_t numImages)
 {
 	m_nwin = (NWindow*)nativeWindow;
 	m_numImages = numImages;
@@ -114,20 +114,20 @@ DkResult tag_DkSwapchain::initialize(void* nativeWindow, DkImage const* const im
 	return DkResult_Success;
 }
 
-tag_DkSwapchain::~tag_DkSwapchain()
+Swapchain::~Swapchain()
 {
 	if (m_nwin)
 		nwindowReleaseBuffers(m_nwin);
 }
 
-void tag_DkSwapchain::acquireImage(int& imageSlot, DkFence& fence)
+void Swapchain::acquireImage(int& imageSlot, DkFence& fence)
 {
 	fence.m_type = DkFence::External;
 	if (R_FAILED(nwindowDequeueBuffer(m_nwin, &imageSlot, &fence.m_external.m_fence)))
 		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
 }
 
-void tag_DkSwapchain::presentImage(int imageSlot, DkFence const& fence)
+void Swapchain::presentImage(int imageSlot, DkFence const& fence)
 {
 	NvMultiFence nvfence = {};
 	nvMultiFenceCreate(&nvfence, &fence.m_internal.m_fence);
@@ -135,13 +135,13 @@ void tag_DkSwapchain::presentImage(int imageSlot, DkFence const& fence)
 		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
 }
 
-void tag_DkSwapchain::setCrop(int32_t left, int32_t top, int32_t right, int32_t bottom)
+void Swapchain::setCrop(int32_t left, int32_t top, int32_t right, int32_t bottom)
 {
 	if (R_FAILED(nwindowSetCrop(m_nwin, left, top, right, bottom)))
 		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
 }
 
-void tag_DkSwapchain::setSwapInterval(uint32_t interval)
+void Swapchain::setSwapInterval(uint32_t interval)
 {
 	if (R_FAILED(nwindowSetSwapInterval(m_nwin, interval)))
 		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
@@ -160,7 +160,7 @@ DkSwapchain dkSwapchainCreate(DkSwapchainMaker const* maker)
 #endif
 	{
 		size_t extraSize = sizeof(DkImage const*) * maker->numImages;
-		obj = new(maker->device, extraSize) tag_DkSwapchain(maker->device);
+		obj = new(maker->device, extraSize) Swapchain(maker->device);
 	}
 	if (obj)
 	{

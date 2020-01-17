@@ -56,7 +56,7 @@ namespace
 	}
 }
 
-void tag_DkQueue::setup3DEngine()
+void Queue::setup3DEngine()
 {
 	CmdBufWriter w{&m_cmdBuf};
 
@@ -430,7 +430,7 @@ void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissor
 
 }
 
-void tag_DkQueue::decompressSurface(DkImage const* image)
+void Queue::decompressSurface(DkImage const* image)
 {
 	ImageInfo rt = {};
 	DkImageView view;

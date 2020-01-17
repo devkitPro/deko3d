@@ -16,7 +16,7 @@ using E2D  = Engine2D;
 using Copy = EngineCopy;
 using Inl  = EngineInline;
 
-void tag_DkQueue::setupTransfer()
+void Queue::setupTransfer()
 {
 	CmdBufWriter w{&m_cmdBuf};
 

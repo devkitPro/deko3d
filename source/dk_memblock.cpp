@@ -3,7 +3,7 @@
 
 using namespace dk::detail;
 
-DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size)
+DkResult MemBlock::initialize(uint32_t flags, void* storage, uint32_t size)
 {
 	// Extract CPU/GPU access bits
 	uint32_t cpuAccess = (flags >> DkMemBlockFlags_CpuAccessShift) & DkMemAccess_Mask;
@@ -104,7 +104,7 @@ DkResult tag_DkMemBlock::initialize(uint32_t flags, void* storage, uint32_t size
 	return DkResult_Success;
 }
 
-void tag_DkMemBlock::destroy()
+void MemBlock::destroy()
 {
 	if (m_gpuAddrCompressed != DK_GPU_ADDR_INVALID)
 	{
@@ -134,7 +134,7 @@ void tag_DkMemBlock::destroy()
 	}
 }
 
-DkGpuAddr tag_DkMemBlock::getGpuAddrForImage(uint32_t offset, uint32_t size, NvKind kind) noexcept
+DkGpuAddr MemBlock::getGpuAddrForImage(uint32_t offset, uint32_t size, NvKind kind) noexcept
 {
 	if (kind == NvKind_Pitch)
 		return m_gpuAddrPitch + offset;
@@ -156,7 +156,7 @@ DkMemBlock dkMemBlockCreate(DkMemBlockMaker const* maker)
 		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
 	else
 #endif
-	obj = new(maker->device) tag_DkMemBlock(maker->device);
+	obj = new(maker->device) MemBlock(maker->device);
 	if (obj)
 	{
 		DkResult res = obj->initialize(maker->flags, maker->storage, maker->size);

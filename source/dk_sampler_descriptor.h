@@ -2,8 +2,13 @@
 
 #include "maxwell/texture_sampler_control_block.h"
 
-struct DkSamplerDescriptor : public maxwell::TextureSamplerControl
+namespace dk::detail
+{
+
+struct SamplerDescriptor : public maxwell::TextureSamplerControl
 {
 };
 
-DK_OPAQUE_CHECK(DkSamplerDescriptor);
+}
+
+DK_OPAQUE_CHECK(SamplerDescriptor);

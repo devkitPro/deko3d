@@ -16,8 +16,8 @@
 #define DK_FUNC_ERROR_CONTEXT DK_ERROR_CONTEXT(__PRETTY_FUNCTION__)
 
 #define DK_OPAQUE_CHECK(_typename) \
-	static_assert(_size_##_typename >= sizeof(_typename), "Invalid size"); \
-	static_assert(_align_##_typename >= alignof(_typename), "Invalid alignment")
+	static_assert(::dk::detail::_size_##_typename >= sizeof(::dk::detail::_typename), "Invalid size"); \
+	static_assert(::dk::detail::_align_##_typename >= alignof(::dk::detail::_typename), "Invalid alignment")
 
 namespace dk::detail
 {

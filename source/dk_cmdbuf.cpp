@@ -5,7 +5,7 @@
 using namespace maxwell;
 using namespace dk::detail;
 
-tag_DkCmdBuf::~tag_DkCmdBuf()
+CmdBuf::~CmdBuf()
 {
 	if (m_hasFlushFunc)
 		return;
@@ -21,7 +21,7 @@ tag_DkCmdBuf::~tag_DkCmdBuf()
 	}
 }
 
-void tag_DkCmdBuf::addMemory(DkMemBlock mem, uint32_t offset, uint32_t size)
+void CmdBuf::addMemory(DkMemBlock mem, uint32_t offset, uint32_t size)
 {
 #ifdef DEBUG
 	if (!mem || !size)
@@ -42,7 +42,7 @@ void tag_DkCmdBuf::addMemory(DkMemBlock mem, uint32_t offset, uint32_t size)
 	m_cmdEnd = m_cmdStart + size / sizeof(CmdWord) - m_numReservedWords;
 }
 
-DkCmdList tag_DkCmdBuf::finishList()
+DkCmdList CmdBuf::finishList()
 {
 	// Sign off any remaining GPU commands
 	signOffGpfifoEntry();
@@ -72,7 +72,7 @@ DkCmdList tag_DkCmdBuf::finishList()
 	return list;
 }
 
-void tag_DkCmdBuf::clear()
+void CmdBuf::clear()
 {
 	// Transfer all used chunks into the free list
 	if (m_ctrlChunkCur)
@@ -97,7 +97,7 @@ void tag_DkCmdBuf::clear()
 	}
 }
 
-CmdWord* tag_DkCmdBuf::requestCmdMem(uint32_t size)
+CmdWord* CmdBuf::requestCmdMem(uint32_t size)
 {
 	if (!m_cbAddMem)
 	{
@@ -115,7 +115,7 @@ CmdWord* tag_DkCmdBuf::requestCmdMem(uint32_t size)
 	return m_cmdPos;
 }
 
-bool tag_DkCmdBuf::appendRawGpfifoEntry(DkGpuAddr iova, uint32_t numCmds, uint32_t flags)
+bool CmdBuf::appendRawGpfifoEntry(DkGpuAddr iova, uint32_t numCmds, uint32_t flags)
 {
 	if (m_ctrlGpfifo)
 	{
@@ -177,7 +177,7 @@ bool tag_DkCmdBuf::appendRawGpfifoEntry(DkGpuAddr iova, uint32_t numCmds, uint32
 	return false;
 }
 
-CtrlCmdHeader* tag_DkCmdBuf::appendCtrlCmd(size_t size)
+CtrlCmdHeader* CmdBuf::appendCtrlCmd(size_t size)
 {
 	CtrlCmdHeader* ret = nullptr;
 	if (getCtrlSpaceFree() >= size)
@@ -241,7 +241,7 @@ CtrlCmdHeader* tag_DkCmdBuf::appendCtrlCmd(size_t size)
 DkCmdBuf dkCmdBufCreate(DkCmdBufMaker const* maker)
 {
 	DkCmdBuf obj = nullptr;
-	obj = new(maker->device) tag_DkCmdBuf(*maker);
+	obj = new(maker->device) CmdBuf(*maker);
 	return obj;
 }
 

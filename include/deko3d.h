@@ -12,33 +12,53 @@
 #define DK_CONSTEXPR static inline
 #endif
 
-#define DK_DECL_HANDLE(_typename) \
-	typedef struct tag_##_typename *_typename
+#ifndef __cplusplus
 
-#ifndef DK_NO_OPAQUE_DUMMY
-#define DK_DECL_OPAQUE(_typename, _align, _size) \
-	typedef struct _typename \
-	{ \
-		alignas(_align) uint8_t _storage[_size]; \
-	} _typename
+#define DK_DECL_HANDLE(_typename) \
+	typedef struct tag_Dk##_typename *Dk##_typename
+
 #else
-#define DK_DECL_OPAQUE(_typename, _align, _size) \
-	struct _typename; /* forward declaration */ \
-	constexpr unsigned _align_##_typename = _align; \
-	constexpr unsigned _size_##_typename = _size
+
+#define DK_DECL_HANDLE(_typename) \
+	namespace dk::detail { struct _typename; } \
+	using Dk##_typename = dk::detail::_typename*
+
 #endif
 
-DK_DECL_HANDLE(DkDevice);
-DK_DECL_HANDLE(DkMemBlock);
-DK_DECL_OPAQUE(DkFence, 8, 40);
-DK_DECL_HANDLE(DkCmdBuf);
-DK_DECL_HANDLE(DkQueue);
-DK_DECL_OPAQUE(DkShader, 8, 96);
-DK_DECL_OPAQUE(DkImageLayout, 8, 128); // size todo
-DK_DECL_OPAQUE(DkImage, 8, 128); // size todo
-DK_DECL_OPAQUE(DkImageDescriptor, 4, 32);
-DK_DECL_OPAQUE(DkSamplerDescriptor, 4, 32);
-DK_DECL_HANDLE(DkSwapchain);
+#ifndef __DK_INTERNAL__
+
+#define DK_DECL_OPAQUE(_typename, _align, _size) \
+	typedef struct Dk##_typename \
+	{ \
+		alignas(_align) uint8_t _storage[_size]; \
+	} Dk##_typename
+
+#else
+
+#define DK_DECL_OPAQUE(_typename, _align, _size) \
+	namespace dk::detail { \
+		struct _typename; /* forward declaration */ \
+		constexpr unsigned _align_##_typename = _align; \
+		constexpr unsigned _size_##_typename = _size; \
+	} \
+	using Dk##_typename = dk::detail::_typename
+
+#endif
+
+DK_DECL_HANDLE(Device);
+DK_DECL_HANDLE(MemBlock);
+DK_DECL_OPAQUE(Fence, 8, 40);
+DK_DECL_HANDLE(CmdBuf);
+DK_DECL_HANDLE(Queue);
+DK_DECL_OPAQUE(Shader, 8, 96);
+DK_DECL_OPAQUE(ImageLayout, 8, 128); // size todo
+DK_DECL_OPAQUE(Image, 8, 128); // size todo
+DK_DECL_OPAQUE(ImageDescriptor, 4, 32);
+DK_DECL_OPAQUE(SamplerDescriptor, 4, 32);
+DK_DECL_HANDLE(Swapchain);
+
+#undef DK_DECL_HANDLE
+#undef DK_DECL_OPAQUE
 
 typedef enum
 {

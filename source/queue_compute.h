@@ -9,7 +9,7 @@ namespace dk::detail
 {
 	class ComputeQueue //: public ObjBase
 	{
-		tag_DkQueue& m_parent;
+		Queue& m_parent;
 		uint32_t m_curJob;
 		uint32_t m_curSmThrottling;
 

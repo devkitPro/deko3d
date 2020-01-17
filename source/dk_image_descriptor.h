@@ -2,8 +2,13 @@
 
 #include "maxwell/texture_image_control_block.h"
 
-struct DkImageDescriptor : public maxwell::TextureImageControl
+namespace dk::detail
+{
+
+struct ImageDescriptor : public maxwell::TextureImageControl
 {
 };
 
-DK_OPAQUE_CHECK(DkImageDescriptor);
+}
+
+DK_OPAQUE_CHECK(ImageDescriptor);

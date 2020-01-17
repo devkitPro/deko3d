@@ -8,12 +8,12 @@
 
 namespace dk::detail
 {
-	class ComputeQueue;
-}
 
-class tag_DkQueue : public dk::detail::ObjBase
+class ComputeQueue;
+
+class Queue : public ObjBase
 {
-	friend class dk::detail::ComputeQueue;
+	friend class ComputeQueue;
 
 	static constexpr uint32_t s_numReservedWords = 12;
 	static constexpr size_t s_maxQueuedGpfifoEntries = 64;
@@ -29,24 +29,24 @@ class tag_DkQueue : public dk::detail::ObjBase
 	} m_state;
 
 	NvGpuChannel m_gpuChannel;
-	tag_DkMemBlock m_cmdBufMemBlock;
-	tag_DkCmdBuf m_cmdBuf;
+	MemBlock m_cmdBufMemBlock;
+	CmdBuf m_cmdBuf;
 
-	dk::detail::CtrlCmdHeader m_cmdBufCtrlHeader;
-	dk::detail::CtrlCmdGpfifoEntry m_gpfifoEntries[s_maxQueuedGpfifoEntries];
+	CtrlCmdHeader m_cmdBufCtrlHeader;
+	CtrlCmdGpfifoEntry m_gpfifoEntries[s_maxQueuedGpfifoEntries];
 
-	dk::detail::RingBuf<uint32_t> m_cmdBufRing;
+	RingBuf<uint32_t> m_cmdBufRing;
 	uint32_t m_cmdBufFlushThreshold;
 	uint32_t m_cmdBufPerFenceSliceSize;
 
-	dk::detail::RingBuf<uint32_t> m_fenceRing;
+	RingBuf<uint32_t> m_fenceRing;
 	DkFence m_fences[s_numFences];
 	uint32_t m_fenceCmdOffsets[s_numFences];
 	uint32_t m_fenceLastFlushOffset;
 
-	dk::detail::QueueWorkBuf m_workBuf;
+	QueueWorkBuf m_workBuf;
 
-	dk::detail::ComputeQueue* m_computeQueue;
+	ComputeQueue* m_computeQueue;
 
 	uint32_t getCmdOffset() const noexcept { return m_cmdBufRing.getProducer() + m_cmdBuf.getCmdOffset(); }
 	uint32_t getInFlightCmdSize() const noexcept { return m_cmdBufRing.getInFlight() + m_cmdBuf.getCmdOffset(); }
@@ -64,7 +64,7 @@ class tag_DkQueue : public dk::detail::ObjBase
 	void flushRing(bool fenceFlush = false) noexcept;
 
 	void onCmdBufAddMem(size_t minReqSize) noexcept;
-	void appendGpfifoEntries(dk::detail::CtrlCmdGpfifoEntry const* entries, uint32_t numEntries) noexcept;
+	void appendGpfifoEntries(CtrlCmdGpfifoEntry const* entries, uint32_t numEntries) noexcept;
 
 	bool hasPendingCommands() const noexcept
 	{
@@ -76,20 +76,20 @@ class tag_DkQueue : public dk::detail::ObjBase
 		if (hasPendingCommands())
 		{
 			m_cmdBuf.signOffGpfifoEntry(
-				dk::detail::CtrlCmdGpfifoEntry::AutoKick |
-				dk::detail::CtrlCmdGpfifoEntry::NoPrefetch);
+				CtrlCmdGpfifoEntry::AutoKick |
+				CtrlCmdGpfifoEntry::NoPrefetch);
 			m_cmdBuf.flushGpfifoEntries();
 		}
 	}
 
 	static void _addMemFunc(void* userData, DkCmdBuf cmdbuf, size_t minReqSize) noexcept
 	{
-		static_cast<tag_DkQueue*>(userData)->onCmdBufAddMem(minReqSize);
+		static_cast<Queue*>(userData)->onCmdBufAddMem(minReqSize);
 	}
 
-	static void _gpfifoFlushFunc(void* data, dk::detail::CtrlCmdGpfifoEntry const* entries, uint32_t numEntries) noexcept
+	static void _gpfifoFlushFunc(void* data, CtrlCmdGpfifoEntry const* entries, uint32_t numEntries) noexcept
 	{
-		static_cast<tag_DkQueue*>(data)->appendGpfifoEntries(entries, numEntries);
+		static_cast<Queue*>(data)->appendGpfifoEntries(entries, numEntries);
 	}
 
 	void setupEngines();
@@ -98,7 +98,7 @@ class tag_DkQueue : public dk::detail::ObjBase
 	void postSubmitFlush();
 
 public:
-	tag_DkQueue(DkQueueMaker const& maker, uint32_t id) : ObjBase{maker.device},
+	Queue(DkQueueMaker const& maker, uint32_t id) : ObjBase{maker.device},
 		m_id{id}, m_flags{maker.flags}, m_state{Uninitialized}, m_gpuChannel{},
 		m_cmdBufMemBlock{maker.device}, m_cmdBuf{{maker.device,this,_addMemFunc},s_numReservedWords},
 		m_cmdBufCtrlHeader{}, m_gpfifoEntries{},
@@ -115,7 +115,7 @@ public:
 	bool hasZcull() const noexcept { return (m_flags & DkQueueFlags_DisableZcull) == 0; }
 	bool isInErrorState() const noexcept { return m_state == Error; }
 
-	~tag_DkQueue();
+	~Queue();
 	DkResult initialize();
 	void waitFence(DkFence& fence);
 	void signalFence(DkFence& fence, bool flush);
@@ -125,3 +125,5 @@ public:
 
 	void decompressSurface(DkImage const* image);
 };
+
+}

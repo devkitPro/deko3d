@@ -51,7 +51,7 @@ namespace dk::detail
 			return pos;
 		}
 
-		void split(uint32_t flags = dk::detail::CtrlCmdGpfifoEntry::AutoKick)
+		void split(uint32_t flags = CtrlCmdGpfifoEntry::AutoKick)
 		{
 			flush();
 			m_cmdBuf->signOffGpfifoEntry(flags);

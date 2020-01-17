@@ -61,7 +61,7 @@ namespace
 	}
 }
 
-DkResult tag_DkDevice::initialize()
+DkResult Device::initialize()
 {
 	DkResult res;
 
@@ -101,7 +101,7 @@ DkResult tag_DkDevice::initialize()
 	return DkResult_Success;
 }
 
-tag_DkDevice::~tag_DkDevice()
+Device::~Device()
 {
 	if (!m_didLibInit) return;
 
@@ -117,7 +117,7 @@ tag_DkDevice::~tag_DkDevice()
 	nvLibExit();
 }
 
-int32_t tag_DkDevice::reserveQueueId()
+int32_t Device::reserveQueueId()
 {
 	MutexHolder m{m_queueTableMutex};
 	for (uint32_t i = 0; i < s_usedQueueBitmapSize; i ++)
@@ -133,7 +133,7 @@ int32_t tag_DkDevice::reserveQueueId()
 	return -1;
 }
 
-void tag_DkDevice::returnQueueId(uint32_t id)
+void Device::returnQueueId(uint32_t id)
 {
 	MutexHolder m{m_queueTableMutex};
 	m_queueTable[id] = nullptr;
@@ -147,7 +147,7 @@ DkDevice dkDeviceCreate(DkDeviceMaker const* maker)
 	if (!m.cbAlloc) m.cbAlloc = defaultAllocFunc;
 	if (!m.cbFree)  m.cbFree  = defaultFreeFunc;
 
-	DkDevice dev = new(m) tag_DkDevice(m);
+	DkDevice dev = new(m) Device(m);
 	if (dev)
 	{
 		DkResult res = dev->initialize();
@@ -168,7 +168,7 @@ void dkDeviceDestroy(DkDevice obj)
 
 void* ObjBase::operator new(size_t size, DkDevice device)
 {
-	return tag_DkDevice::operator new(size, device->getMaker());
+	return Device::operator new(size, device->getMaker());
 }
 
 void ObjBase::operator delete(void* ptr)
