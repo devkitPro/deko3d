@@ -163,6 +163,7 @@ namespace dk
 		void bindSamplerDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors);
 		void bindRenderTargets(detail::ArrayProxy<DkImageView const* const> colorTargets, DkImageView const* depthTarget = nullptr);
 		void bindRasterizerState(DkRasterizerState const& state);
+		void bindColorState(DkColorState const& state);
 		void bindDepthStencilState(DkDepthStencilState const& state);
 		void bindVtxAttribState(detail::ArrayProxy<DkVtxAttribState const> attribs);
 		void bindVtxBufferState(detail::ArrayProxy<DkVtxBufferState const> buffers);
@@ -172,6 +173,7 @@ namespace dk
 		void setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports);
 		void setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors);
 		void setDepthBounds(bool enable, float near, float far);
+		void setAlphaRef(float ref);
 		void setStencil(DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask);
 		void setPrimitiveRestart(bool enable, uint32_t index);
 		void setTileSize(uint32_t width, uint32_t height);
@@ -421,6 +423,22 @@ namespace dk
 		RasterizerState& setLineWidth(float width) { this->lineWidth = width; return *this; }
 	};
 
+	struct ColorState : public ::DkColorState
+	{
+		ColorState() : DkColorState{} { ::dkColorStateDefaults(this); }
+		ColorState& setBlendEnable(unsigned target, bool enable)
+		{
+			if (enable)
+				this->blendEnableMask |= 1U << target;
+			else
+				this->blendEnableMask &= ~(1U << target);
+			return *this;
+		}
+		ColorState& setBlendEnableMask(uint8_t mask) { this->blendEnableMask = mask; return *this; }
+		ColorState& setLogicOp(DkLogicOp op) { this->logicOp = op; return *this; }
+		ColorState& setAlphaCompareOp(DkCompareOp op) { this->alphaCompareOp = op; return *this; }
+	};
+
 	struct DepthStencilState : public ::DkDepthStencilState
 	{
 		DepthStencilState() : DkDepthStencilState{} { ::dkDepthStencilStateDefaults(this); }
@@ -602,6 +620,11 @@ namespace dk
 		::dkCmdBufBindRenderTargets(*this, colorTargets.data(), colorTargets.size(), depthTarget);
 	}
 
+	inline void CmdBuf::bindColorState(DkColorState const& state)
+	{
+		::dkCmdBufBindColorState(*this, &state);
+	}
+
 	inline void CmdBuf::bindRasterizerState(DkRasterizerState const& state)
 	{
 		::dkCmdBufBindRasterizerState(*this, &state);
@@ -650,6 +673,11 @@ namespace dk
 	inline void CmdBuf::setDepthBounds(bool enable, float near, float far)
 	{
 		::dkCmdBufSetDepthBounds(*this, enable, near, far);
+	}
+
+	inline void CmdBuf::setAlphaRef(float ref)
+	{
+		::dkCmdBufSetAlphaRef(*this, ref);
 	}
 
 	inline void CmdBuf::setStencil(DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask)

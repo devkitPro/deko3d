@@ -1,4 +1,19 @@
 
+# Binds color blend enable state
+# Arguments:
+# - 0: DkColorState::blendEnableMask
+BindColorBlendEnableState::
+	ColorLogicOpEnable'0 to addr'mem
+	ColorBlendEnable'1 to addr
+	bit r1 0 to mem
+	bit r1 1 to mem
+	bit r1 2 to mem
+	bit r1 3 to mem
+	bit r1 4 to mem
+	bit r1 5 to mem
+	*bit r1 6 to mem
+	bit r1 7 to mem
+
 # Binds depth/stencil state
 # Arguments:
 # - 0: First word of DkDepthStencilState

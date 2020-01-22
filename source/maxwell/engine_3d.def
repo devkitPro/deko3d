@@ -354,6 +354,7 @@ engine _3D 0xB197;
 
 0x4B9 BlendIndependent bool;
 0x4BA DepthWriteEnable bool;
+0x4BB AlphaTestEnable bool;
 
 0x4C3 DepthTestFunc enum (
 	1 Never;
@@ -365,7 +366,19 @@ engine _3D 0xB197;
 	7 Gequal;
 	8 Always;
 );
+0x4C4 AlphaTestRef float;
+0x4C5 AlphaTestFunc enum (
+	1 Never;
+	2 Less;
+	3 Equal;
+	4 Lequal;
+	5 Greater;
+	6 NotEqual;
+	7 Gequal;
+	8 Always;
+);
 
+0x4D8 ColorBlendEnable array[8] bool;
 0x4E0 StencilEnable bool;
 0x4E1 StencilFrontOpFail;
 0x4E2 StencilFrontOpZFail;
@@ -560,6 +573,8 @@ engine _3D 0xB197;
 0x66F DepthBoundsEnable bool;
 
 0x670 Unknown670;
+0x671 ColorLogicOpEnable bool;
+0x672 ColorLogicOpType; // uses GL_* enum values (yes seriously)
 
 0x674 ClearBuffers bits (
 	0      Depth bool;

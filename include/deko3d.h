@@ -709,6 +709,41 @@ DK_CONSTEXPR void dkRasterizerStateDefaults(DkRasterizerState* state)
 	state->lineWidth = 1.0f;
 }
 
+typedef enum DkLogicOp
+{
+	DkLogicOp_Clear        = 0,
+	DkLogicOp_And          = 1,
+	DkLogicOp_AndReverse   = 2,
+	DkLogicOp_Copy         = 3,
+	DkLogicOp_AndInverted  = 4,
+	DkLogicOp_NoOp         = 5,
+	DkLogicOp_Xor          = 6,
+	DkLogicOp_Or           = 7,
+	DkLogicOp_Nor          = 8,
+	DkLogicOp_Equivalent   = 9,
+	DkLogicOp_Invert       = 10,
+	DkLogicOp_OrReverse    = 11,
+	DkLogicOp_CopyInverted = 12,
+	DkLogicOp_OrInverted   = 13,
+	DkLogicOp_Nand         = 14,
+	DkLogicOp_Set          = 15,
+} DkLogicOp;
+
+typedef struct DkColorState
+{
+	uint32_t blendEnableMask : 8;
+	DkLogicOp logicOp : 8;
+	DkCompareOp alphaCompareOp : 4;
+	uint32_t : 12;
+} DkColorState;
+
+DK_CONSTEXPR void dkColorStateDefaults(DkColorState* state)
+{
+	state->blendEnableMask = 0x00;
+	state->logicOp = DkLogicOp_Copy;
+	state->alphaCompareOp = DkCompareOp_Always;
+}
+
 typedef enum DkStencilOp
 {
 	DkStencilOp_Keep     = 1,
@@ -962,6 +997,7 @@ void dkCmdBufBindImageDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t nu
 void dkCmdBufBindSamplerDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t numDescriptors);
 void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTargets[], uint32_t numColorTargets, DkImageView const* depthTarget);
 void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state);
+void dkCmdBufBindColorState(DkCmdBuf obj, DkColorState const* state);
 void dkCmdBufBindDepthStencilState(DkCmdBuf obj, DkDepthStencilState const* state);
 void dkCmdBufBindVtxAttribState(DkCmdBuf obj, DkVtxAttribState const attribs[], uint32_t numAttribs);
 void dkCmdBufBindVtxBufferState(DkCmdBuf obj, DkVtxBufferState const buffers[], uint32_t numBuffers);
@@ -970,6 +1006,7 @@ void dkCmdBufBindIdxBuffer(DkCmdBuf obj, DkIdxFormat format, DkGpuAddr address);
 void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewports[], uint32_t numViewports);
 void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors);
 void dkCmdBufSetDepthBounds(DkCmdBuf obj, bool enable, float near, float far);
+void dkCmdBufSetAlphaRef(DkCmdBuf obj, float ref);
 void dkCmdBufSetStencil(DkCmdBuf obj, DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask);
 void dkCmdBufSetPrimitiveRestart(DkCmdBuf obj, bool enable, uint32_t index);
 void dkCmdBufSetTileSize(DkCmdBuf obj, uint32_t width, uint32_t height);

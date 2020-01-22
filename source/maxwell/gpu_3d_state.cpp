@@ -48,6 +48,31 @@ void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state)
 	w << Cmd(3D, LineWidthSmooth{}, state->lineWidth, state->lineWidth);
 }
 
+void dkCmdBufBindColorState(DkCmdBuf obj, DkColorState const* state)
+{
+#ifdef DEBUG
+	if (!state)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	CmdBufWriter w{obj};
+	w.reserve(5);
+
+	if (state->logicOp == DkLogicOp_Copy)
+		w << MacroInline(BindColorBlendEnableState, state->blendEnableMask);
+	else
+		w << Cmd(3D, ColorLogicOpEnable{}, 1, 0x1500 | state->logicOp);
+
+	if (state->alphaCompareOp == DkCompareOp_Always)
+		w << CmdInline(3D, AlphaTestEnable{}, 0);
+	else
+	{
+		w << CmdInline(3D, AlphaTestEnable{}, 1);
+		w << CmdInline(3D, AlphaTestFunc{}, state->alphaCompareOp);
+	}
+
+}
+
 void dkCmdBufBindDepthStencilState(DkCmdBuf obj, DkDepthStencilState const* state)
 {
 #ifdef DEBUG
@@ -72,6 +97,14 @@ void dkCmdBufSetDepthBounds(DkCmdBuf obj, bool enable, float near, float far)
 	w << CmdInline(3D, DepthBoundsEnable{}, enable);
 	if (enable)
 		w << Cmd(3D, DepthBoundsNear{}, near, far);
+}
+
+void dkCmdBufSetAlphaRef(DkCmdBuf obj, float ref)
+{
+	CmdBufWriter w{obj};
+	w.reserve(2);
+
+	w << Cmd(3D, AlphaTestRef{}, ref);
 }
 
 void dkCmdBufSetStencil(DkCmdBuf obj, DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask)
