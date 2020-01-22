@@ -426,14 +426,7 @@ namespace dk
 	struct ColorState : public ::DkColorState
 	{
 		ColorState() : DkColorState{} { ::dkColorStateDefaults(this); }
-		ColorState& setBlendEnable(unsigned target, bool enable)
-		{
-			if (enable)
-				this->blendEnableMask |= 1U << target;
-			else
-				this->blendEnableMask &= ~(1U << target);
-			return *this;
-		}
+		ColorState& setBlendEnable(uint32_t id, bool enable) { ::dkColorStateSetBlendEnable(this, id, enable); return *this; }
 		ColorState& setBlendEnableMask(uint8_t mask) { this->blendEnableMask = mask; return *this; }
 		ColorState& setLogicOp(DkLogicOp op) { this->logicOp = op; return *this; }
 		ColorState& setAlphaCompareOp(DkCompareOp op) { this->alphaCompareOp = op; return *this; }

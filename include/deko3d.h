@@ -744,6 +744,14 @@ DK_CONSTEXPR void dkColorStateDefaults(DkColorState* state)
 	state->alphaCompareOp = DkCompareOp_Always;
 }
 
+DK_CONSTEXPR void dkColorStateSetBlendEnable(DkColorState* state, uint32_t id, bool enable)
+{
+	if (enable)
+		state->blendEnableMask |= 1U << id;
+	else
+		state->blendEnableMask &= ~(1U << id);
+}
+
 typedef enum DkStencilOp
 {
 	DkStencilOp_Keep     = 1,
