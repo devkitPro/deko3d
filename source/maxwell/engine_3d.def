@@ -587,6 +587,13 @@ engine _3D 0xB197;
 	10..20 LayerId;
 );
 
+0x680 ColorWriteMask array[8] bits (
+	0  Red bool;
+	4  Green bool;
+	8  Blue bool;
+	12 Alpha bool;
+);
+
 0x68B PipeNop;
 
 0x6C0 SetReportSemaphoreOffset iova;

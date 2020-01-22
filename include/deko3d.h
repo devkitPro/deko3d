@@ -752,6 +752,33 @@ DK_CONSTEXPR void dkColorStateSetBlendEnable(DkColorState* state, uint32_t id, b
 		state->blendEnableMask &= ~(1U << id);
 }
 
+enum
+{
+	DkColorMask_R    = 1U << 0,
+	DkColorMask_G    = 1U << 1,
+	DkColorMask_B    = 1U << 2,
+	DkColorMask_A    = 1U << 3,
+
+	DkColorMask_RGB  = DkColorMask_R|DkColorMask_G|DkColorMask_B,
+	DkColorMask_RGBA = DkColorMask_R|DkColorMask_G|DkColorMask_B|DkColorMask_A,
+};
+
+typedef struct DkColorWriteState
+{
+	uint32_t masks;
+} DkColorWriteState;
+
+DK_CONSTEXPR void dkColorWriteStateDefaults(DkColorWriteState* state)
+{
+	state->masks = 0xFFFFFFFF;
+}
+
+DK_CONSTEXPR void dkColorWriteStateSetMask(DkColorWriteState* state, uint32_t id, uint32_t colorWriteMask)
+{
+	state->masks &= ~(0xF << (id*4));
+	state->masks |= (colorWriteMask&0xF) << (id*4);
+}
+
 typedef enum DkStencilOp
 {
 	DkStencilOp_Keep     = 1,
@@ -1006,6 +1033,7 @@ void dkCmdBufBindSamplerDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t 
 void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTargets[], uint32_t numColorTargets, DkImageView const* depthTarget);
 void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state);
 void dkCmdBufBindColorState(DkCmdBuf obj, DkColorState const* state);
+void dkCmdBufBindColorWriteState(DkCmdBuf obj, DkColorWriteState const* state);
 void dkCmdBufBindDepthStencilState(DkCmdBuf obj, DkDepthStencilState const* state);
 void dkCmdBufBindVtxAttribState(DkCmdBuf obj, DkVtxAttribState const attribs[], uint32_t numAttribs);
 void dkCmdBufBindVtxBufferState(DkCmdBuf obj, DkVtxBufferState const buffers[], uint32_t numBuffers);

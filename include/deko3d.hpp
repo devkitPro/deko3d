@@ -164,6 +164,7 @@ namespace dk
 		void bindRenderTargets(detail::ArrayProxy<DkImageView const* const> colorTargets, DkImageView const* depthTarget = nullptr);
 		void bindRasterizerState(DkRasterizerState const& state);
 		void bindColorState(DkColorState const& state);
+		void bindColorWriteState(DkColorWriteState const& state);
 		void bindDepthStencilState(DkDepthStencilState const& state);
 		void bindVtxAttribState(detail::ArrayProxy<DkVtxAttribState const> attribs);
 		void bindVtxBufferState(detail::ArrayProxy<DkVtxBufferState const> buffers);
@@ -432,6 +433,12 @@ namespace dk
 		ColorState& setAlphaCompareOp(DkCompareOp op) { this->alphaCompareOp = op; return *this; }
 	};
 
+	struct ColorWriteState : public ::DkColorWriteState
+	{
+		ColorWriteState() : DkColorWriteState{} { ::dkColorWriteStateDefaults(this); }
+		ColorWriteState& setMask(uint32_t id, uint32_t colorWriteMask) { ::dkColorWriteStateSetMask(this, id, colorWriteMask); return *this; }
+	};
+
 	struct DepthStencilState : public ::DkDepthStencilState
 	{
 		DepthStencilState() : DkDepthStencilState{} { ::dkDepthStencilStateDefaults(this); }
@@ -616,6 +623,11 @@ namespace dk
 	inline void CmdBuf::bindColorState(DkColorState const& state)
 	{
 		::dkCmdBufBindColorState(*this, &state);
+	}
+
+	inline void CmdBuf::bindColorWriteState(DkColorWriteState const& state)
+	{
+		::dkCmdBufBindColorWriteState(*this, &state);
 	}
 
 	inline void CmdBuf::bindRasterizerState(DkRasterizerState const& state)

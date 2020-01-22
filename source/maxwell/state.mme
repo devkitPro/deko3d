@@ -14,6 +14,22 @@ BindColorBlendEnableState::
 	*bit r1 6 to mem
 	bit r1 7 to mem
 
+# Binds color write mask state
+# Arguments:
+# - 0: DkColorWriteState::masks
+BindColorWriteMasks::
+	ColorWriteMask'1 to addr
+	8 to r2
+.loop
+	ei ColorWriteMaskRed_Shift:rz   0:r1 1 to r3
+	ei ColorWriteMaskGreen_Shift:r3 1:r1 1 to r3
+	ei ColorWriteMaskBlue_Shift:r3  2:r1 1 to r3
+	ei ColorWriteMaskAlpha_Shift:r3 3:r1 1 to r3
+	dec r2 to r2
+	r3 to mem
+	*bnz r2 .loop
+	lsr r1 4 to r1
+
 # Binds depth/stencil state
 # Arguments:
 # - 0: First word of DkDepthStencilState

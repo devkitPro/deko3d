@@ -70,7 +70,19 @@ void dkCmdBufBindColorState(DkCmdBuf obj, DkColorState const* state)
 		w << CmdInline(3D, AlphaTestEnable{}, 1);
 		w << CmdInline(3D, AlphaTestFunc{}, state->alphaCompareOp);
 	}
+}
 
+void dkCmdBufBindColorWriteState(DkCmdBuf obj, DkColorWriteState const* state)
+{
+#ifdef DEBUG
+	if (!state)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	CmdBufWriter w{obj};
+	w.reserve(2);
+
+	w << Macro(BindColorWriteMasks, state->masks);
 }
 
 void dkCmdBufBindDepthStencilState(DkCmdBuf obj, DkDepthStencilState const* state)
