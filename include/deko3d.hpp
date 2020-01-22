@@ -32,6 +32,18 @@ namespace dk
 		};
 
 		template <typename T>
+		constexpr bool operator==(Handle<T> const& lhs, Handle<T> const& rhs)
+		{
+			return static_cast<T>(lhs) == static_cast<T>(rhs);
+		}
+
+		template <typename T>
+		constexpr bool operator!=(Handle<T> const& lhs, Handle<T> const& rhs)
+		{
+			return !(lhs == rhs);
+		}
+
+		template <typename T>
 		struct UniqueHandle final : public T
 		{
 			UniqueHandle() noexcept : T{} { }
