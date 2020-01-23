@@ -197,6 +197,8 @@ engine _3D 0xB197;
 0x371 PolygonOffsetLineEnable bool;
 0x372 PolygonOffsetFillEnable bool;
 
+0x374 AdvancedBlendEnable bool;
+
 0x376 ZcullClearMode; // unknown, 0xFF000005 observed
 
 0x378 FragmentBarrier;
@@ -352,7 +354,7 @@ engine _3D 0xB197;
 
 0x4B6 Unknown4b6 array[2];
 
-0x4B9 BlendIndependent bool;
+0x4B9 IndependentBlendEnable bool;
 0x4BA DepthWriteEnable bool;
 0x4BB AlphaTestEnable bool;
 
@@ -377,6 +379,8 @@ engine _3D 0xB197;
 	7 Gequal;
 	8 Always;
 );
+
+0x4C7 BlendConstant array[4] float;
 
 0x4D8 ColorBlendEnable array[8] bool;
 0x4E0 StencilEnable bool;
@@ -651,6 +655,16 @@ engine _3D 0xB197;
 	0x01 Start iova;
 	0x03 Divisor;
 	0x04 next;
+);
+
+0x780 IndependentBlend array[8] (
+	0x01 EquationRgb;
+	0x02 FuncRgbSrc;
+	0x03 FuncRgbDst;
+	0x04 EquationAlpha;
+	0x05 FuncAlphaSrc;
+	0x06 FuncAlphaDst;
+	0x08 next;
 );
 
 0x7C0 VertexArrayLimit array[16] iova;

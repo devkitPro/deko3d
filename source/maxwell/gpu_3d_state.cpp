@@ -10,6 +10,23 @@ using namespace dk::detail;
 using E = Engine3D;
 using SRC = E::MmeShadowRamControl;
 
+namespace
+{
+	constexpr uint32_t getBlendFactorSetting(DkBlendFactor factor)
+	{
+		// Explanation:
+		// Nvidia's color blend factor registers accept both D3D11_BLEND and GLenum values.
+		// In order to use GLenum values, bit 14 (0x4000) needs to be set.
+		// DkBlendFactor lines up with D3D11_BLEND in most of its values except for the
+		// ones involving the constant blend color, for which GLenum values are used
+		// (after a little bit of tweaking so that the whole thing fits in just 6 bits).
+		uint32_t ret = factor & 0x1f;
+		if (factor & 0x20)
+			ret |= 0xc000;
+		return ret;
+	}
+}
+
 void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state)
 {
 #ifdef DEBUG
@@ -85,6 +102,36 @@ void dkCmdBufBindColorWriteState(DkCmdBuf obj, DkColorWriteState const* state)
 	w << Macro(BindColorWriteMasks, state->masks);
 }
 
+void dkCmdBufBindBlendStates(DkCmdBuf obj, uint32_t firstId, DkBlendState const states[], uint32_t numStates)
+{
+#ifdef DEBUG
+	if (!states)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (firstId >= DK_MAX_RENDER_TARGETS || numStates > DK_MAX_RENDER_TARGETS)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (firstId + numStates > DK_MAX_RENDER_TARGETS)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+	if (!numStates)
+		return;
+
+	CmdBufWriter w{obj};
+	w.reserve(7*numStates);
+
+	for (uint32_t i = 0; i < numStates; i ++)
+	{
+		DkBlendState const& state = states[i];
+		w << Cmd(3D, IndependentBlend::EquationRgb{firstId+i},
+			state.colorBlendOp,                               // EquationRgb
+			getBlendFactorSetting(state.srcColorBlendFactor), // FuncRgbSrc
+			getBlendFactorSetting(state.dstColorBlendFactor), // FuncRgbDst
+			state.alphaBlendOp,                               // EquationAlpha
+			getBlendFactorSetting(state.srcAlphaBlendFactor), // FuncAlphaSrc
+			getBlendFactorSetting(state.dstColorBlendFactor)  // FuncAlphaDst
+		);
+	}
+}
+
 void dkCmdBufBindDepthStencilState(DkCmdBuf obj, DkDepthStencilState const* state)
 {
 #ifdef DEBUG
@@ -117,6 +164,14 @@ void dkCmdBufSetAlphaRef(DkCmdBuf obj, float ref)
 	w.reserve(2);
 
 	w << Cmd(3D, AlphaTestRef{}, ref);
+}
+
+void dkCmdBufSetBlendConst(DkCmdBuf obj, float red, float green, float blue, float alpha)
+{
+	CmdBufWriter w{obj};
+	w.reserve(5);
+
+	w << Cmd(3D, BlendConstant{}, red, green, blue, alpha);
 }
 
 void dkCmdBufSetStencil(DkCmdBuf obj, DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask)

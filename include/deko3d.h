@@ -779,6 +779,74 @@ DK_CONSTEXPR void dkColorWriteStateSetMask(DkColorWriteState* state, uint32_t id
 	state->masks |= (colorWriteMask&0xF) << (id*4);
 }
 
+typedef enum DkBlendOp
+{
+	DkBlendOp_Add    = 1,
+	DkBlendOp_Sub    = 2,
+	DkBlendOp_RevSub = 3,
+	DkBlendOp_Min    = 4,
+	DkBlendOp_Max    = 5,
+} DkBlendOp;
+
+typedef enum DkBlendFactor
+{
+	DkBlendFactor_Zero             = 1,
+	DkBlendFactor_One              = 2,
+	DkBlendFactor_SrcColor         = 3,
+	DkBlendFactor_InvSrcColor      = 4,
+	DkBlendFactor_SrcAlpha         = 5,
+	DkBlendFactor_InvSrcAlpha      = 6,
+	DkBlendFactor_DstAlpha         = 7,
+	DkBlendFactor_InvDstAlpha      = 8,
+	DkBlendFactor_DstColor         = 9,
+	DkBlendFactor_InvDstColor      = 10,
+	DkBlendFactor_SrcAlphaSaturate = 11,
+	DkBlendFactor_Src1Color        = 16,
+	DkBlendFactor_InvSrc1Color     = 17,
+	DkBlendFactor_Src1Alpha        = 18,
+	DkBlendFactor_InvSrc1Alpha     = 19,
+	DkBlendFactor_ConstColor       = 1|0x20,
+	DkBlendFactor_InvConstColor    = 2|0x20,
+	DkBlendFactor_ConstAlpha       = 3|0x20,
+	DkBlendFactor_InvConstAlpha    = 4|0x20,
+} DkBlendFactor;
+
+typedef struct DkBlendState
+{
+	DkBlendOp colorBlendOp : 3;
+	DkBlendFactor srcColorBlendFactor : 6;
+	DkBlendFactor dstColorBlendFactor : 6;
+
+	DkBlendOp alphaBlendOp : 3;
+	DkBlendFactor srcAlphaBlendFactor : 6;
+	DkBlendFactor dstAlphaBlendFactor : 6;
+} DkBlendState;
+
+DK_CONSTEXPR void dkBlendStateDefaults(DkBlendState* state)
+{
+	state->colorBlendOp = DkBlendOp_Add;
+	state->srcColorBlendFactor = DkBlendFactor_SrcAlpha;
+	state->dstColorBlendFactor = DkBlendFactor_InvSrcAlpha;
+
+	state->alphaBlendOp = DkBlendOp_Add;
+	state->srcAlphaBlendFactor = DkBlendFactor_One;
+	state->dstAlphaBlendFactor = DkBlendFactor_Zero;
+}
+
+DK_CONSTEXPR void dkBlendStateSetOps(DkBlendState* state, DkBlendOp colorBlendOp, DkBlendOp alphaBlendOp)
+{
+	state->colorBlendOp = colorBlendOp;
+	state->alphaBlendOp = alphaBlendOp;
+}
+
+DK_CONSTEXPR void dkBlendStateSetFactors(DkBlendState* state, DkBlendFactor srcColorBlendFactor, DkBlendFactor dstColorBlendFactor, DkBlendFactor srcAlphaBlendFactor, DkBlendFactor dstAlphaBlendFactor)
+{
+	state->srcColorBlendFactor = srcColorBlendFactor;
+	state->dstColorBlendFactor = dstColorBlendFactor;
+	state->srcAlphaBlendFactor = srcAlphaBlendFactor;
+	state->dstAlphaBlendFactor = dstAlphaBlendFactor;
+}
+
 typedef enum DkStencilOp
 {
 	DkStencilOp_Keep     = 1,
@@ -1034,6 +1102,7 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state);
 void dkCmdBufBindColorState(DkCmdBuf obj, DkColorState const* state);
 void dkCmdBufBindColorWriteState(DkCmdBuf obj, DkColorWriteState const* state);
+void dkCmdBufBindBlendStates(DkCmdBuf obj, uint32_t firstId, DkBlendState const states[], uint32_t numStates);
 void dkCmdBufBindDepthStencilState(DkCmdBuf obj, DkDepthStencilState const* state);
 void dkCmdBufBindVtxAttribState(DkCmdBuf obj, DkVtxAttribState const attribs[], uint32_t numAttribs);
 void dkCmdBufBindVtxBufferState(DkCmdBuf obj, DkVtxBufferState const buffers[], uint32_t numBuffers);
@@ -1043,6 +1112,7 @@ void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewp
 void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors);
 void dkCmdBufSetDepthBounds(DkCmdBuf obj, bool enable, float near, float far);
 void dkCmdBufSetAlphaRef(DkCmdBuf obj, float ref);
+void dkCmdBufSetBlendConst(DkCmdBuf obj, float red, float green, float blue, float alpha);
 void dkCmdBufSetStencil(DkCmdBuf obj, DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask);
 void dkCmdBufSetPrimitiveRestart(DkCmdBuf obj, bool enable, uint32_t index);
 void dkCmdBufSetTileSize(DkCmdBuf obj, uint32_t width, uint32_t height);
@@ -1124,6 +1194,11 @@ static inline void dkCmdBufBindTexture(DkCmdBuf obj, DkStage stage, uint32_t id,
 static inline void dkCmdBufBindImage(DkCmdBuf obj, DkStage stage, uint32_t id, DkResHandle handle)
 {
 	dkCmdBufBindImages(obj, stage, id, &handle, 1);
+}
+
+static inline void dkCmdBufBindBlendState(DkCmdBuf obj, uint32_t id, DkBlendState const* state)
+{
+	dkCmdBufBindBlendStates(obj, id, state, 1);
 }
 
 static inline void dkCmdBufBindVtxBuffer(DkCmdBuf obj, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize)

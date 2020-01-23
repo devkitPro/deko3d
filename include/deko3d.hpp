@@ -165,6 +165,8 @@ namespace dk
 		void bindRasterizerState(DkRasterizerState const& state);
 		void bindColorState(DkColorState const& state);
 		void bindColorWriteState(DkColorWriteState const& state);
+		void bindBlendState(uint32_t id, DkBlendState const& state);
+		void bindBlendStates(uint32_t id, detail::ArrayProxy<DkBlendState const> states);
 		void bindDepthStencilState(DkDepthStencilState const& state);
 		void bindVtxAttribState(detail::ArrayProxy<DkVtxAttribState const> attribs);
 		void bindVtxBufferState(detail::ArrayProxy<DkVtxBufferState const> buffers);
@@ -175,6 +177,7 @@ namespace dk
 		void setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors);
 		void setDepthBounds(bool enable, float near, float far);
 		void setAlphaRef(float ref);
+		void setBlendConst(float red, float green, float blue, float alpha);
 		void setStencil(DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask);
 		void setPrimitiveRestart(bool enable, uint32_t index);
 		void setTileSize(uint32_t width, uint32_t height);
@@ -439,6 +442,19 @@ namespace dk
 		ColorWriteState& setMask(uint32_t id, uint32_t colorWriteMask) { ::dkColorWriteStateSetMask(this, id, colorWriteMask); return *this; }
 	};
 
+	struct BlendState : public ::DkBlendState
+	{
+		BlendState() : DkBlendState{} { ::dkBlendStateDefaults(this); }
+		BlendState& setOps(DkBlendOp colorBlendOp, DkBlendOp alphaBlendOp) { ::dkBlendStateSetOps(this, colorBlendOp, alphaBlendOp); return *this; }
+		BlendState& setFactors(DkBlendFactor srcColorBlendFactor, DkBlendFactor dstColorBlendFactor, DkBlendFactor srcAlphaBlendFactor, DkBlendFactor dstAlphaBlendFactor) { ::dkBlendStateSetFactors(this, srcColorBlendFactor, dstColorBlendFactor, srcAlphaBlendFactor, dstAlphaBlendFactor); return *this; }
+		BlendState& setColorBlendOp(DkBlendOp colorBlendOp) { this->colorBlendOp = colorBlendOp; return *this; }
+		BlendState& setSrcColorBlendFactor(DkBlendFactor srcColorBlendFactor) { this->srcColorBlendFactor = srcColorBlendFactor; return *this; }
+		BlendState& setDstColorBlendFactor(DkBlendFactor dstColorBlendFactor) { this->dstColorBlendFactor = dstColorBlendFactor; return *this; }
+		BlendState& setAlphaBlendOp(DkBlendOp alphaBlendOp) { this->alphaBlendOp = alphaBlendOp; return *this; }
+		BlendState& setSrcAlphaBlendFactor(DkBlendFactor srcAlphaBlendFactor) { this->srcAlphaBlendFactor = srcAlphaBlendFactor; return *this; }
+		BlendState& setDstAlphaBlendFactor(DkBlendFactor dstAlphaBlendFactor) { this->dstAlphaBlendFactor = dstAlphaBlendFactor; return *this; }
+	};
+
 	struct DepthStencilState : public ::DkDepthStencilState
 	{
 		DepthStencilState() : DkDepthStencilState{} { ::dkDepthStencilStateDefaults(this); }
@@ -630,6 +646,16 @@ namespace dk
 		::dkCmdBufBindColorWriteState(*this, &state);
 	}
 
+	inline void CmdBuf::bindBlendState(uint32_t id, DkBlendState const& state)
+	{
+		::dkCmdBufBindBlendState(*this, id, &state);
+	}
+
+	inline void CmdBuf::bindBlendStates(uint32_t id, detail::ArrayProxy<DkBlendState const> states)
+	{
+		::dkCmdBufBindBlendStates(*this, id, states.data(), states.size());
+	}
+
 	inline void CmdBuf::bindRasterizerState(DkRasterizerState const& state)
 	{
 		::dkCmdBufBindRasterizerState(*this, &state);
@@ -683,6 +709,11 @@ namespace dk
 	inline void CmdBuf::setAlphaRef(float ref)
 	{
 		::dkCmdBufSetAlphaRef(*this, ref);
+	}
+
+	inline void CmdBuf::setBlendConst(float red, float green, float blue, float alpha)
+	{
+		::dkCmdBufSetBlendConst(*this, red, green, blue, alpha);
 	}
 
 	inline void CmdBuf::setStencil(DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask)

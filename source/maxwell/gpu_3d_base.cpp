@@ -124,7 +124,8 @@ void Queue::setup3DEngine()
 		E::Bind::Constbuf::Valid{} | E::Bind::Constbuf::Index{0}
 	);
 
-	w << CmdInline(3D, BlendIndependent{}, 1);
+	w << CmdInline(3D, AdvancedBlendEnable{}, 0);
+	w << CmdInline(3D, IndependentBlendEnable{}, 1);
 	w << CmdInline(3D, EdgeFlag{}, 1);
 	w << CmdInline(3D, ViewportTransformEnable{}, 1);
 	using VVCC = E::ViewVolumeClipControl;
