@@ -667,6 +667,15 @@ typedef enum DkPolygonMode
 	DkPolygonMode_Fill  = 2,
 } DkPolygonMode;
 
+enum
+{
+	DkPolygonFlag_Point = 1U << DkPolygonMode_Point,
+	DkPolygonFlag_Line  = 1U << DkPolygonMode_Line,
+	DkPolygonFlag_Fill  = 1U << DkPolygonMode_Fill,
+
+	DkPolygonFlag_All   = DkPolygonFlag_Point|DkPolygonFlag_Line|DkPolygonFlag_Fill,
+};
+
 typedef enum DkFace
 {
 	DkFace_None         = 0,
@@ -683,30 +692,28 @@ typedef enum DkFrontFace
 
 typedef struct DkRasterizerState
 {
+	uint32_t rasterizerEnable : 1;
 	uint32_t depthClampEnable : 1;
-	uint32_t rasterizerDiscardEnable : 1;
-	DkPolygonMode polygonMode : 2;
+	uint32_t fillRectangleEnable : 1;
+	DkPolygonMode polygonModeFront : 2;
+	DkPolygonMode polygonModeBack : 2;
 	DkFace cullMode : 2;
 	DkFrontFace frontFace : 1;
-	uint32_t depthBiasEnable : 1;
-	float depthBiasConstantFactor;
-	float depthBiasClamp;
-	float depthBiasSlopeFactor;
-	float lineWidth;
+	uint32_t polygonSmoothEnableMask : 3;
+	uint32_t depthBiasEnableMask : 3;
 } DkRasterizerState;
 
 DK_CONSTEXPR void dkRasterizerStateDefaults(DkRasterizerState* state)
 {
+	state->rasterizerEnable = 1;
 	state->depthClampEnable = 0;
-	state->rasterizerDiscardEnable = 0;
-	state->polygonMode = DkPolygonMode_Fill;
+	state->fillRectangleEnable = 0;
+	state->polygonModeFront = DkPolygonMode_Fill;
+	state->polygonModeBack = DkPolygonMode_Fill;
 	state->cullMode = DkFace_Back;
 	state->frontFace = DkFrontFace_CCW;
-	state->depthBiasEnable = 0;
-	state->depthBiasConstantFactor = 0.0f;
-	state->depthBiasClamp = 0.0f;
-	state->depthBiasSlopeFactor = 0.0f;
-	state->lineWidth = 1.0f;
+	state->polygonSmoothEnableMask = 0;
+	state->depthBiasEnableMask = 0;
 }
 
 typedef enum DkLogicOp
@@ -1110,6 +1117,8 @@ void dkCmdBufBindVtxBuffers(DkCmdBuf obj, uint32_t firstId, DkBufExtents const b
 void dkCmdBufBindIdxBuffer(DkCmdBuf obj, DkIdxFormat format, DkGpuAddr address);
 void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewports[], uint32_t numViewports);
 void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors);
+void dkCmdBufSetDepthBias(DkCmdBuf obj, float constantFactor, float clamp, float slopeFactor);
+void dkCmdBufSetLineWidth(DkCmdBuf obj, float width);
 void dkCmdBufSetDepthBounds(DkCmdBuf obj, bool enable, float near, float far);
 void dkCmdBufSetAlphaRef(DkCmdBuf obj, float ref);
 void dkCmdBufSetBlendConst(DkCmdBuf obj, float red, float green, float blue, float alpha);

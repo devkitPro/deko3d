@@ -175,6 +175,8 @@ namespace dk
 		void bindIdxBuffer(DkIdxFormat format, DkGpuAddr address);
 		void setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports);
 		void setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors);
+		void setDepthBias(float constantFactor, float clamp, float slopeFactor);
+		void setLineWidth(float width);
 		void setDepthBounds(bool enable, float near, float far);
 		void setAlphaRef(float ref);
 		void setBlendConst(float red, float green, float blue, float alpha);
@@ -415,16 +417,18 @@ namespace dk
 	struct RasterizerState : public ::DkRasterizerState
 	{
 		RasterizerState() : DkRasterizerState{} { ::dkRasterizerStateDefaults(this); }
+		RasterizerState& setRasterizerEnable(bool enable) { this->rasterizerEnable = enable; return *this; }
 		RasterizerState& setDepthClampEnable(bool enable) { this->depthClampEnable = enable; return *this; }
-		RasterizerState& setRasterizerDiscardEnable(bool enable) { this->rasterizerDiscardEnable = enable; return *this; }
-		RasterizerState& setPolygonMode(DkPolygonMode polygonMode) { this->polygonMode = polygonMode; return *this; }
+		RasterizerState& setFillRectangleEnable(bool enable) { this->fillRectangleEnable = enable; return *this; }
+		RasterizerState& setPolygonMode(DkPolygonMode mode) { this->polygonModeFront = this->polygonModeBack = mode; return *this; }
+		RasterizerState& setPolygonModeFront(DkPolygonMode mode) { this->polygonModeFront = mode; return *this; }
+		RasterizerState& setPolygonModeBack(DkPolygonMode mode) { this->polygonModeBack = mode; return *this; }
 		RasterizerState& setCullMode(DkFace cullMode) { this->cullMode = cullMode; return *this; }
 		RasterizerState& setFrontFace(DkFrontFace frontFace) { this->frontFace = frontFace; return *this; }
-		RasterizerState& setDepthBiasEnable(bool enable) { this->depthBiasEnable = enable; return *this; }
-		RasterizerState& setDepthBiasConstantFactor(float value) { this->depthBiasConstantFactor = value; return *this; }
-		RasterizerState& setDepthBiasClamp(float value) { this->depthBiasClamp = value; return *this; }
-		RasterizerState& setDepthBiasSlopeFactor(float value) { this->depthBiasSlopeFactor = value; return *this; }
-		RasterizerState& setLineWidth(float width) { this->lineWidth = width; return *this; }
+		RasterizerState& setPolygonSmoothEnable(bool enable) { this->polygonSmoothEnableMask = enable ? DkPolygonFlag_All : 0; return *this; }
+		RasterizerState& setPolygonSmoothEnableMask(uint32_t mask) { this->polygonSmoothEnableMask = mask; return *this; }
+		RasterizerState& setDepthBiasEnable(bool enable) { this->depthBiasEnableMask = enable ? DkPolygonFlag_All : 0; return *this; }
+		RasterizerState& setDepthBiasEnableMask(uint32_t mask) { this->depthBiasEnableMask = mask; return *this; }
 	};
 
 	struct ColorState : public ::DkColorState
@@ -699,6 +703,16 @@ namespace dk
 	inline void CmdBuf::setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors)
 	{
 		::dkCmdBufSetScissors(*this, firstId, scissors.data(), scissors.size());
+	}
+
+	inline void CmdBuf::setDepthBias(float constantFactor, float clamp, float slopeFactor)
+	{
+		::dkCmdBufSetDepthBias(*this, constantFactor, clamp, slopeFactor);
+	}
+
+	inline void CmdBuf::setLineWidth(float width)
+	{
+		::dkCmdBufSetLineWidth(*this, width);
 	}
 
 	inline void CmdBuf::setDepthBounds(bool enable, float near, float far)

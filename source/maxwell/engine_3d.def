@@ -187,6 +187,7 @@ engine _3D 0xB197;
 	0x1B01 Line;
 	0x1B02 Fill;
 );
+0x36D PolygonSmoothEnable bool;
 
 0x36F ZcullClearDepth bits (
 	0  IsLessThanHalf bool;
@@ -300,6 +301,9 @@ engine _3D 0xB197;
 0x44C Unknown44c;
 0x44D TiledCacheUnkFeatureEnable bool;
 
+0x44F FillRectangleConfig bits (
+	1 Enable bool;
+);
 0x450 Unknown450;
 0x451 UnknownFlush;
 0x452 SetConservativeRasterEnable bool;
@@ -443,7 +447,7 @@ engine _3D 0xB197;
 0x559 SetTexSamplerPoolMaximumIndex;
 
 0x55B PolygonOffsetFactor;
-
+0x55C LineSmoothEnable bool;
 0x55D SetTexHeaderPool iova;
 0x55F SetTexHeaderPoolMaximumIndex;
 
@@ -512,9 +516,16 @@ engine _3D 0xB197;
 	12 DrawArraysAddStart bool; // Adds the value of DrawArraysFirst to gl_VertexID (a[0x2fc]), during non-indexed drawing
 );
 
+0x596 PointSmoothEnable bool;
 0x597 PointRasterRules enum (
 	0 OpenGL;
 	1 Direct3D;
+);
+
+0x59A LineSmoothBlur enum (
+	0 Low;
+	1 Medium;
+	2 High;
 );
 
 0x5A1 ProvokingVertexLast bool;

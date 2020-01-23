@@ -35,14 +35,26 @@ void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state)
 #endif
 
 	CmdBufWriter w{obj};
-	w.reserve(17);
+	w.reserve(14);
+
+	w << CmdInline(3D, RasterizerEnable{}, state->rasterizerEnable);
+	if (!state->rasterizerEnable)
+		return;
 
 	w << CmdInline(3D, ViewVolumeClipControl{}, state->depthClampEnable ? 0x101A : 0x181D); // todo: figure out what this actually does
-	w << CmdInline(3D, RasterizerEnable{}, !state->rasterizerDiscardEnable);
+	w << CmdInline(3D, FillRectangleConfig{}, E::FillRectangleConfig::Enable{state->fillRectangleEnable});
+
+	DkPolygonMode front = state->polygonModeFront, back = state->polygonModeBack;
+	if (state->fillRectangleEnable)
+	{
+		// NV_fill_rectangle makes no sense to enable if the polygon mode isn't Fill.
+		front = DkPolygonMode_Fill;
+		back = DkPolygonMode_Fill;
+	}
 
 	static const uint16_t polygonModes[] = { E::SetPolygonModeFront::Point, E::SetPolygonModeFront::Line, E::SetPolygonModeFront::Fill, 0 };
-	w << CmdInline(3D, SetPolygonModeFront{}, polygonModes[state->polygonMode]);
-	w << CmdInline(3D, SetPolygonModeBack{},  polygonModes[state->polygonMode]);
+	w << CmdInline(3D, SetPolygonModeFront{}, polygonModes[front]);
+	w << CmdInline(3D, SetPolygonModeBack{},  polygonModes[back]);
 
 	w << CmdInline(3D, CullFaceEnable{}, state->cullMode != DkFace_None);
 	if (state->cullMode != DkFace_None)
@@ -54,15 +66,13 @@ void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state)
 	static const uint16_t frontFaces[] = { E::SetFrontFace::CW, E::SetFrontFace::CCW };
 	w << CmdInline(3D, SetFrontFace{}, frontFaces[state->frontFace]);
 
-	w << CmdInline(3D, PolygonOffsetPointEnable{} + state->polygonMode, state->depthBiasEnable);
-	if (state->depthBiasEnable)
-	{
-		w << Cmd(3D, PolygonOffsetUnits{}, state->depthBiasConstantFactor*2.0f);
-		w << Cmd(3D, PolygonOffsetClamp{}, state->depthBiasClamp);
-		w << Cmd(3D, PolygonOffsetFactor{}, state->depthBiasSlopeFactor);
-	}
+	w << CmdInline(3D, PointSmoothEnable{},        (state->polygonSmoothEnableMask & DkPolygonFlag_Point) != 0);
+	w << CmdInline(3D, LineSmoothEnable{},         (state->polygonSmoothEnableMask & DkPolygonFlag_Line) != 0);
+	w << CmdInline(3D, PolygonSmoothEnable{},      (state->polygonSmoothEnableMask & DkPolygonFlag_Fill) != 0);
 
-	w << Cmd(3D, LineWidthSmooth{}, state->lineWidth, state->lineWidth);
+	w << CmdInline(3D, PolygonOffsetPointEnable{}, (state->depthBiasEnableMask & DkPolygonFlag_Point) != 0);
+	w << CmdInline(3D, PolygonOffsetLineEnable{},  (state->depthBiasEnableMask & DkPolygonFlag_Line) != 0);
+	w << CmdInline(3D, PolygonOffsetFillEnable{},  (state->depthBiasEnableMask & DkPolygonFlag_Fill) != 0);
 }
 
 void dkCmdBufBindColorState(DkCmdBuf obj, DkColorState const* state)
@@ -146,6 +156,26 @@ void dkCmdBufBindDepthStencilState(DkCmdBuf obj, DkDepthStencilState const* stat
 
 	w << CmdList<1>{ MakeCmdHeader(IncreaseOnce, 2, Subchannel3D, MmeMacroBindDepthStencilState) };
 	w.addRawData(state, 8);
+}
+
+void dkCmdBufSetDepthBias(DkCmdBuf obj, float constantFactor, float clamp, float slopeFactor)
+{
+	CmdBufWriter w{obj};
+	w.reserve(6);
+
+	w << Cmd(3D, PolygonOffsetUnits{}, constantFactor*2.0f);
+	w << Cmd(3D, PolygonOffsetClamp{}, clamp);
+	w << Cmd(3D, PolygonOffsetFactor{}, slopeFactor);
+}
+
+void dkCmdBufSetLineWidth(DkCmdBuf obj, float width)
+{
+	CmdBufWriter w{obj};
+	w.reserve(3);
+
+	// According to nouveau (nvc0_rasterizer_state_create), Maxwell 2nd gen+ only reads LineWidthSmooth.
+	// However for consistency with official code, we'll set LineWidthAliased too.
+	w << Cmd(3D, LineWidthSmooth{}, width, width);
 }
 
 void dkCmdBufSetDepthBounds(DkCmdBuf obj, bool enable, float near, float far)
