@@ -96,11 +96,17 @@ void dkCmdBufBindShaders(DkCmdBuf obj, uint32_t stageMask, DkShader const* const
 		{
 			default:
 				break;
+			case DkStage_TessEval:
+				sizeReq += 1;
+				break;
+			case DkStage_Geometry:
+				sizeReq += 1 + (hdr.geom.has_table_490 ? 9 : 0);
+				break;
 			case DkStage_Vertex:
 				sizeReq += hdr.vert.alt_num_gprs ? 5 : 1;
 				break;
 			case DkStage_Fragment:
-				sizeReq += 8;
+				sizeReq += 9 + (hdr.frag.has_table_3d1 ? 5 : 0);
 				break;
 		}
 
@@ -125,13 +131,27 @@ void dkCmdBufBindShaders(DkCmdBuf obj, uint32_t stageMask, DkShader const* const
 		{
 			default:
 				break;
+			case DkStage_TessEval:
+				w << MakeInlineCmd(Subchannel3D, 0x0c8, hdr.tess_eval.param_c8);
+				break;
+			case DkStage_Geometry:
+				w << MakeInlineCmd(Subchannel3D, 0x47c, hdr.geom.flag_47c);
+				if (hdr.geom.has_table_490)
+					w << MakeIncreasingCmd(Subchannel3D, 0x490,
+						hdr.geom.table_490[0], hdr.geom.table_490[1], hdr.geom.table_490[2], hdr.geom.table_490[3],
+						hdr.geom.table_490[4], hdr.geom.table_490[5], hdr.geom.table_490[6], hdr.geom.table_490[7]);
+				break;
 			case DkStage_Fragment:
+				w << MakeInlineCmd(Subchannel3D, 0x3d0, hdr.frag.has_table_3d1);
+				if (hdr.frag.has_table_3d1)
+					w << MakeIncreasingCmd(Subchannel3D, 0x3d0,
+						hdr.frag.table_3d1[0], hdr.frag.table_3d1[1], hdr.frag.table_3d1[2], hdr.frag.table_3d1[3]);
 				w << MakeInlineCmd(Subchannel3D, 0x084, hdr.frag.early_fragment_tests);
 				w << MakeInlineCmd(Subchannel3D, 0x3c7, hdr.frag.post_depth_coverage);
 				w << MakeIncreasingCmd(Subchannel3D, 0x0d8, hdr.frag.param_d8, 0x20);
 				w << MakeInlineCmd(Subchannel3D, 0x489, hdr.frag.param_489);
 				w << MakeInlineCmd(Subchannel3D, 0x65b, hdr.frag.param_65b);
-				w << MakeInlineCmd(Subchannel3D, 0x1d5, hdr.frag.sample_shading ? 0x30 : 0x01);
+				w << MakeInlineCmd(Subchannel3D, 0x1d5, hdr.frag.persample_invocation ? 0x30 : 0x01);
 				break;
 		}
 
@@ -144,10 +164,12 @@ void dkCmdBufBindShaders(DkCmdBuf obj, uint32_t stageMask, DkShader const* const
 	stageMask &= ~DkStageFlag_Vertex;
 	if (stageMask)
 	{
-		w.reserve(__builtin_popcount(stageMask));
+		w.reserve(__builtin_popcount(stageMask) + !!(stageMask & DkStageFlag_Geometry));
 		for (unsigned i = DkStage_TessCtrl; i < DkStage_MaxGraphics; i ++)
 			if (stageMask & (1U<<i))
 				w << CmdInline(3D, SetProgram::Config{i+1}, Engine3D::SetProgram::Config::StageId{i+1});
+		if (stageMask & DkStageFlag_Geometry)
+			w << MakeInlineCmd(Subchannel3D, 0x47c, 0);
 	}
 }
 

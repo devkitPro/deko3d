@@ -52,7 +52,7 @@ struct DkshProgramHeader
 			bool has_table_3d1;
 			bool early_fragment_tests;
 			bool post_depth_coverage;
-			bool sample_shading;
+			bool persample_invocation;
 			uint32_t table_3d1[4];
 			uint32_t param_d8;
 			uint16_t param_65b;
