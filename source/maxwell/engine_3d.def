@@ -109,7 +109,12 @@ engine _3D 0xB197;
 	0x03 TranslateX float;
 	0x04 TranslateY float;
 	0x05 TranslateZ float;
-	0x06 Swizzles;
+	0x06 Swizzles bits (
+		0..2   X;
+		4..6   Y;
+		8..10  Z;
+		12..14 W;
+	);
 	0x07 SubpixelPrecisionBias bits (
 		0..4  X;
 		8..11 Y;

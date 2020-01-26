@@ -174,6 +174,7 @@ namespace dk
 		void bindVtxBuffers(uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers);
 		void bindIdxBuffer(DkIdxFormat format, DkGpuAddr address);
 		void setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports);
+		void setViewportSwizzles(uint32_t firstId, detail::ArrayProxy<DkViewportSwizzle const> swizzles);
 		void setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors);
 		void setDepthBias(float constantFactor, float clamp, float slopeFactor);
 		void setPointSize(float size);
@@ -702,6 +703,11 @@ namespace dk
 	inline void CmdBuf::setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports)
 	{
 		::dkCmdBufSetViewports(*this, firstId, viewports.data(), viewports.size());
+	}
+
+	inline void CmdBuf::setViewportSwizzles(uint32_t firstId, detail::ArrayProxy<DkViewportSwizzle const> swizzles)
+	{
+		::dkCmdBufSetViewportSwizzles(*this, firstId, swizzles.data(), swizzles.size());
 	}
 
 	inline void CmdBuf::setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors)

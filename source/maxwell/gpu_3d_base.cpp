@@ -406,6 +406,29 @@ void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewp
 	}
 }
 
+void dkCmdBufSetViewportSwizzles(DkCmdBuf obj, uint32_t firstId, DkViewportSwizzle const swizzles[], uint32_t numSwizzles)
+{
+#ifdef DEBUG
+	if (firstId > DK_NUM_VIEWPORTS || numSwizzles > DK_NUM_VIEWPORTS || (firstId+numSwizzles) > DK_NUM_VIEWPORTS)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (numSwizzles && !swizzles)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	CmdBufWriter w{obj};
+	w.reserve(2*numSwizzles);
+
+	for (uint32_t i = 0; i < numSwizzles; i ++)
+	{
+		DkViewportSwizzle const& sw = swizzles[i];
+		uint32_t id = firstId + i;
+
+		using S = Engine3D::ViewportTransform::Swizzles;
+		w << Cmd(3D, ViewportTransform::Swizzles{id},
+			S::X{sw.x} | S::Y{sw.y} | S::Z{sw.z} | S::W{sw.w});
+	}
+}
+
 void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors)
 {
 #ifdef DEBUG

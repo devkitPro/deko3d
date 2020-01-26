@@ -652,6 +652,26 @@ typedef struct DkViewport
 	float far;
 } DkViewport;
 
+typedef enum DkSwizzle
+{
+	DkSwizzle_PositiveX = 0,
+	DkSwizzle_NegativeX = 1,
+	DkSwizzle_PositiveY = 2,
+	DkSwizzle_NegativeY = 3,
+	DkSwizzle_PositiveZ = 4,
+	DkSwizzle_NegativeZ = 5,
+	DkSwizzle_PositiveW = 6,
+	DkSwizzle_NegativeW = 7,
+} DkSwizzle;
+
+typedef struct DkViewportSwizzle
+{
+	DkSwizzle x;
+	DkSwizzle y;
+	DkSwizzle z;
+	DkSwizzle w;
+} DkViewportSwizzle;
+
 typedef struct DkScissor
 {
 	uint32_t x;
@@ -1116,6 +1136,7 @@ void dkCmdBufBindVtxBufferState(DkCmdBuf obj, DkVtxBufferState const buffers[], 
 void dkCmdBufBindVtxBuffers(DkCmdBuf obj, uint32_t firstId, DkBufExtents const buffers[], uint32_t numBuffers);
 void dkCmdBufBindIdxBuffer(DkCmdBuf obj, DkIdxFormat format, DkGpuAddr address);
 void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewports[], uint32_t numViewports);
+void dkCmdBufSetViewportSwizzles(DkCmdBuf obj, uint32_t firstId, DkViewportSwizzle const swizzles[], uint32_t numSwizzles);
 void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors);
 void dkCmdBufSetDepthBias(DkCmdBuf obj, float constantFactor, float clamp, float slopeFactor);
 void dkCmdBufSetPointSize(DkCmdBuf obj, float size);
