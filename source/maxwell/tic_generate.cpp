@@ -5,22 +5,22 @@ using namespace maxwell;
 
 namespace
 {
-	constexpr ImageSwizzle doSwizzle(FormatTraits const& t, DkSwizzle swizzle)
+	constexpr ImageSwizzle doSwizzle(FormatTraits const& t, DkImageSwizzle swizzle)
 	{
 		switch (swizzle)
 		{
 			default:
-			case DkSwizzle_Zero:
+			case DkImageSwizzle_Zero:
 				return ImageSwizzle_Zero;
-			case DkSwizzle_One:
+			case DkImageSwizzle_One:
 				return (t.flags & FormatTraitFlags_IsRawInt) ? ImageSwizzle_OneInt : ImageSwizzle_OneFloat;
-			case DkSwizzle_Red:
+			case DkImageSwizzle_Red:
 				return (ImageSwizzle)t.ticFmt.swizzle_x;
-			case DkSwizzle_Green:
+			case DkImageSwizzle_Green:
 				return (ImageSwizzle)t.ticFmt.swizzle_y;
-			case DkSwizzle_Blue:
+			case DkImageSwizzle_Blue:
 				return (ImageSwizzle)t.ticFmt.swizzle_z;
-			case DkSwizzle_Alpha:
+			case DkImageSwizzle_Alpha:
 				return (ImageSwizzle)t.ticFmt.swizzle_w;
 		}
 	}

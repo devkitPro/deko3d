@@ -440,15 +440,15 @@ typedef enum DkImageFormat
 	DkImageFormat_Count,
 } DkImageFormat;
 
-typedef enum DkSwizzle
+typedef enum DkImageSwizzle
 {
-	DkSwizzle_Zero  = 0,
-	DkSwizzle_One   = 1,
-	DkSwizzle_Red   = 2,
-	DkSwizzle_Green = 3,
-	DkSwizzle_Blue  = 4,
-	DkSwizzle_Alpha = 5,
-} DkSwizzle;
+	DkImageSwizzle_Zero  = 0,
+	DkImageSwizzle_One   = 1,
+	DkImageSwizzle_Red   = 2,
+	DkImageSwizzle_Green = 3,
+	DkImageSwizzle_Blue  = 4,
+	DkImageSwizzle_Alpha = 5,
+} DkImageSwizzle;
 
 typedef enum DkMsMode
 {
@@ -509,7 +509,7 @@ typedef struct DkImageView
 	DkImage const* pImage;
 	DkImageType type;
 	DkImageFormat format;
-	DkSwizzle swizzle[4];
+	DkImageSwizzle swizzle[4];
 	DkDsSource dsSource;
 	uint16_t layerOffset;
 	uint16_t layerCount;
@@ -522,10 +522,10 @@ DK_CONSTEXPR void dkImageViewDefaults(DkImageView* obj, DkImage const* pImage)
 	obj->pImage = pImage;
 	obj->type = DkImageType_None; // no override
 	obj->format = DkImageFormat_None; // no override
-	obj->swizzle[0] = DkSwizzle_Red;
-	obj->swizzle[1] = DkSwizzle_Green;
-	obj->swizzle[2] = DkSwizzle_Blue;
-	obj->swizzle[3] = DkSwizzle_Alpha;
+	obj->swizzle[0] = DkImageSwizzle_Red;
+	obj->swizzle[1] = DkImageSwizzle_Green;
+	obj->swizzle[2] = DkImageSwizzle_Blue;
+	obj->swizzle[3] = DkImageSwizzle_Alpha;
 	obj->dsSource = DkDsSource_Depth;
 	obj->layerOffset = 0;
 	obj->layerCount = 0; // no override

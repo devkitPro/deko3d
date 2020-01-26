@@ -327,7 +327,7 @@ namespace dk
 		ImageView(Image const& image) noexcept : DkImageView{} { ::dkImageViewDefaults(this, &image); }
 		void setType(DkImageType type = DkImageType_None) noexcept { this->type = type; }
 		void setFormat(DkImageFormat format = DkImageFormat_None) noexcept { this->format = format; }
-		void setSwizzle(DkSwizzle x = DkSwizzle_Red, DkSwizzle y = DkSwizzle_Green, DkSwizzle z = DkSwizzle_Blue, DkSwizzle w = DkSwizzle_Alpha) noexcept
+		void setSwizzle(DkImageSwizzle x = DkImageSwizzle_Red, DkImageSwizzle y = DkImageSwizzle_Green, DkImageSwizzle z = DkImageSwizzle_Blue, DkImageSwizzle w = DkImageSwizzle_Alpha) noexcept
 		{
 			this->swizzle[0] = x;
 			this->swizzle[1] = y;
