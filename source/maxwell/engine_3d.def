@@ -197,7 +197,7 @@ engine _3D 0xB197;
 0x370 PolygonOffsetPointEnable bool;
 0x371 PolygonOffsetLineEnable bool;
 0x372 PolygonOffsetFillEnable bool;
-
+0x373 TessellationPatchSize;
 0x374 AdvancedBlendEnable bool;
 
 0x376 ZcullClearMode; // unknown, 0xFF000005 observed

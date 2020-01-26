@@ -271,3 +271,27 @@ void dkCmdBufTiledCacheOp(DkCmdBuf obj, DkTiledCacheOp op)
 			break;
 	}
 }
+
+void dkCmdBufSetPatchSize(DkCmdBuf obj, uint32_t size)
+{
+	CmdBufWriter w{obj};
+	w.reserve(1);
+
+	w << CmdInline(3D, TessellationPatchSize{}, size);
+}
+
+void dkCmdBufSetTessOuterLevels(DkCmdBuf obj, float level0, float level1, float level2, float level3)
+{
+	CmdBufWriter w{obj};
+	w.reserve(5);
+
+	w << Cmd(3D, TessellationOuterLevels{}, level0, level1, level2, level3);
+}
+
+void dkCmdBufSetTessInnerLevels(DkCmdBuf obj, float level0, float level1)
+{
+	CmdBufWriter w{obj};
+	w.reserve(3);
+
+	w << Cmd(3D, TessellationInnerLevels{}, level0, level1);
+}

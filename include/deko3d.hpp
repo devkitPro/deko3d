@@ -182,6 +182,9 @@ namespace dk
 		void setBlendConst(float red, float green, float blue, float alpha);
 		void setStencil(DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask);
 		void setPrimitiveRestart(bool enable, uint32_t index);
+		void setPatchSize(uint32_t size);
+		void setTessOuterLevels(float level0, float level1, float level2, float level3 = 0.0f);
+		void setTessInnerLevels(float level0, float level1 = 0.0f);
 		void setTileSize(uint32_t width, uint32_t height);
 		void tiledCacheOp(DkTiledCacheOp op);
 		void clearColor(uint32_t targetId, uint32_t clearMask, const void* clearData);
@@ -738,6 +741,21 @@ namespace dk
 	inline void CmdBuf::setPrimitiveRestart(bool enable, uint32_t index)
 	{
 		::dkCmdBufSetPrimitiveRestart(*this, enable, index);
+	}
+
+	inline void CmdBuf::setPatchSize(uint32_t size)
+	{
+		::dkCmdBufSetPatchSize(*this, size);
+	}
+
+	inline void CmdBuf::setTessOuterLevels(float level0, float level1, float level2, float level3)
+	{
+		::dkCmdBufSetTessOuterLevels(*this, level0, level1, level2, level3);
+	}
+
+	inline void CmdBuf::setTessInnerLevels(float level0, float level1)
+	{
+		::dkCmdBufSetTessInnerLevels(*this, level0, level1);
 	}
 
 	inline void CmdBuf::setTileSize(uint32_t width, uint32_t height)
