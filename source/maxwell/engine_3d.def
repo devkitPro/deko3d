@@ -430,7 +430,7 @@ engine _3D 0xB197;
 
 0x544 ClipDistanceEnable; // bitmask, one bit for each clip distance (8 in total)
 0x545 SampleCounterEnable bool;
-
+0x546 PointSpriteSize float;
 0x547 ZcullStatCountersEnable bool;
 0x548 PointSpriteEnable bool;
 

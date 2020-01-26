@@ -168,6 +168,15 @@ void dkCmdBufSetDepthBias(DkCmdBuf obj, float constantFactor, float clamp, float
 	w << Cmd(3D, PolygonOffsetFactor{}, slopeFactor);
 }
 
+void dkCmdBufSetPointSize(DkCmdBuf obj, float size)
+{
+	CmdBufWriter w{obj};
+	w.reserve(3);
+
+	w << Cmd(3D, PointSpriteSize{}, size);
+	w << CmdInline(3D, PipeNop{}, 0); //??
+}
+
 void dkCmdBufSetLineWidth(DkCmdBuf obj, float width)
 {
 	CmdBufWriter w{obj};

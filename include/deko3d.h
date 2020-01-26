@@ -1118,6 +1118,7 @@ void dkCmdBufBindIdxBuffer(DkCmdBuf obj, DkIdxFormat format, DkGpuAddr address);
 void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewports[], uint32_t numViewports);
 void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors);
 void dkCmdBufSetDepthBias(DkCmdBuf obj, float constantFactor, float clamp, float slopeFactor);
+void dkCmdBufSetPointSize(DkCmdBuf obj, float size);
 void dkCmdBufSetLineWidth(DkCmdBuf obj, float width);
 void dkCmdBufSetDepthBounds(DkCmdBuf obj, bool enable, float near, float far);
 void dkCmdBufSetAlphaRef(DkCmdBuf obj, float ref);

@@ -176,6 +176,7 @@ namespace dk
 		void setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports);
 		void setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors);
 		void setDepthBias(float constantFactor, float clamp, float slopeFactor);
+		void setPointSize(float size);
 		void setLineWidth(float width);
 		void setDepthBounds(bool enable, float near, float far);
 		void setAlphaRef(float ref);
@@ -711,6 +712,11 @@ namespace dk
 	inline void CmdBuf::setDepthBias(float constantFactor, float clamp, float slopeFactor)
 	{
 		::dkCmdBufSetDepthBias(*this, constantFactor, clamp, slopeFactor);
+	}
+
+	inline void CmdBuf::setPointSize(float size)
+	{
+		::dkCmdBufSetPointSize(*this, size);
 	}
 
 	inline void CmdBuf::setLineWidth(float width)
