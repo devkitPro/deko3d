@@ -216,6 +216,9 @@ void dkCmdBufPushConstants(DkCmdBuf obj, DkGpuAddr uboAddr, uint32_t uboSize, ui
 void dkCmdBufPushData(DkCmdBuf obj, DkGpuAddr addr, const void* data, uint32_t size);
 ```
 
+**Recommended reads**:
+- [vkCmdPushConstants](https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkCmdPushConstants.html) (in Nvidia hardware and in deko3d; *all* uniform buffers have push constant semantics, and their size can be up to 64 KiB)
+
 ### Tiled cache management
 
 ```c
@@ -224,6 +227,8 @@ void dkCmdBufSetTileSize(DkCmdBuf obj, uint32_t width, uint32_t height);
 ```
 
 ## The graphics pipeline
+
+General information about special Nvidia 2nd-gen Maxwell features can be found in this page: [Maxwell GM204 OpenGL extensions](https://developer.nvidia.com/content/maxwell-gm204-opengl-extensions)
 
 ### Draw calls
 
@@ -307,6 +312,7 @@ void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewp
 - [NV_viewport_swizzle](https://www.khronos.org/registry/OpenGL/extensions/NV/NV_viewport_swizzle.txt)
 - [gl_ClipDistance](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/gl_ClipDistance.xhtml) (in deko3d all 8 clip distances are enabled; however their default value if they're not written to is 0.0, meaning they have no effect)
 - [ARB_depth_clamp](https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_depth_clamp.txt)
+- [NV_depth_buffer_float](https://www.khronos.org/registry/OpenGL/extensions/NV/NV_depth_buffer_float.txt) (note the section on storing values outside [0,1] which can stem from negative ranges in glDepthRange (i.e. viewport near/far are swapped), which is supported in deko3d)
 
 ### Rasterization
 
