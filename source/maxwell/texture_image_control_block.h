@@ -177,4 +177,24 @@ struct TextureImageControl
 
 static_assert(sizeof(TextureImageControl)==0x20, "Invalid definition of TextureImageControl");
 
+constexpr MsaaMode getMsaaMode(unsigned numSamplesLog2)
+{
+	switch (numSamplesLog2)
+	{
+		default:
+		case 0: // DkMsMode_1x
+			return MsaaMode_1x1;
+		case 1: // DkMsMode_2x
+			return MsaaMode_2x1_D3D;
+		case 2: // DkMsMode_4x
+			return MsaaMode_2x2;
+		case 3: // DkMsMode_8x
+			return MsaaMode_4x2_D3D;
+		/* Currently not supported, maybe in the future
+		case 4: // DkMsMode_16x
+			return MsaaMode_4x4;
+		*/
+	}
+}
+
 }

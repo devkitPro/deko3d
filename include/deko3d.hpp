@@ -163,6 +163,7 @@ namespace dk
 		void bindSamplerDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors);
 		void bindRenderTargets(detail::ArrayProxy<DkImageView const* const> colorTargets, DkImageView const* depthTarget = nullptr);
 		void bindRasterizerState(DkRasterizerState const& state);
+		void bindMultisampleState(DkMultisampleState const& state);
 		void bindColorState(DkColorState const& state);
 		void bindColorWriteState(DkColorWriteState const& state);
 		void bindBlendState(uint32_t id, DkBlendState const& state);
@@ -179,6 +180,8 @@ namespace dk
 		void setDepthBias(float constantFactor, float clamp, float slopeFactor);
 		void setPointSize(float size);
 		void setLineWidth(float width);
+		void setSampleMask(uint32_t mask);
+		void setCoverageModulationTable(float const table[16]);
 		void setDepthBounds(bool enable, float near, float far);
 		void setAlphaRef(float ref);
 		void setBlendConst(float red, float green, float blue, float alpha);
@@ -194,6 +197,7 @@ namespace dk
 		void clearDepthStencil(bool clearDepth, float depthValue, uint8_t stencilMask, uint8_t stencilValue);
 		void discardColor(uint32_t targetId);
 		void discardDepthStencil();
+		void resolveDepthValues();
 		void draw(DkPrimitive prim, uint32_t numVertices, uint32_t numInstances, uint32_t firstVertex, uint32_t firstInstance);
 		void drawIndirect(DkPrimitive prim, DkGpuAddr indirect);
 		void drawIndexed(DkPrimitive prim, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
@@ -436,6 +440,20 @@ namespace dk
 		RasterizerState& setDepthBiasEnableMask(uint32_t mask) { this->depthBiasEnableMask = mask; return *this; }
 	};
 
+	struct MultisampleState : public ::DkMultisampleState
+	{
+		MultisampleState() : DkMultisampleState{} { ::dkMultisampleStateDefaults(this); }
+		MultisampleState& setMode(DkMsMode mode) { this->mode = mode; return *this; }
+		MultisampleState& setRasterizerMode(DkMsMode mode) { this->rasterizerMode = mode; return *this; }
+		MultisampleState& setAlphaToCoverageEnable(bool enable) { this->alphaToCoverageEnable = enable; return *this; }
+		MultisampleState& setAlphaToCoverageDither(bool dither) { this->alphaToCoverageDither = dither; return *this; }
+		MultisampleState& setCoverageToColorEnable(bool enable) { this->coverageToColorEnable = enable; return *this; }
+		MultisampleState& setCoverageToColorOutput(unsigned output) { this->coverageToColorOutput = output; return *this; }
+		MultisampleState& setCoverageModulation(DkCoverageModulation mod) { this->coverageModulation = mod; return *this; }
+		MultisampleState& setLocations() { ::dkMultisampleStateSetLocations(this, nullptr, 0); return *this; }
+		MultisampleState& setLocations(detail::ArrayProxy<DkSampleLocation const> locations);
+	};
+
 	struct ColorState : public ::DkColorState
 	{
 		ColorState() : DkColorState{} { ::dkColorStateDefaults(this); }
@@ -670,6 +688,11 @@ namespace dk
 		::dkCmdBufBindRasterizerState(*this, &state);
 	}
 
+	inline void CmdBuf::bindMultisampleState(DkMultisampleState const& state)
+	{
+		::dkCmdBufBindMultisampleState(*this, &state);
+	}
+
 	inline void CmdBuf::bindDepthStencilState(DkDepthStencilState const& state)
 	{
 		::dkCmdBufBindDepthStencilState(*this, &state);
@@ -728,6 +751,16 @@ namespace dk
 	inline void CmdBuf::setLineWidth(float width)
 	{
 		::dkCmdBufSetLineWidth(*this, width);
+	}
+
+	inline void CmdBuf::setSampleMask(uint32_t mask)
+	{
+		::dkCmdBufSetSampleMask(*this, mask);
+	}
+
+	inline void CmdBuf::setCoverageModulationTable(float const table[16])
+	{
+		::dkCmdBufSetCoverageModulationTable(*this, table);
 	}
 
 	inline void CmdBuf::setDepthBounds(bool enable, float near, float far)
@@ -806,6 +839,11 @@ namespace dk
 	inline void CmdBuf::discardDepthStencil()
 	{
 		::dkCmdBufDiscardDepthStencil(*this);
+	}
+
+	inline void CmdBuf::resolveDepthValues()
+	{
+		::dkCmdBufResolveDepthValues(*this);
 	}
 
 	inline void CmdBuf::draw(DkPrimitive prim, uint32_t numVertices, uint32_t numInstances, uint32_t firstVertex, uint32_t firstInstance)
@@ -982,6 +1020,12 @@ namespace dk
 	inline void SamplerDescriptor::initialize(Sampler const& sampler)
 	{
 		::dkSamplerDescriptorInitialize(this, &sampler);
+	}
+
+	inline MultisampleState& MultisampleState::setLocations(detail::ArrayProxy<DkSampleLocation const> locations)
+	{
+		::dkMultisampleStateSetLocations(this, locations.data(), locations.size());
+		return *this;
 	}
 
 	inline Swapchain SwapchainMaker::create()

@@ -259,8 +259,13 @@ engine _3D 0xB197;
 0x3E8 DepthBoundsFar;
 
 0x3ED SetMultisampleRasterEnable bool;
-0x3EF MsaaMask array[4];
+0x3EE MultisampleRasterSamples;
+0x3EF MultisampleSampleMask array[4];
 
+0x3F5 CoverageModulationMode bits (
+	0 Color;
+	1 Alpha;
+);
 0x3F6 SetCoverageModulationTableEnable bool;
 0x3F7 Unknown3f7;
 0x3F8 DepthTargetAddr iova;
@@ -282,6 +287,8 @@ engine _3D 0xB197;
 );
 
 0x400 Unknown400;
+
+0x40C CoverageModulationTable array[4];
 
 0x433 ColorReductionConfig0;
 
@@ -322,7 +329,13 @@ engine _3D 0xB197;
 	31     IsBgra;
 );
 
-0x47E SetMultisampleCoverageToColorEnable bool;
+0x478 MultisampleSampleLocations array[4]; // 16 locations (one per byte)
+
+0x47E MultisampleCoverageToColor bits (
+	0    Enable;
+	4..6 Target;
+);
+0x47F ResolveDepthValues;
 
 0x485 TiledCacheUnkConfig;
 
@@ -363,6 +376,7 @@ engine _3D 0xB197;
 
 0x4B6 Unknown4b6 array[2];
 
+0x4B8 AlphaToCoverageDither bool;
 0x4B9 IndependentBlendEnable bool;
 0x4BA DepthWriteEnable bool;
 0x4BB AlphaTestEnable bool;

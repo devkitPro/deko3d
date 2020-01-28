@@ -102,27 +102,8 @@ void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view
 		obj->lod_iso_quality = LodQuality_High;
 	}
 
-	if (!decayMS) switch (image->m_numSamplesLog2)
-	{
-		default:
-		case DkMsMode_1x:
-			obj->msaa_mode = MsaaMode_1x1;
-			break;
-		case DkMsMode_2x:
-			obj->msaa_mode = MsaaMode_2x1_D3D;
-			break;
-		case DkMsMode_4x:
-			obj->msaa_mode = MsaaMode_2x2;
-			break;
-		case DkMsMode_8x:
-			obj->msaa_mode = MsaaMode_4x2_D3D;
-			break;
-		/* Currently not supported, maybe in the future
-		case DkMsMode_16x:
-			obj->msaa_mode = MsaaMode_4x4;
-			break;
-		*/
-	}
+	if (!decayMS)
+		obj->msaa_mode = getMsaaMode(image->m_numSamplesLog2);
 
 	DkGpuAddr iova = image->m_iova;
 	uint32_t width = image->m_dimensions[0];

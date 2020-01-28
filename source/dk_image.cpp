@@ -622,7 +622,51 @@ void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect cons
 
 void dkCmdBufResolveImage(DkCmdBuf obj, DkImageView const* srcView, DkImageView const* dstView)
 {
-	obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
+#ifdef DEBUG
+	if (!srcView || !srcView->pImage || !srcView->pImage->m_numSamplesLog2)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (!dstView || !dstView->pImage || dstView->pImage->m_numSamplesLog2)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#endif
+
+	DkResult res;
+	ImageInfo srcInfo, dstInfo;
+
+	res = srcInfo.fromImageView(srcView, ImageInfo::Transfer2D);
+#ifdef DEBUG
+	if (res != DkResult_Success)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, res);
+#endif
+
+	res = dstInfo.fromImageView(dstView, ImageInfo::Transfer2D);
+#ifdef DEBUG
+	if (res != DkResult_Success)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, res);
+#endif
+
+#ifdef DEBUG
+	if (srcInfo.m_width != dstInfo.m_width)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (srcInfo.m_height != dstInfo.m_height)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+#else
+	(void)res;
+#endif
+
+	unsigned samplesX = srcView->pImage->m_samplesX;
+	unsigned samplesY = srcView->pImage->m_samplesY;
+
+	BlitParams params;
+	params.srcX = (samplesX-1) << (SrcFractBits-1);
+	params.srcY = (samplesY-1) << (SrcFractBits-1);
+	params.dstX = 0;
+	params.dstY = 0;
+	params.width = srcInfo.m_width;
+	params.height = srcInfo.m_height;
+
+	Blit2DEngine(obj, srcInfo, dstInfo, params,
+		samplesX<<DiffFractBits, samplesY<<DiffFractBits,
+		Blit2D_SetupEngine | Blit2D_UseFilter, 0);
 }
 
 void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags)

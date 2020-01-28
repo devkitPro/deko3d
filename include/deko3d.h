@@ -736,6 +736,49 @@ DK_CONSTEXPR void dkRasterizerStateDefaults(DkRasterizerState* state)
 	state->depthBiasEnableMask = 0;
 }
 
+typedef enum DkCoverageModulation
+{
+	DkCoverageModulation_None  = 0,
+	DkCoverageModulation_Rgb   = 1,
+	DkCoverageModulation_Alpha = 2,
+	DkCoverageModulation_Rgba  = 3,
+} DkCoverageModulation;
+
+typedef struct DkMultisampleState
+{
+	DkMsMode mode : 3;
+	DkMsMode rasterizerMode : 3;
+	uint32_t alphaToCoverageEnable : 1;
+	uint32_t alphaToCoverageDither : 1;
+	uint32_t coverageToColorEnable : 1;
+	uint32_t coverageToColorOutput : 3;
+	DkCoverageModulation coverageModulation : 2;
+	uint32_t : 18;
+
+	uint32_t sampleLocations[4];
+} DkMultisampleState;
+
+DK_CONSTEXPR void dkMultisampleStateDefaults(DkMultisampleState* state)
+{
+	state->mode = DkMsMode_1x;
+	state->rasterizerMode = DkMsMode_1x;
+	state->alphaToCoverageEnable = false;
+	state->alphaToCoverageDither = true;
+	state->coverageToColorEnable = false;
+	state->coverageToColorOutput = 0;
+	state->coverageModulation = DkCoverageModulation_None;
+	state->sampleLocations[0] = 0x88888888;
+	state->sampleLocations[1] = 0x88888888;
+	state->sampleLocations[2] = 0x88888888;
+	state->sampleLocations[3] = 0x88888888;
+}
+
+typedef struct DkSampleLocation
+{
+	float x;
+	float y;
+} DkSampleLocation;
+
 typedef enum DkLogicOp
 {
 	DkLogicOp_Clear        = 0,
@@ -1127,6 +1170,7 @@ void dkCmdBufBindImageDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t nu
 void dkCmdBufBindSamplerDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t numDescriptors);
 void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTargets[], uint32_t numColorTargets, DkImageView const* depthTarget);
 void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state);
+void dkCmdBufBindMultisampleState(DkCmdBuf obj, DkMultisampleState const* state);
 void dkCmdBufBindColorState(DkCmdBuf obj, DkColorState const* state);
 void dkCmdBufBindColorWriteState(DkCmdBuf obj, DkColorWriteState const* state);
 void dkCmdBufBindBlendStates(DkCmdBuf obj, uint32_t firstId, DkBlendState const states[], uint32_t numStates);
@@ -1141,6 +1185,8 @@ void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissor
 void dkCmdBufSetDepthBias(DkCmdBuf obj, float constantFactor, float clamp, float slopeFactor);
 void dkCmdBufSetPointSize(DkCmdBuf obj, float size);
 void dkCmdBufSetLineWidth(DkCmdBuf obj, float width);
+void dkCmdBufSetSampleMask(DkCmdBuf obj, uint32_t mask);
+void dkCmdBufSetCoverageModulationTable(DkCmdBuf obj, float const table[16]);
 void dkCmdBufSetDepthBounds(DkCmdBuf obj, bool enable, float near, float far);
 void dkCmdBufSetAlphaRef(DkCmdBuf obj, float ref);
 void dkCmdBufSetBlendConst(DkCmdBuf obj, float red, float green, float blue, float alpha);
@@ -1155,6 +1201,7 @@ void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, con
 void dkCmdBufClearDepthStencil(DkCmdBuf obj, bool clearDepth, float depthValue, uint8_t stencilMask, uint8_t stencilValue);
 void dkCmdBufDiscardColor(DkCmdBuf obj, uint32_t targetId);
 void dkCmdBufDiscardDepthStencil(DkCmdBuf obj);
+void dkCmdBufResolveDepthValues(DkCmdBuf obj);
 void dkCmdBufDraw(DkCmdBuf obj, DkPrimitive prim, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 void dkCmdBufDrawIndirect(DkCmdBuf obj, DkPrimitive prim, DkGpuAddr indirect);
 void dkCmdBufDrawIndexed(DkCmdBuf obj, DkPrimitive prim, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
@@ -1195,6 +1242,8 @@ DkGpuAddr dkImageGetGpuAddr(DkImage const* obj);
 void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view, bool usesLoadOrStore, bool decayMS);
 
 void dkSamplerDescriptorInitialize(DkSamplerDescriptor* obj, DkSampler const* sampler);
+
+void dkMultisampleStateSetLocations(DkMultisampleState* obj, DkSampleLocation const* locations, uint32_t numLocations);
 
 DkSwapchain dkSwapchainCreate(DkSwapchainMaker const* maker);
 void dkSwapchainDestroy(DkSwapchain obj);

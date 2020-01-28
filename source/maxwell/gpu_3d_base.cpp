@@ -168,7 +168,7 @@ void Queue::setup3DEngine()
 	w << Cmd(3D, IndexArrayLimitIova{}, Iova(0xFFFFFFFFFFUL));
 	w << CmdInline(3D, SampleCounterEnable{}, 1);
 	w << CmdInline(3D, ClipDistanceEnable{}, 0xFF); // Enable all clip distances
-	w << MacroFillArray<E::MsaaMask>(0xFFFF);
+	w << MacroFillArray<E::MultisampleSampleMask>(0xFFFF);
 	w << CmdInline(3D, ColorReductionEnable{}, 0);
 	w << CmdInline(3D, PointSpriteEnable{}, 1);
 	w << CmdInline(3D, PointCoordReplace{}, E::PointCoordReplace::Enable{1});
@@ -188,7 +188,7 @@ void Queue::setup3DEngine()
 	w << CmdInline(3D, SetMultisampleRasterEnable{}, 0);
 	w << CmdInline(3D, SetCoverageModulationTableEnable{}, 0);
 	w << CmdInline(3D, Unknown44c{}, 0x13);
-	w << CmdInline(3D, SetMultisampleCoverageToColorEnable{}, 0);
+	w << CmdInline(3D, MultisampleCoverageToColor{}, 0);
 
 	w << Cmd(3D, SetProgramRegion{}, Iova(getDevice()->getCodeSeg().getBase()));
 	w << CmdInline(3D, Unknown5ad{}, 0);
@@ -330,29 +330,7 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 	w << Cmd(3D, ScreenScissorHorizontal{}, minWidth<<16, minHeight<<16);
 
 	// Configure msaa mode
-	MsaaMode msaaMode;
-	switch (msMode)
-	{
-		default:
-		case DkMsMode_1x:
-			msaaMode = MsaaMode_1x1;
-			break;
-		case DkMsMode_2x:
-			msaaMode = MsaaMode_2x1_D3D;
-			break;
-		case DkMsMode_4x:
-			msaaMode = MsaaMode_2x2;
-			break;
-		case DkMsMode_8x:
-			msaaMode = MsaaMode_4x2_D3D;
-			break;
-		/* not yet
-		case DkMsMode_16x:
-			msaaMode = MsaaMode_4x4;
-			break;
-		*/
-	}
-	w << CmdInline(3D, MultisampleMode{}, msaaMode);
+	w << CmdInline(3D, MultisampleMode{}, getMsaaMode(msMode));
 }
 
 void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewports[], uint32_t numViewports)
