@@ -216,20 +216,18 @@ void dkCmdBufPushData(DkCmdBuf obj, DkGpuAddr addr, const void* data, uint32_t s
 		return;
 
 	CmdBufWriter w{obj};
-	w.reserve(1 + 7 + size/4 + 1);
+	w.reserve(7 + size/4);
 
-	w << CmdInline(3D, NoOperation{}, 0);
-	w << Cmd(Inline, LineLengthIn{},
+	w << MakeIncreasingCmd(Subchannel3D, Inl::LineLengthIn{},
 		size,      // LineLengthIn
 		1,         // LineCount
 		Iova(addr) // OffsetOut
 	);
-	w << CmdInline(Inline, LaunchDma{},
+	w << MakeInlineCmd(Subchannel3D, Inl::LaunchDma{},
 		Inl::LaunchDma::DstMemoryLayout::Pitch | Inl::LaunchDma::CompletionType::FlushOnly
 	);
-	w << CmdList<1>{ MakeCmdHeader(NonIncreasing, size/4, SubchannelInline, Inl::LoadInlineData{}) };
+	w << CmdList<1>{ MakeCmdHeader(NonIncreasing, size/4, Subchannel3D, Inl::LoadInlineData{}) };
 	w.addRawData(data, size);
-	w << CmdInline(3D, NoOperation{}, 0);
 }
 
 void dkCmdBufCopyBuffer(DkCmdBuf obj, DkGpuAddr srcAddr, DkGpuAddr dstAddr, uint32_t size)
