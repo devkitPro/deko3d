@@ -8,6 +8,8 @@ This primer is meant to show potential users of this library around the key foun
 
 Familiarity with graphics APIs (mostly Vulkan and OpenGL) and 3D graphics programming in general are indicated as basic requirements to make the most out of deko3d and be able to understand this primer.
 
+> **Warning**: This document is hugely under construction and it is by no means complete. It is recommended to read the deko3d.h header and study carefully the provided examples in the meantime.
+
 ## Library Structure and Basic Concepts
 
 ### Objects
@@ -152,11 +154,56 @@ descr.initialize(sampler);
 
 ### Linking to deko3d
 
-### Error checking: Debug vs Release
+There exist two different compiled versions of the library:
+
+- `libdeko3dd.a`: This is the **Debug** version, which acts as a validation layer with parameter and state checking built-in. In order to link to it specify `-ldeko3dd` in the LIBS section of your Makefile.
+- `libdeko3d.a`: This is the **Release** version; which omits parameter and state checking and is built with extra optimizations. In order to link to it specify `-ldeko3d` in the LIBS section of your Makefile.
+
+During development or experimentation it is recommended to link to the Debug version; when it is time to ship a precompiled binary of your application the Release version should be used instead.
 
 ## Objects
 
 ### Devices (`DkDevice`)
+
+```c
+struct DkDeviceMaker
+{
+	void* userData;
+	DkErrorFunc cbError;
+	DkAllocFunc cbAlloc;
+	DkFreeFunc cbFree;
+	uint32_t flags;
+};
+void dkDeviceMakerDefaults(DkDeviceMaker* maker);
+DkDevice dkDeviceCreate(DkDeviceMaker const* maker);
+void dkDeviceDestroy(DkDevice obj);
+```
+
+`DkDevice` is the root object from which all other deko3d objects can be traced back. It represents the GPU device, and provides optional mechanisms for customizing the error handling or memory allocation behavior.
+
+Field      | Default   | Description
+-----------|-----------|------------------
+`userData` | NULL      | User specified data to be passed to callback
+`cbError`  | NULL      | Optional callback used when deko3d detects an unrecoverable error
+`cbAlloc`  | NULL      | Optional callback used when deko3d needs to allocate memory
+`cbFree`   | NULL      | Optional callback used when deko3d needs to free allocated memory
+`flags`    | See below | Device creation flags (see below)
+
+`DkDeviceFlags_*`    | Default | Description
+---------------------|---------|--------------------------------------------------
+`DepthZeroToOne`     | ✓       | Clip space Z is [0, 1] like Vulkan
+`DepthMinusOneToOne` |         | Clip space Z is [-1, 1] like OpenGL
+`OriginUpperLeft`    | ✓       | Image rows are stored sequentially from top to bottom, with 0.0 corresponding to the top edge of the image and 1.0 (or the image height if non-normalized) corresponding to the bottom
+`OriginLowerLeft`    |         | Image rows are stored sequentially from bottom to top, with 0.0 corresponding to the bottom edge of the image and 1.0 (or the image height if non-normalized) corresponding to the top
+
+If an error occurs and no error callback has been supplied, deko3d aborts program execution. If the release version of the library is used, a Fatal system error is thrown; if the debug version is used on the contrary, error text is sent to stdout, then the application forcefully closes back to the HOME menu.
+
+> **Warning**: The error handling mechanism/validation layer in deko3d is very much preliminary and subject to future enhancements and overhauls. Expect future versions of deko3d to introduce breaking changes when using a custom error handling callback.
+
+By default if memory allocation callbacks are not provided, deko3d uses the standard heap (i.e. malloc/free) for dynamic memory allocations.
+
+`gl_FragCoord` in fragment shaders obeys the device origin mode when it comes to the Y axis and has pixel centers at half-integers, *with GLSL layout qualifiers having absolutely no effect*.
+Please note that regardless of the Origin setting, the clip space Y axis points *up* like in OpenGL. Clip space X and Y are both in the range [-1, 1] as well.
 
 ### Memory Blocks (`DkMemBlock`)
 
@@ -165,6 +212,29 @@ descr.initialize(sampler);
 ### Fences (`DkFence`)
 
 ### Queues (`DkQueue`)
+
+```c
+struct DkQueueMaker
+{
+	DkDevice device;
+	uint32_t flags;
+	uint32_t commandMemorySize;
+	uint32_t flushThreshold;
+	uint32_t perWarpScratchMemorySize;
+	uint32_t maxConcurrentComputeJobs;
+};
+void dkQueueMakerDefaults(DkQueueMaker* maker, DkDevice device);
+DkQueue dkQueueCreate(DkQueueMaker const* maker);
+void dkQueueDestroy(DkQueue obj);
+bool dkQueueIsInErrorState(DkQueue obj);
+void dkQueueWaitFence(DkQueue obj, DkFence* fence);
+void dkQueueSignalFence(DkQueue obj, DkFence* fence, bool flush);
+void dkQueueSubmitCommands(DkQueue obj, DkCmdList cmds);
+void dkQueueFlush(DkQueue obj);
+void dkQueueWaitIdle(DkQueue obj);
+int dkQueueAcquireImage(DkQueue obj, DkSwapchain swapchain);
+void dkQueuePresentImage(DkQueue obj, DkSwapchain swapchain, int imageSlot);
+```
 
 ### Shaders (`DkShader`)
 
