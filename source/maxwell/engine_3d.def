@@ -225,8 +225,8 @@ engine _3D 0xB197;
 );
 
 0x3D5 StencilBackFuncRef;
-0x3D6 StencilBackFuncMask;
-0x3D7 StencilBackMask;
+0x3D6 StencilBackMask;
+0x3D7 StencilBackFuncMask;
 0x3D8 TiledCacheEnable bool;
 0x3D9 TiledCacheTileSize bits (
 	0..15  Width;
