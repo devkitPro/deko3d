@@ -95,6 +95,15 @@ void dkShaderInitialize(DkShader* obj, DkShaderMaker const* maker)
 	if (!hasSeparateControl)
 		codeBaseOffset += phdr->control_sz;
 
+#ifdef DEBUG
+	// Ensure the code section doesn't extend into the memory block's unusable area
+	if (codeBaseOffset + phdr->code_sz > blk->getSize() - DK_SHADER_CODE_UNUSABLE_SIZE)
+	{
+		blk->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+		return;
+	}
+#endif
+
 	// Find the address to the program header
 	auto* progTable = (DkshProgramHeader*)((u8*)phdr + phdr->programs_off);
 	auto& progHdr = progTable[maker->programId];
