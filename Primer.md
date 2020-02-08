@@ -179,7 +179,7 @@ DkDevice dkDeviceCreate(DkDeviceMaker const* maker);
 void dkDeviceDestroy(DkDevice obj);
 ```
 
-`DkDevice` is the root object from which all other deko3d objects can be traced back. It represents the GPU device, and provides optional mechanisms for customizing the error handling or memory allocation behavior.
+`DkDevice` is the root object from which most other deko3d objects can be traced back. It represents the GPU device with a private virtual GPU address space, and provides optional mechanisms for customizing the error handling or memory allocation behavior.
 
 Field      | Default   | Description
 -----------|-----------|------------------
@@ -207,6 +207,68 @@ Please note that regardless of the Origin setting, the clip space Y axis points 
 
 ### Memory Blocks (`DkMemBlock`)
 
+```c
+struct DkMemBlockMaker
+{
+	DkDevice device;
+	uint32_t size;
+	uint32_t flags;
+	void* storage;
+};
+void dkMemBlockMakerDefaults(DkMemBlockMaker* maker, DkDevice device, uint32_t size);
+DkMemBlock dkMemBlockCreate(DkMemBlockMaker const* maker);
+void dkMemBlockDestroy(DkMemBlock obj);
+void* dkMemBlockGetCpuAddr(DkMemBlock obj);
+DkGpuAddr dkMemBlockGetGpuAddr(DkMemBlock obj);
+uint32_t dkMemBlockGetSize(DkMemBlock obj);
+DkResult dkMemBlockFlushCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size);
+```
+
+`DkMemBlock` is an object that represents a block of memory holding resources that will be used with deko3d, such as GPU command lists, shader code, framebuffers, textures, vertex data, etc. The following settings can be configured during creation:
+
+Field     | Default   | Description
+----------|-----------|------------
+`device`  | N/A       | Parent device
+`size`    | N/A       | Size of the memory block (needs to be a multiple of `DK_MEMBLOCK_ALIGNMENT`)
+`flags`   | See below | Memory block properties and configuration (see below)
+`storage` | NULL      | Optional explicit storage buffer (needs to be aligned to `DK_MEMBLOCK_ALIGNMENT`). If NULL, deko3d will allocate (and destroy) the buffer using the parent device's memory allocation system.
+
+`DkMemBlockFlags_*` | Default | Description
+--------------------|---------|------------
+`CpuAccessShift`    | N/A     | Bit position for the CPU's access mode, which regulates visibility and cacheability (see `DkMemAccess_*` below)
+`CpuUncached`       | ✓       | `DkMemAccess_Uncached << DkMemBlockFlags_CpuAccessShift`
+`CpuCached`         |         | `DkMemAccess_Cached << DkMemBlockFlags_CpuAccessShift`
+`GpuAccessShift`    | N/A     | Bit position for the GPU's access mode, which regulates visibility and cacheability (see `DkMemAccess_*` below)
+`GpuUncached`       |         | `DkMemAccess_Uncached << DkMemBlockFlags_GpuAccessShift`
+`GpuCached`         | ✓       | `DkMemAccess_Cached << DkMemBlockFlags_GpuAccessShift`
+`Code`              |         | The block will be used to hold shader code
+`Image`             |         | The block will be used to hold image data
+`ZeroFillInit`      |         | Zero-fills the memory during initialization
+
+`DkMemAccess_*` | Description
+----------------|------------
+`None`          | The memory block is not mapped to the CPU/GPU's address space at all
+`Uncached`      | The memory block is mapped, but the CPU/GPU is not allowed to cache accesses to it
+`Cached`        | The memory block is mapped with full cache support
+
+> **Note**: Each memory block that is created consumes limited bookkeeping resources provided by the operating system, regardless of their actual size. It is advised to "buy" big blocks wholesale from the system and subdivide them in software, instead of creating an individual block for every single resource that the application might want to create.
+
+Once created, the following properties about the memory block can be retrieved:
+- `dkMemBlockGetSize` returns the size of the memory block.
+- `dkMemBlockGetCpuAddr` returns the CPU address of the memory block, or NULL if the CPU has no access to it (i.e. `DkMemAccess_None`).
+- `dkMemBlockGetGpuAddr` returns the *generic* GPU address of the memory block, or NULL if the GPU has no access to it (i.e. `DkMemAccess_None`).
+
+Memory blocks with GPU access can end up having several different mappings in the GPU's address space, depending on how the memory is to be used:
+- A *generic* mapping will always be created, suitable for non-image purposes.
+- If `DkMemBlockFlags_Code` is specified, the *generic* mapping will be placed within a special *code segment* in the GPU's address space, which is absolutely **necessary** for shader code to be accessible by the GPU. Up to 4 GiB of address space are reserved for the *code segment*.
+- If `DkMemBlockFlags_Image` is specified, two extra mappings will be created with the necessary internal GPU memory attributes for normal and "compressed" image accesses respectively.
+
+> **Warning**: Due to a hardware bug the last `DK_SHADER_CODE_UNUSABLE_SIZE` bytes of a memory block are unusable for storing shader code.
+
+> **Warning**: Currently deko3d is unable to reuse previously-reserved mappings inside the *code segment* even if they're freed. Users are advised to reuse old code memory blocks instead of freeing them.
+
+> **Note**: `dkMemBlockFlushCpuCache` is supposed to be used to flush the CPU-side cache for memory blocks with `DkMemBlockFlags_CpuCached`. However, this function is currently **not** implemented.
+
 ### Command Buffers (`DkCmdBuf`)
 
 ```c
@@ -227,6 +289,8 @@ void dkCmdBufClear(DkCmdBuf obj);
 ```
 
 Command buffers (`DkCmdBuf`) allow users to record command lists that can be submitted to a queue (`DkQueue`). A command buffer can take in slices of backing memory, onto which the raw command data will be recorded in a format the the GPU can understand. A user can specify the current slice of backing memory to use with the `dkCmdBufAddMemory` function. It is allowed to call this function in the middle of recording, and the command list that was being recorded will continue at the new location.
+
+> **Note**: Memory added with `dkCmdBufAddMemory` must be aligned to `DK_CMDMEM_ALIGNMENT`, and its size must also be a multiple of `DK_CMDMEM_ALIGNMENT`.
 
 Command buffers maintain and keep ownership of internal bookkeeping memory that is used to fully define a command list, including but not limited to the entire history of memory regions used or fences referenced. When `dkCmdBufFinishList` is called, the currently recorded command list is signed off and a handle to it (`DkCmdList`) is returned. This function can be called as many times as necessary in order to build as many command lists as desired out of the user provided backing memory. Command lists can be submitted to a queue as many times as desired as well. Command list handles will remain valid as long as their parent command buffer continues existing as an active object, the memory slices they're referencing haven't been overwritten by other command lists, or until `dkCmdBufClear` is called. When `dkCmdBufClear` is called, all command lists that have been recorded with the command buffer are destroyed, their handles are invalidated (freeing up internal bookkeeping memory), and the current memory slice is rolled back to the beginning.
 
