@@ -209,7 +209,47 @@ Please note that regardless of the Origin setting, the clip space Y axis points 
 
 ### Command Buffers (`DkCmdBuf`)
 
+```c
+typedef void (*DkCmdBufAddMemFunc)(void* userData, DkCmdBuf cmdbuf, size_t minReqSize);
+struct DkCmdBufMaker
+{
+	DkDevice device;
+	void* userData;
+	DkCmdBufAddMemFunc cbAddMem;
+};
+void dkCmdBufMakerDefaults(DkCmdBufMaker* maker, DkDevice device);
+DkCmdBuf dkCmdBufCreate(DkCmdBufMaker const* maker);
+void dkCmdBufDestroy(DkCmdBuf obj);
+void dkCmdBufAddMemory(DkCmdBuf obj, DkMemBlock mem, uint32_t offset, uint32_t size);
+DkCmdList dkCmdBufFinishList(DkCmdBuf obj);
+void dkCmdBufClear(DkCmdBuf obj);
+//...
+```
+
+Command buffers (`DkCmdBuf`) allow users to record command lists that can be submitted to a queue (`DkQueue`). A command buffer can take in slices of backing memory, onto which the raw command data will be recorded in a format the the GPU can understand. A user can specify the current slice of backing memory to use with the `dkCmdBufAddMemory` function. It is allowed to call this function in the middle of recording, and the command list that was being recorded will continue at the new location.
+
+Command buffers maintain and keep ownership of internal bookkeeping memory that is used to fully define a command list, including but not limited to the entire history of memory regions used or fences referenced. When `dkCmdBufFinishList` is called, the currently recorded command list is signed off and a handle to it (`DkCmdList`) is returned. This function can be called as many times as necessary in order to build as many command lists as desired out of the user provided backing memory. Command lists can be submitted to a queue as many times as desired as well. Command list handles will remain valid as long as their parent command buffer continues existing as an active object, the memory slices they're referencing haven't been overwritten by other command lists, or until `dkCmdBufClear` is called. When `dkCmdBufClear` is called, all command lists that have been recorded with the command buffer are destroyed, their handles are invalidated (freeing up internal bookkeeping memory), and the current memory slice is rolled back to the beginning.
+
+If the current slice of backing memory runs out of space during recording, either of two things can happen:
+- If the user didn't supply a `cbAddMem` callback, a fatal error is raised.
+- Otherwise, the `cbAddMem` callback is called, which is expected to in turn call `dkCmdBufAddMemory` in order to resolve the situation. If the callback doesn't add enough memory, a fatal error is raised.
+
+This mechanism is intended to be used for command buffers backed by dynamic memory, so that they can refill themselves with fresh new memory as needed.
+
+`DkCmdBuf` objects are *externally synchronized*; in other words, they are not in charge of synchronization themselves and thus multiple threads cannot use the same command buffer at the same time. The intended workflow in a multithreaded application is to have multiple worker threads recording commands independently (each fitted with its own command buffer), and have the parent thread collect and submit all the `DkCmdList` handles from the worker threads.
+
 ### Fences (`DkFence`)
+
+```c
+struct DkFence;
+DkResult dkFenceWait(DkFence* obj, int64_t timeout_ns);
+```
+
+Fences (`DkFence`) are opaque structs that contain GPU synchronization information, used to determine when work submitted to the GPU has finished executing. Each time they're scheduled to be signaled in a queue (`DkQueue`), either directly or indirectly through a command list, their contents are updated. Fences can be waited on by the GPU or CPU (using the `dkFenceWait` function). When a fence is waited on, the waiter (CPU or GPU) will be kept blocked until the point in which it's signaled (hence marking the completion of dependent work).
+
+Usually fences will be used in a signaling command prior to being waited on. If fences are to be potentially waited on before they're signaled (e.g. if they're used to wait on previous work, with no previous work having been submitted yet), they should be initialized to zero in order to ensure that any initial waits will correctly have no effect.
+
+> **Warning**: Fence wait/signal commands recorded to a command list keep a pointer to the fence struct in the command buffer's bookkeeping memory. Please make sure the struct remains at the same valid memory address for the lifetime of the command list handle; otherwise submitting the command list handle to a queue will result in undefined behavior.
 
 ### Queues (`DkQueue`)
 
