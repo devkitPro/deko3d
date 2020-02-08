@@ -27,13 +27,13 @@ void Queue::setupEngines()
 
 void Queue::postSubmitFlush()
 {
-	// Invalidate texture cache, texture/sampler descriptor cache, shader code cache, and L2 cache
+	// Invalidate image cache, image/sampler descriptor cache, shader caches, and L2 cache
 	// This is done to ensure the visibility of CPU updates between calls to dkQueueFlush()
 	dkCmdBufBarrier(&m_cmdBuf,
 		DkBarrier_None,
 		DkInvalidateFlags_Image |
-		DkInvalidateFlags_Code  |
-		DkInvalidateFlags_Pool  |
+		DkInvalidateFlags_Shader |
+		DkInvalidateFlags_Descriptors |
 		DkInvalidateFlags_L2Cache);
 
 	CmdBufWriter w{&m_cmdBuf};
@@ -83,7 +83,7 @@ void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags)
 			w << CmdInline(3D, InvalidateTextureDataCacheNoWfi{}, 0);
 	}
 
-	if (invalidateFlags & DkInvalidateFlags_Code)
+	if (invalidateFlags & DkInvalidateFlags_Shader)
 	{
 		using ISC = Engine3D::InvalidateShaderCaches;
 		w << CmdInline(3D, InvalidateShaderCaches{},
@@ -91,7 +91,7 @@ void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags)
 		);
 	}
 
-	if (invalidateFlags & DkInvalidateFlags_Pool)
+	if (invalidateFlags & DkInvalidateFlags_Descriptors)
 	{
 		w << CmdInline(3D, InvalidateTextureHeaderCacheNoWfi{}, 0);
 		w << CmdInline(3D, InvalidateSamplerCacheNoWfi{}, 0);
