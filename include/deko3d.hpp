@@ -94,11 +94,12 @@ namespace dk
 		class ArrayProxy
 		{
 			using nonconst_T = typename std::remove_const<T>::type;
+			using nonref_T   = typename std::remove_reference<T>::type;
 			uint32_t m_count;
 			T* m_ptr;
 		public:
 			constexpr ArrayProxy(std::nullptr_t) noexcept : m_count{}, m_ptr{} { }
-			ArrayProxy(T& ptr) : m_count{1}, m_ptr(&ptr) { }
+			ArrayProxy(nonref_T& ptr) : m_count{1}, m_ptr(&ptr) { }
 			ArrayProxy(uint32_t count, T* ptr) noexcept : m_count{count}, m_ptr{ptr} { }
 
 			template <size_t N>
@@ -109,17 +110,17 @@ namespace dk
 			ArrayProxy(std::array<nonconst_T, N> const& data) noexcept :
 				m_count{N} , m_ptr{data.data()} { }
 
-			ArrayProxy(std::initializer_list<T> const& data) noexcept :
+			ArrayProxy(std::initializer_list<nonref_T> const& data) noexcept :
 				m_count{static_cast<uint32_t>(data.end() - data.begin())},
 				m_ptr{data.begin()} { }
 
 #ifdef DK_HPP_SUPPORT_VECTOR
-			template <class Allocator = std::allocator<nonconst_T>>
+			template <typename Allocator = std::allocator<nonconst_T>>
 			ArrayProxy(std::vector<nonconst_T, Allocator> & data) noexcept :
 				m_count{static_cast<uint32_t>(data.size())},
 				m_ptr{data.data()} { }
 
-			template <class Allocator = std::allocator<nonconst_T>>
+			template <typename Allocator = std::allocator<nonconst_T>>
 			ArrayProxy(std::vector<nonconst_T, Allocator> const& data) noexcept :
 				m_count{static_cast<uint32_t>(data.size())},
 				m_ptr{data.data()} { }
@@ -175,15 +176,12 @@ namespace dk
 		void waitFence(DkFence& fence);
 		void signalFence(DkFence& fence, bool flush = false);
 		void barrier(DkBarrier mode, uint32_t invalidateFlags);
-		void bindShader(DkShader const& shader);
 		void bindShaders(uint32_t stageMask, detail::ArrayProxy<DkShader const* const> shaders);
 		void bindUniformBuffer(DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize);
 		void bindUniformBuffers(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers);
 		void bindStorageBuffer(DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize);
 		void bindStorageBuffers(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkBufExtents const> buffers);
-		void bindTexture(DkStage stage, uint32_t id, DkResHandle handle);
 		void bindTextures(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles);
-		void bindImage(DkStage stage, uint32_t id, DkResHandle handle);
 		void bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles);
 		void bindImageDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors);
 		void bindSamplerDescriptorSet(DkGpuAddr setAddr, uint32_t numDescriptors);
@@ -192,7 +190,6 @@ namespace dk
 		void bindMultisampleState(DkMultisampleState const& state);
 		void bindColorState(DkColorState const& state);
 		void bindColorWriteState(DkColorWriteState const& state);
-		void bindBlendState(uint32_t id, DkBlendState const& state);
 		void bindBlendStates(uint32_t id, detail::ArrayProxy<DkBlendState const> states);
 		void bindDepthStencilState(DkDepthStencilState const& state);
 		void bindVtxAttribState(detail::ArrayProxy<DkVtxAttribState const> attribs);
@@ -624,11 +621,6 @@ namespace dk
 		::dkCmdBufBarrier(*this, mode, invalidateFlags);
 	}
 
-	inline void CmdBuf::bindShader(DkShader const& shader)
-	{
-		::dkCmdBufBindShader(*this, &shader);
-	}
-
 	inline void CmdBuf::bindShaders(uint32_t stageMask, detail::ArrayProxy<DkShader const* const> shaders)
 	{
 		::dkCmdBufBindShaders(*this, stageMask, shaders.data(), shaders.size());
@@ -654,19 +646,9 @@ namespace dk
 		::dkCmdBufBindStorageBuffers(*this, stage, firstId, buffers.data(), buffers.size());
 	}
 
-	inline void CmdBuf::bindTexture(DkStage stage, uint32_t id, DkResHandle handle)
-	{
-		::dkCmdBufBindTexture(*this, stage, id, handle);
-	}
-
 	inline void CmdBuf::bindTextures(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles)
 	{
 		::dkCmdBufBindTextures(*this, stage, firstId, handles.data(), handles.size());
-	}
-
-	inline void CmdBuf::bindImage(DkStage stage, uint32_t id, DkResHandle handle)
-	{
-		::dkCmdBufBindImage(*this, stage, id, handle);
 	}
 
 	inline void CmdBuf::bindImages(DkStage stage, uint32_t firstId, detail::ArrayProxy<DkResHandle const> handles)
@@ -697,11 +679,6 @@ namespace dk
 	inline void CmdBuf::bindColorWriteState(DkColorWriteState const& state)
 	{
 		::dkCmdBufBindColorWriteState(*this, &state);
-	}
-
-	inline void CmdBuf::bindBlendState(uint32_t id, DkBlendState const& state)
-	{
-		::dkCmdBufBindBlendState(*this, id, &state);
 	}
 
 	inline void CmdBuf::bindBlendStates(uint32_t id, detail::ArrayProxy<DkBlendState const> states)

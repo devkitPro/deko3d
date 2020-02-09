@@ -1278,12 +1278,6 @@ void dkSwapchainAcquireImage(DkSwapchain obj, int* imageSlot, DkFence* fence);
 void dkSwapchainSetCrop(DkSwapchain obj, int32_t left, int32_t top, int32_t right, int32_t bottom);
 void dkSwapchainSetSwapInterval(DkSwapchain obj, uint32_t interval);
 
-static inline void dkCmdBufBindShader(DkCmdBuf obj, DkShader const* shader)
-{
-	DkShader const* table[] = { shader };
-	dkCmdBufBindShaders(obj, 1U << dkShaderGetStage(shader), table, 1);
-}
-
 static inline void dkCmdBufBindUniformBuffer(DkCmdBuf obj, DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize)
 {
 	DkBufExtents ext = { bufAddr, bufSize };
@@ -1304,6 +1298,11 @@ static inline void dkCmdBufBindTexture(DkCmdBuf obj, DkStage stage, uint32_t id,
 static inline void dkCmdBufBindImage(DkCmdBuf obj, DkStage stage, uint32_t id, DkResHandle handle)
 {
 	dkCmdBufBindImages(obj, stage, id, &handle, 1);
+}
+
+static inline void dkCmdBufBindRenderTarget(DkCmdBuf obj, DkImageView const* colorTarget, DkImageView const* depthTarget)
+{
+	dkCmdBufBindRenderTargets(obj, &colorTarget, 1, depthTarget);
 }
 
 static inline void dkCmdBufBindBlendState(DkCmdBuf obj, uint32_t id, DkBlendState const* state)
