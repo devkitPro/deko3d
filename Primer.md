@@ -340,6 +340,50 @@ int dkQueueAcquireImage(DkQueue obj, DkSwapchain swapchain);
 void dkQueuePresentImage(DkQueue obj, DkSwapchain swapchain, int imageSlot);
 ```
 
+Queues (`DkQueue`) are used to asynchronously execute work on the GPU. A queue is basically a list of in-flight work items that the GPU will execute. Work items (in the form of commands or fence/image operations) can be submitted to the queue; and the GPU will pick them up and start executing them *at some point*. The order in which submitted work items are executed is internally decided by the GPU, and can only be controlled by fencing commands and `dkCmdBufBarrier`. Commands within command lists essentially update internal state of the GPU, and launch different tasks such as drawing primitives or dispatching compute jobs. Once again, the order in which commands are executed, as well as the dependencies between different jobs, needs to be manually scheduled using aforementioned fences and barriers; otherwise the GPU might start tackling work items out of order, or before required data from a previous step is completed. Each queue executes work items independently of any other.
+
+Each queue has its own internal state and bookkeeping memory used for diverse purposes. This includes things such as bound render targets, shaders, uniform/vertex/index buffers, textures/samplers, descriptor sets, all the various different state structs, etc; and can be updated by using the appropriate commands. The state of each queue is completely independent from any other.
+
+Field                      | Default                                  | Description
+---------------------------|------------------------------------------|------------
+`device`                   | N/A                                      | Parent device
+`flags`                    | See below                                | Queue creation flags (see below)
+`commandMemorySize`        | `DK_QUEUE_MIN_CMDMEM_SIZE`               | Internal command memory size in bytes (must be at least `DK_QUEUE_MIN_CMDMEM_SIZE`)
+`flushThreshold`           | `DK_QUEUE_MIN_CMDMEM_SIZE/8`             | Threshold for flushing internal command memory (must be at least `DK_MEMBLOCK_ALIGNMENT` and not more than `commandMemorySize`)
+`perWarpScratchMemorySize` | `4*DK_PER_WARP_SCRATCH_MEM_ALIGNMENT`    | Scratch memory allocated to each warp in bytes, must be a multiple of `DK_PER_WARP_SCRATCH_MEM_ALIGNMENT` (can be 0 if scratch memory is not needed)
+`maxConcurrentComputeJobs` | `DK_DEFAULT_MAX_COMPUTE_CONCURRENT_JOBS` | For compute-capable queues: maximum number of concurrent compute dispatch jobs (must be at least 1), ignored otherwise
+
+`DkQueueFlags_*` | Default | Description
+-----------------|---------|------------
+`Graphics`       | ✓       | The queue can execute graphics commands
+`Compute`        | ✓       | The queue can execute compute commands
+`Transfer`       | ✓       | The queue can execute transfer commands
+`EnableZcull`    | ✓       | Zcull is enabled
+`DisableZcull`   |         | Zcull is disabled
+
+During creation, the intended usage of the queue can be specified. Essentially this entails enabling or disabling support for submitting command lists containing graphics, compute or transfer commands. If a certain usage bit is not specified, the queue does not reserve resources required for processing said types of commands. Submitting command lists containing commands of a certain type on a queue that has not been created with the corresponding usage bit results in undefined behavior. For example, it is illegal to run `dkCmdBufDispatchCompute` on a queue that does not have the `DkQueueFlags_Compute` flag set.
+
+Queues internally generate commands for various purposes. The size of the memory fed to the internal command buffer used for this purpose can be controlled with the `commandMemorySize` field. The memory is managed as a ring buffer divided in a certain number of parts, guarded by a fence at every boundary acting as a checkpoint. deko3d will automatically wait on the required fences before overwriting previously written internal command data, however this entails blocking the CPU for periods of time while the GPU is processing work items. In order to mitigate this, deko3d automatically flushes the queue after a certain threshold (`flushThreshold`) of internal command memory has been consumed; so that the GPU can start tackling its pending work items, and by the time the fence must be waited on it's (hopefully) already signaled with the wait finishing immediately without blocking. A smaller threshold results in more frequent automatic flushes, while a larger threshold results in less flushes but more frequent situations in which the CPU is blocked waiting for the GPU; so users should exercise caution.
+
+Queues manage their list of work items in a lazy fashion. In other words, the work items are enqueued in a list that is submitted to the GPU as a single batch in one go, and said submission does not actually happen until one of the following conditions are met:
+- `dkQueueFlush` is called, which signs off the batch of work items and submits it to the GPU. Note that `dkQueuePresentImage` internally calls `dkQueueFlush`.
+- Space runs out in the list, which necessitates a flush.
+- The flushing threshold for internal command memory (`flushThreshold`) is reached, which results in an automatic flush.
+
+After the queue is flushed, deko3d inserts a barrier that invalidates the image, shader, descriptor and L2 caches - in fact this is the very first work item that will be executed the *next* time the queue is flushed. This makes it possible to update graphical resources on the CPU such as vertex buffers or image/sampler descriptor sets between batches of work items submitted to the queue.
+
+If for some reason the GPU encounters an error while processing work items, it enters error state. This can be detected using `dkQueueIsInErrorState`. Once a queue enters error state it is completely toast, and the only thing that can be done is destroying it.
+
+> **Warning**: Currently deko3d does not have very good GPU error recovery support. It is advised to avoid crashing the GPU if possible.
+
+The GPU can be instructed to wait on a fence using the `dkQueueWaitFence` function. Likewise, a fence can be signaled using `dkQueueSignalFence`. If the `flush` parameter in this function is set to `true` the GPU flushes any dirty cache lines to memory; allowing other observers (such as the CPU) to see the result of writes performed by the GPU up to the point when the fence is signaled. This is important in case e.g. the CPU needs to read the result of GPU work that is performed on a memory block that is set to `DkMemBlockFlags_GpuCached`, such as compute shader writes.
+
+Command lists are submitted to the queue using `dkQueueSubmitCommands`. Command lists can also contain fencing operations, which are described in the previous paragraph and behave in the same way. The command list handle is only used during the call to this function, and it is legal to destroy it afterwards with `dkCmdBufClear`. The only requirement is that command memory submitted to a queue must remain valid (i.e. not freed or overwritten by something else) until it is fully guaranteed that the GPU has finished executing the commands inside.
+
+Usually applications will want to use fences to synchronize themselves with the GPU; however sometimes it is desirable to completely wait for *all* submitted work items to be done executing (such as when potentially in-flight resources are to be destroyed). This can be done using the `dkQueueWaitIdle` function; which is shorthand for signaling a (temporary) fence, flushing the queue and waiting on the fence. This function should only be used sparingly due to its overhead.
+
+The functions `dkQueueAcquireImage` and `dkQueuePresentImage` are used to tie a queue to a swapchain used for presentation. For more information look at the section dealing with swapchains.
+
 ### Shaders (`DkShader`)
 
 #### The deko3d shader compiler
