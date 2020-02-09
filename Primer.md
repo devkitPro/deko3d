@@ -256,7 +256,7 @@ Field     | Default   | Description
 Once created, the following properties about the memory block can be retrieved:
 - `dkMemBlockGetSize` returns the size of the memory block.
 - `dkMemBlockGetCpuAddr` returns the CPU address of the memory block, or NULL if the CPU has no access to it (i.e. `DkMemAccess_None`).
-- `dkMemBlockGetGpuAddr` returns the *generic* GPU address of the memory block, or NULL if the GPU has no access to it (i.e. `DkMemAccess_None`).
+- `dkMemBlockGetGpuAddr` returns the *generic* GPU address of the memory block, or `DK_GPU_ADDR_INVALID` if the GPU has no access to it (i.e. `DkMemAccess_None`).
 
 Memory blocks with GPU access can end up having several different mappings in the GPU's address space, depending on how the memory is to be used:
 - A *generic* mapping will always be created, suitable for non-image purposes.
