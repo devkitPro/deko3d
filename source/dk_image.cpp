@@ -691,13 +691,36 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 	(void)res;
 #endif
 
+	BlitParams params;
+	params.srcX = 0;
+	params.srcY = 0;
+	params.dstX = dstRect->x;
+	params.dstY = dstRect->y;
+	params.width = dstRect->width;
+	params.height = dstRect->height;
+
+	auto& traits = formatTraits[dstView->format ? dstView->format : dstView->pImage->m_format];
+	const bool isCompressed = traits.blockWidth > 1 || traits.blockHeight > 1;
+
+	if (isCompressed)
+	{
+		// Horizontal/vertical flips can't be used with compressed formats for obvious reasons
+		if (flags & (DkBlitFlag_FlipX|DkBlitFlag_FlipY))
+			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
+
+		params.dstX = adjustBlockSize(params.dstX, traits.blockWidth);
+		params.dstY = adjustBlockSize(params.dstY, traits.blockHeight);
+		params.width = adjustBlockSize(params.width, traits.blockWidth);
+		params.height = adjustBlockSize(params.height, traits.blockHeight);
+	}
+
 	ImageInfo srcInfo = {};
 	srcInfo.m_iova = src->addr;
-	srcInfo.m_horizontal = src->rowLength ? src->rowLength : dstRect->width*dstInfo.m_bytesPerBlock;
+	srcInfo.m_horizontal = src->rowLength ? src->rowLength : params.width*dstInfo.m_bytesPerBlock;
 	srcInfo.m_vertical = dstRect->height;
 	srcInfo.m_format = dstInfo.m_format;
 	srcInfo.m_arrayMode = dstRect->depth;
-	srcInfo.m_layerStride = src->imageHeight ? src->imageHeight : srcInfo.m_vertical*srcInfo.m_horizontal;
+	srcInfo.m_layerStride = src->imageHeight ? src->imageHeight : params.height*srcInfo.m_horizontal;
 	srcInfo.m_width = dstRect->width;
 	srcInfo.m_height = dstRect->height;
 	srcInfo.m_widthMs = srcInfo.m_width;
@@ -706,12 +729,14 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 	srcInfo.m_isLinear = true;
 
 	bool canUse2D = true;
+	if (!(traits.flags & FormatTraitFlags_CanUse2DEngine))
+		canUse2D = false;
 	if (srcInfo.m_iova & (DK_IMAGE_LINEAR_STRIDE_ALIGNMENT-1))
 		canUse2D = false; // Technically there are ways to work around this by extending width a bit, but w/e
 	if (srcInfo.m_horizontal & (DK_IMAGE_LINEAR_STRIDE_ALIGNMENT-1))
 		canUse2D = false;
-	if (!(formatTraits[dstView->format ? dstView->format : dstView->pImage->m_format].flags & FormatTraitFlags_CanUse2DEngine))
-		canUse2D = false;
+	if (isCompressed)
+		canUse2D = false; // Technically the 2D engine *can* be used with compressed formats, but there isn't really any point in doing so
 
 #ifdef DEBUG
 	bool needs2D = false;
@@ -721,14 +746,6 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 	if (needs2D && !canUse2D)
 		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
 #endif
-
-	BlitParams params;
-	params.srcX = 0;
-	params.srcY = 0;
-	params.dstX = dstRect->x;
-	params.dstY = dstRect->y;
-	params.width = dstRect->width;
-	params.height = dstRect->height;
 
 	if (canUse2D)
 	{
