@@ -450,7 +450,7 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 		else if (obj->m_dimsPerLayer == 3)
 		{
 			// Calculate actual depth, and multiply it by 1.5
-			uint32_t actualDepth = obj->m_dimensions[1];
+			uint32_t actualDepth = obj->m_dimensions[2];
 			uint32_t depthAndHalf = actualDepth + actualDepth/2;
 			obj->m_tileD = pickTileSize(depthAndHalf);
 		}
