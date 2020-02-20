@@ -386,7 +386,92 @@ The functions `dkQueueAcquireImage` and `dkQueuePresentImage` are used to tie a 
 
 ### Shaders (`DkShader`)
 
+```c
+struct DkShaderMaker;
+void dkShaderInitialize(DkShader* obj, DkShaderMaker const* maker);
+bool dkShaderIsValid(DkShader const* obj);
+DkStage dkShaderGetStage(DkShader const* obj);
+```
+
+Shaders are programs that run on the GPU and process different stages of the programmable part of the pipeline. In deko3d they are represented by an opaque object called `DkShader`. These objects contain metadata that allow deko3d to set up shader execution on the GPU. deko3d accepts shaders in the DKSH format, which is a container that bundles together the raw shader machine code accepted directly by the GPU together with the aforementioned metadata.
+
+> **Note**: deko3d **only** accepts native GPU code, i.e. SASS (Streaming Assembler) for Shader Model 5.3; which is the instruction set architecture (ISA) implemented by second-generation Maxwell GPUs. There is absolutely **no way** to use non-native shader languages which require runtime compilation such as GLSL or SPIR-V with deko3d. Users who need to JIT shaders at runtime **must** target the Maxwell 2nd gen ISA (SM53) in some way, shape or form instead of expecting deko3d to accept code written in a foreign language.
+
+Field        | Default | Description
+-------------|---------|-------------
+`codeMem`    | N/A     | Memory block where shader code resides
+`control`    | NULL    | Optional pointer to the DKSH control section (see the "DKSH format" section further below)
+`codeOffset` | N/A     | Offset into the memory block where shader code resides; must be a multiple of `DK_SHADER_CODE_ALIGNMENT`
+`programId`  | 0       | Index of the shader program to initialize
+
+DKSH shaders can be loaded directly into a code memory block, with `codeMem`/`codeOffset` pointing to the exact place in the code memory block where the shader is loaded. Optionally, the *DKSH control section* can be loaded outside the code memory block - this is explained in the "DKSH format" section further below.
+
+> **Note**: The DKSH format allows for multiple programs (i.e. entrypoints) within a single DKSH shader file, however currently the deko3d shader compiler does not support this feature. Users are advised to leave `programId` at its default value of 0.
+
+`dkShaderIsValid` can be used to check whether a `DkShader` opaque object currently holds a valid shader. `dkShaderGetStage` in addition can be used to retrieve the stage at which the shader executes (such as the vertex or fragment stage).
+
+`DkShader` opaque objects do not claim ownership of any data. They will remain valid as long as the underlying code memory they're referring to is not freed or overwritten by something else.
+
 #### The deko3d shader compiler
+
+In the usual deko3d workflow, shaders are developed in a high-level language and compiled to DKSH on the developer's machine by the build system. A PC tool called `uam` has been developed, and it is able to compile GLSL shaders to the native Maxwell ISA and produce DKSH files usable with deko3d.
+
+```
+Usage: uam [options] file
+Options:
+  -o, --out=<file>   Specifies the output deko3d shader module file (.dksh)
+  -r, --raw=<file>   Specifies the file to which output raw Maxwell bytecode
+  -t, --tgsi=<file>  Specifies the file to which output intermediary TGSI code
+  -s, --stage=<name> Specifies the pipeline stage of the shader
+                     (vert, tess_ctrl, tess_eval, geom, frag, comp)
+  -v, --version      Displays version information
+```
+
+The dialect of GLSL accepted by UAM is essentially the same one that is parsed by mesa/nouveau, with several differences:
+
+- The `DEKO3D` preprocessor symbol is defined, with a value of 100.
+- UBO, SSBO, sampler and image bindings are **required to be explicit** (i.e. `layout (binding = N)`), and they have a one-to-one correspondence with deko3d bindings. Failure to specify explicit bindings will result in an error.
+- There is support for 16 UBOs, 16 SSBOs, 16 "samplers" (combined image+sampler handle), and 16 images for each and every shader stage; with binding IDs ranging from 0 to 15. However note that due to hardware limitations, only compute stage UBO bindings 0-5 are natively supported, while 6-15 are emulated as "SSBOs".
+- Default uniforms outside UBO blocks are detected, however they are reported as an error due to lack of support in both DKSH and deko3d for retrieving the location of and setting these uniforms.
+- `gl_FragCoord` always uses the Y axis convention specified in the flags during the creation of a deko3d device. `layout (origin_upper_left)` has no effect whatsoever and produces a warning, while `layout (pixel_center_integer)` is not supported at all and produces an error.
+- Integer divisions and modulo operations with non-constant divisors decay to floating point division, and generate a warning. Well written shaders should avoid these operations for performance and accuracy reasons.
+- 64-bit floating point divisions and square roots can only be approximated with native hardware instructions. This results in loss of accuracy, and as such these operations should be avoided, and they generate a warning as well.
+- Transform feedback is not supported.
+- GLSL shader subroutines (`ARB_shader_subroutine`) are not supported.
+- There is no concept of shader linking. Separable programs (`ARB_separate_shader_objects`) are always in effect.
+
+For more information, please read the UAM documentation.
+
+#### DKSH format - loading control/code sections separately
+
+```c
+#define DKSH_MAGIC UINT32_C(0x48534B44) // DKSH
+
+struct DkshHeader
+{
+	uint32_t magic; // DKSH_MAGIC
+	uint32_t header_sz; // sizeof(DkshHeader)
+	uint32_t control_sz;
+	uint32_t code_sz;
+	uint32_t programs_off;
+	uint32_t num_programs;
+};
+```
+
+DKSH files consist of two parts consecutively stored: a *control* section and a *code* section. The size of each section is always a multiple of 256 bytes. The control section contains metadata required by deko3d in order to set up the shader, while the code section contains raw shader code and other information required by hardware itself. deko3d allows the user to load the control section in a separate memory location, and the code section in the actual code memory block. This reduces GPU memory waste, since the GPU has no need whatsoever to read the DKSH control section.
+
+In order to do this users need to parse a tiny bit of the DKSH format. The following algorithm shows how to do it:
+
+- Open the DKSH file.
+- Read the `DkshHeader` struct from the beginning of the file.
+- Allocate a temporary buffer of size `control_sz`.
+- Read the entire control section into this buffer (also from the beginning of the file).
+- Allocate GPU code memory with size `code_sz` and alignment `DK_SHADER_CODE_ALIGNMENT`.
+- Read the entire data section into the GPU code memory (continuing from where the control section left off).
+- Close the DKSH file.
+- Fill in `DkShaderMaker` so that `control` points to the temporary buffer containing the control section, while `codeMem`/`codeOffset` point to the GPU code memory containing the code section.
+- Call `dkShaderInitialize` in order to parse and initialize the shader.
+- Free the temporary buffer since deko3d doesn't need it anymore.
 
 ### Images (`DkImage`)
 
