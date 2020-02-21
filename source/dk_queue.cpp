@@ -230,27 +230,26 @@ void Queue::signalFence(DkFence& fence, bool flush)
 		CmdBufWriter w{&m_cmdBuf};
 		w.reserve(12);
 
+		w << CmdInline(3D, UnknownFlush{}, 0);
 		if (!flush)
-		{
-			w << CmdInline(3D, UnknownFlush{}, 0);
 			w << Cmd(3D, SyncptAction{}, action);
-		}
 		else
 		{
 			action |= A::FlushCache{};
-			w << CmdInline(3D, UnknownFlush{}, 0);
 			w << Cmd(3D, SyncptAction{}, action);
 			w << Cmd(3D, SyncptAction{}, action);
 			nvGpuChannelIncrFence(&m_gpuChannel);
 		}
 		nvGpuChannelIncrFence(&m_gpuChannel);
 		fence.m_internal.m_semaphoreValue = getDevice()->incrSemaphoreValue(m_id);
+
 		w << CmdInline(3D, UnknownFlush{}, 0);
 		w << Cmd(3D, SetReportSemaphoreOffset{},
 			Iova(fence.m_internal.m_semaphoreAddr),
 			fence.m_internal.m_semaphoreValue,
 			S::Operation::Release | S::FenceEnable{} | S::Unit::Crop | S::StructureSize::OneWord
 		);
+
 		w << CmdInline(3D, TiledCacheFlush{}, Engine3D::TiledCacheFlush::Flush);
 	}
 	else
