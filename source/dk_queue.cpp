@@ -358,8 +358,6 @@ DkQueue dkQueueCreate(DkQueueMaker const* maker)
 #ifdef DEBUG
 	if (!maker)
 		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	else if (!(maker->flags & (DkQueueFlags_Graphics|DkQueueFlags_Compute)))
-		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	else if (maker->commandMemorySize < DK_QUEUE_MIN_CMDMEM_SIZE)
 		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	else if (maker->commandMemorySize & (DK_MEMBLOCK_ALIGNMENT-1))
@@ -432,6 +430,13 @@ void dkQueueWaitIdle(DkQueue obj)
 //-----------------------------------------------------------------------------
 // Shims for conditionally linked features
 //-----------------------------------------------------------------------------
+
+DK_WEAK void Queue::setup3DEngine()
+{
+#ifdef DEBUG
+	printf("Warning: Graphics-capable DkQueue created, but Draw never called\n");
+#endif
+}
 
 DK_WEAK void ComputeQueue::initialize()
 {
