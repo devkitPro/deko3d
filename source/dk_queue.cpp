@@ -47,10 +47,9 @@ DkResult Queue::initialize()
 	}
 
 	setupEngines();
+	setupTransfer();
 	if (hasGraphics())
 		setup3DEngine();
-	if (hasTransfer())
-		setupTransfer();
 	if (hasCompute())
 	{
 		m_computeQueue = new(this+1) ComputeQueue(this);
@@ -359,7 +358,7 @@ DkQueue dkQueueCreate(DkQueueMaker const* maker)
 #ifdef DEBUG
 	if (!maker)
 		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	else if (!(maker->flags & (DkQueueFlags_Graphics|DkQueueFlags_Compute|DkQueueFlags_Transfer)))
+	else if (!(maker->flags & (DkQueueFlags_Graphics|DkQueueFlags_Compute)))
 		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	else if (maker->commandMemorySize < DK_QUEUE_MIN_CMDMEM_SIZE)
 		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);

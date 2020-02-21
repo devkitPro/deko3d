@@ -111,7 +111,6 @@ public:
 
 	bool hasGraphics() const noexcept { return (m_flags & DkQueueFlags_Graphics) != 0; }
 	bool hasCompute() const noexcept { return (m_flags & DkQueueFlags_Compute) != 0; }
-	bool hasTransfer() const noexcept { return (m_flags & DkQueueFlags_Transfer) != 0; }
 	bool hasZcull() const noexcept { return (m_flags & DkQueueFlags_DisableZcull) == 0; }
 	bool isInErrorState() const noexcept { return m_state == Error; }
 
