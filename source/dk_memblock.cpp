@@ -192,14 +192,13 @@ uint32_t dkMemBlockGetSize(DkMemBlock obj)
 
 DkResult dkMemBlockFlushCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size)
 {
-	if (!obj->isCpuCached())
+	if (!obj->isCpuCached() || !size)
 		return DkResult_Success;
-	return DkResult_NotImplemented;
-}
+#ifdef DEBUG
+	if (offset >= obj->getSize() || size > obj->getSize() || offset + size > obj->getSize())
+		return DkResult_BadInput;
+#endif
 
-DkResult dkMemBlockInvalidateCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size)
-{
-	if (!obj->isCpuCached())
-		return DkResult_Success;
-	return DkResult_NotImplemented;
+	armDCacheFlush((uint8_t*)obj->getCpuAddr() + offset, size);
+	return DkResult_Success;
 }

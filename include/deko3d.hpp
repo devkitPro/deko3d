@@ -158,7 +158,6 @@ namespace dk
 		DkGpuAddr getGpuAddr();
 		uint32_t getSize();
 		DkResult flushCpuCache(uint32_t offset, uint32_t size);
-		DkResult invalidateCpuCache(uint32_t offset, uint32_t size);
 	};
 
 	struct Fence : public detail::Opaque<::DkFence>
@@ -568,11 +567,6 @@ namespace dk
 	inline DkResult MemBlock::flushCpuCache(uint32_t offset, uint32_t size)
 	{
 		return ::dkMemBlockFlushCpuCache(*this, offset, size);
-	}
-
-	inline DkResult MemBlock::invalidateCpuCache(uint32_t offset, uint32_t size)
-	{
-		return ::dkMemBlockInvalidateCpuCache(*this, offset, size);
 	}
 
 	inline DkResult Fence::wait(int64_t timeout_ns)

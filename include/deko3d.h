@@ -1175,7 +1175,6 @@ void* dkMemBlockGetCpuAddr(DkMemBlock obj);
 DkGpuAddr dkMemBlockGetGpuAddr(DkMemBlock obj);
 uint32_t dkMemBlockGetSize(DkMemBlock obj);
 DkResult dkMemBlockFlushCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size);
-DkResult dkMemBlockInvalidateCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size);
 
 DkResult dkFenceWait(DkFence* obj, int64_t timeout_ns);
 

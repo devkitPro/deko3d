@@ -267,7 +267,7 @@ Memory blocks with GPU access can end up having several different mappings in th
 
 > **Warning**: Currently deko3d is unable to reuse previously-reserved mappings inside the *code segment* even if they're freed. Users are advised to reuse old code memory blocks instead of freeing them.
 
-> **Note**: `dkMemBlockFlushCpuCache` is supposed to be used to flush the CPU-side cache for memory blocks with `DkMemBlockFlags_CpuCached`. However, this function is currently **not** implemented.
+> **Note**: Memory blocks with CPU cacheability (`DkMemBlockFlags_CpuCached`) can be used. `dkMemBlockFlushCpuCache` can be used to flush the CPU-side cache (i.e. clean+invalidate), and after that point all writes done on the CPU become visible by GPU. However if the memory block also has GPU cacheability (`DkMemBlockFlags_GpuCached`) care must be taken so that the GPU side caches are invalidated before accessing the memory. There is also no support for invalidating the CPU-side cache as it is a dangerous (and privileged!) operation; so users should **avoid** using CpuCached memory for GPU->CPU communication.
 
 ### Command Buffers (`DkCmdBuf`)
 
@@ -290,7 +290,7 @@ void dkCmdBufClear(DkCmdBuf obj);
 
 Command buffers (`DkCmdBuf`) allow users to record command lists that can be submitted to a queue (`DkQueue`). A command buffer can take in slices of backing memory, onto which the raw command data will be recorded in a format the the GPU can understand. A user can specify the current slice of backing memory to use with the `dkCmdBufAddMemory` function. It is allowed to call this function in the middle of recording, and the command list that was being recorded will continue at the new location.
 
-> **Note**: Memory added with `dkCmdBufAddMemory` must be aligned to `DK_CMDMEM_ALIGNMENT`, and its size must also be a multiple of `DK_CMDMEM_ALIGNMENT`.
+> **Note**: Memory added with `dkCmdBufAddMemory` must be aligned to `DK_CMDMEM_ALIGNMENT`, and its size must also be a multiple of `DK_CMDMEM_ALIGNMENT`. In addition, the memory block must have GPU visibility and the CPU-side cache disabled. It is strongly recommended to use `DkMemBlockFlags_GpuCached | DkMemBlockFlags_CpuUncached` as the flags.
 
 Command buffers maintain and keep ownership of internal bookkeeping memory that is used to fully define a command list, including but not limited to the entire history of memory regions used or fences referenced. When `dkCmdBufFinishList` is called, the currently recorded command list is signed off and a handle to it (`DkCmdList`) is returned. This function can be called as many times as necessary in order to build as many command lists as desired out of the user provided backing memory. Command lists can be submitted to a queue as many times as desired as well. Command list handles will remain valid as long as their parent command buffer continues existing as an active object, the memory slices they're referencing haven't been overwritten by other command lists, or until `dkCmdBufClear` is called. When `dkCmdBufClear` is called, all command lists that have been recorded with the command buffer are destroyed, their handles are invalidated (freeing up internal bookkeeping memory), and the current memory slice is rolled back to the beginning.
 
