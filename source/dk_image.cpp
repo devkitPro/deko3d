@@ -704,9 +704,11 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 
 	if (isCompressed)
 	{
+#ifdef DEBUG
 		// Horizontal/vertical flips can't be used with compressed formats for obvious reasons
 		if (flags & (DkBlitFlag_FlipX|DkBlitFlag_FlipY))
 			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
+#endif
 
 		params.dstX = adjustBlockSize(params.dstX, traits.blockWidth);
 		params.dstY = adjustBlockSize(params.dstY, traits.blockHeight);
@@ -728,7 +730,10 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 	srcInfo.m_bytesPerBlock = dstInfo.m_bytesPerBlock;
 	srcInfo.m_isLinear = true;
 
+#ifdef DEBUG
 	bool canUse2D = true;
+	if (dstView->pImage->m_flags & DkImageFlags_Usage2DEngine)
+		canUse2D = false;
 	if (!(traits.flags & FormatTraitFlags_CanUse2DEngine))
 		canUse2D = false;
 	if (srcInfo.m_iova & (DK_IMAGE_LINEAR_STRIDE_ALIGNMENT-1))
@@ -737,18 +742,19 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 		canUse2D = false;
 	if (isCompressed)
 		canUse2D = false; // Technically the 2D engine *can* be used with compressed formats, but there isn't really any point in doing so
+#endif
 
-#ifdef DEBUG
 	bool needs2D = false;
 	if (flags & (DkBlitFlag_FlipX))
 		needs2D = true;
 
-	if (needs2D && !canUse2D)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
+	if (needs2D)
+	{
+#ifdef DEBUG
+		if (!canUse2D)
+			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
 #endif
 
-	if (canUse2D)
-	{
 		int dudx = 1, dvdy = 1;
 
 		if (flags & DkBlitFlag_FlipX)
