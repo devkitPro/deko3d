@@ -321,11 +321,11 @@ enum
 	DkImageFlags_PitchLinear    = 1U << 0, // Image is stored in standard pitch linear format.
 	DkImageFlags_CustomTileSize = 1U << 1, // Use a custom tile size for block linear images.
 	DkImageFlags_HwCompression  = 1U << 2, // Specifies that hardware compression is allowed to be enabled.
-	DkImageFlags_D16EnableZbc   = 1U << 3, // For DkImageFormat_Z16 images, specifies that zero-bandwidth clear is preferred as the hardware compression format.
+	DkImageFlags_Z16EnableZbc   = 1U << 3, // For DkImageFormat_Z16 images, specifies that zero-bandwidth clear is preferred as the hardware compression format.
 
 	DkImageFlags_UsageRender    = 1U << 8,  // Specifies that the image will be used as a render target.
 	DkImageFlags_UsageLoadStore = 1U << 9,  // Specifies that the image will be used with shader image load/store commands.
-	DkImageFlags_UsagePresent   = 1U << 10, // Specifies that the image will be presented to a DkWindow.
+	DkImageFlags_UsagePresent   = 1U << 10, // Specifies that the image will be used with a DkSwapchain.
 	DkImageFlags_Usage2DEngine  = 1U << 11, // Specifies that the image will be used with the 2D Engine (e.g. for transfers between images)
 	DkImageFlags_UsageVideo     = 1U << 12, // Specifies that the image will be used with hardware video encoding/decoding engines
 };

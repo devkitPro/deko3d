@@ -468,7 +468,7 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 	// Pick a memory kind for this image
 	obj->m_memKind = pickImageMemoryKind(traits, obj->m_numSamplesLog2,
 		(obj->m_flags & DkImageFlags_HwCompression) != 0,
-		(obj->m_flags & DkImageFlags_D16EnableZbc) != 0);
+		(obj->m_flags & DkImageFlags_Z16EnableZbc) != 0);
 
 	obj->m_layerSize = obj->calcLevelOffset(obj->m_mipLevels);
 	if (obj->m_hasLayers)
