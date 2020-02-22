@@ -98,6 +98,11 @@ uint64_t DkImageLayout::calcLevelOffset(unsigned level) const
 
 DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 {
+#ifdef DEBUG
+	if (!view || !view->pImage)
+		return DkResult_BadInput;
+#endif
+
 	DkImage const* image = view->pImage;
 	DkImageType type = view->type ? view->type : image->m_type;
 	DkImageFormat format = view->format ? view->format : image->m_format;
@@ -134,7 +139,7 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 		return DkResult_BadInput;
 	if (view->mipLevelOffset >= image->m_mipLevels)
 		return DkResult_BadInput;
-	if (type == DkImageType_3D && view->layerOffset)
+	if (type == DkImageType_3D && (view->layerOffset || view->layerCount))
 		return DkResult_BadInput;
 #endif
 
@@ -168,7 +173,9 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 	m_height = adjustSize(image->m_dimensions[1], view->mipLevelOffset, traits.blockHeight);
 	m_widthMs = adjustSize(image->m_dimensions[0]*image->m_samplesX, view->mipLevelOffset, traits.blockWidth);
 	m_heightMs = adjustSize(image->m_dimensions[1]*image->m_samplesY, view->mipLevelOffset, traits.blockHeight);
+	m_depth = type == DkImageType_3D ? adjustMipSize(image->m_dimensions[2], view->mipLevelOffset) : 1;
 	m_bytesPerBlock = traits.bytesPerBlock;
+	m_isLayered = layered;
 
 	using TM   = Engine3D::RenderTarget::TileMode;
 	using TM2D = Engine2D::SrcTileMode;
@@ -183,7 +190,7 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 			if (type != DkImageType_3D)
 				tileHShift = adjustTileSize(tileHShift, 8, m_heightMs);
 			else
-				tileDShift = adjustTileSize(tileDShift, 1, adjustMipSize(image->m_dimensions[2], view->mipLevelOffset));
+				tileDShift = adjustTileSize(tileDShift, 1, m_depth);
 		}
 
 		if (view->layerOffset)
@@ -196,7 +203,7 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 		}
 
 		if (type == DkImageType_3D)
-			m_arrayMode = image->m_dimensions[2];
+			m_arrayMode = m_depth;
 		else if (layered)
 		{
 			if (view->layerCount)
@@ -361,6 +368,8 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	if ((obj->m_flags & DkImageFlags_Usage2DEngine) && !(traits.flags & FormatTraitFlags_CanUse2DEngine))
 		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if ((obj->m_flags & DkImageFlags_Usage2DEngine) && obj->m_dimsPerLayer > 2)
+		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput); // 3D textures with 2D engine: there are ways to work around it but it's ugly so we won't bother.
 	if (obj->m_flags & DkImageFlags_UsagePresent)
 	{
 		if (obj->m_flags & DkImageFlags_PitchLinear)
@@ -518,13 +527,6 @@ void dkCmdBufCopyImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect cons
 
 void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags, uint32_t factor)
 {
-#ifdef DEBUG
-	if (!srcView || !srcView->pImage || !srcRect)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!dstView || !dstView->pImage || !dstRect)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
 	DkResult res;
 	ImageInfo srcInfo, dstInfo;
 
@@ -550,6 +552,27 @@ void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect cons
 	if (isSrcTexCompressed != isDstTexCompressed)
 		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	if (isSrcTexCompressed && srcInfo.m_format != dstInfo.m_format)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+
+	if (!srcRect || !srcRect->width || !srcRect->height || !srcRect->depth)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (srcRect->x + srcRect->width > srcView->pImage->m_dimensions[0])
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (srcRect->y + srcRect->height > srcView->pImage->m_dimensions[1])
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (srcRect->z + srcRect->depth > srcInfo.m_depth)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+
+	if (!dstRect || !dstRect->width || !dstRect->height || !dstRect->depth)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (dstRect->x + dstRect->width > dstView->pImage->m_dimensions[0])
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (dstRect->y + dstRect->height > dstView->pImage->m_dimensions[1])
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (dstRect->z + dstRect->depth > dstInfo.m_depth)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+
+	if (srcRect->depth != dstRect->depth)
 		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 #endif
 
@@ -617,18 +640,29 @@ void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect cons
 	if (flags & DkBlitFlag_FilterLinear)
 		newFlags |= Blit2D_UseFilter;
 
-	Blit2DEngine(obj, srcInfo, dstInfo, params, dudx, dvdy, newFlags, factor);
+	if (srcRect->z)
+		srcInfo.m_iova += srcRect->z * srcInfo.m_layerStride;
+	if (dstRect->z)
+		dstInfo.m_iova += dstRect->z * dstInfo.m_layerStride;
+
+	int64_t srcLayerStride = srcInfo.m_layerStride;
+	if (flags & DkBlitFlag_FlipZ)
+	{
+		srcInfo.m_iova += (srcRect->depth - 1) * srcInfo.m_layerStride;
+		srcLayerStride = -srcInfo.m_layerStride;
+	}
+
+	for (uint32_t z = 0; z < dstRect->depth; z ++)
+	{
+		Blit2DEngine(obj, srcInfo, dstInfo, params, dudx, dvdy, newFlags, factor);
+		srcInfo.m_iova += srcLayerStride;
+		dstInfo.m_iova += dstInfo.m_layerStride;
+		newFlags &= ~Blit2D_SetupEngine;
+	}
 }
 
 void dkCmdBufResolveImage(DkCmdBuf obj, DkImageView const* srcView, DkImageView const* dstView)
 {
-#ifdef DEBUG
-	if (!srcView || !srcView->pImage || !srcView->pImage->m_numSamplesLog2)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!dstView || !dstView->pImage || dstView->pImage->m_numSamplesLog2)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
 	DkResult res;
 	ImageInfo srcInfo, dstInfo;
 
@@ -645,6 +679,10 @@ void dkCmdBufResolveImage(DkCmdBuf obj, DkImageView const* srcView, DkImageView 
 #endif
 
 #ifdef DEBUG
+	if (!srcView->pImage->m_numSamplesLog2 || dstView->pImage->m_numSamplesLog2)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (srcInfo.m_isLayered || dstInfo.m_isLayered)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	if (srcInfo.m_width != dstInfo.m_width)
 		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	if (srcInfo.m_height != dstInfo.m_height)
@@ -671,15 +709,6 @@ void dkCmdBufResolveImage(DkCmdBuf obj, DkImageView const* srcView, DkImageView 
 
 void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags)
 {
-#ifdef DEBUG
-	if (!src || src->addr == DK_GPU_ADDR_INVALID)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!dstView || !dstView->pImage)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!dstRect)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
 	ImageInfo dstInfo;
 	DkResult res = dstInfo.fromImageView(dstView, ImageInfo::TransferCopy);
 #ifdef DEBUG
@@ -689,6 +718,19 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 
 #ifndef DEBUG
 	(void)res;
+#endif
+
+#ifdef DEBUG
+	if (!src || src->addr == DK_GPU_ADDR_INVALID)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (!dstRect || !dstRect->width || !dstRect->height || !dstRect->depth)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (dstRect->x + dstRect->width > dstView->pImage->m_dimensions[0])
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (dstRect->y + dstRect->height > dstView->pImage->m_dimensions[1])
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+	if (dstRect->z + dstRect->depth > dstInfo.m_depth)
+		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 #endif
 
 	BlitParams params;
@@ -729,10 +771,11 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 	srcInfo.m_heightMs = srcInfo.m_height;
 	srcInfo.m_bytesPerBlock = dstInfo.m_bytesPerBlock;
 	srcInfo.m_isLinear = true;
+	srcInfo.m_isLayered = true;
 
 #ifdef DEBUG
 	bool canUse2D = true;
-	if (dstView->pImage->m_flags & DkImageFlags_Usage2DEngine)
+	if (!(dstView->pImage->m_flags & DkImageFlags_Usage2DEngine))
 		canUse2D = false;
 	if (!(traits.flags & FormatTraitFlags_CanUse2DEngine))
 		canUse2D = false;
@@ -773,7 +816,23 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 		params.srcY = (params.srcY<<SrcFractBits) + (dvdy<<(SrcFractBits-1));
 		uint32_t blitFlags = Blit2D_SetupEngine | Blit2D_OriginCorner;
 
-		Blit2DEngine(obj, srcInfo, dstInfo, params, dudx<<DiffFractBits, dvdy<<DiffFractBits, blitFlags, 0);
+		if (dstRect->z)
+			dstInfo.m_iova += dstRect->z * dstInfo.m_layerStride;
+
+		int64_t srcLayerStride = srcInfo.m_layerStride;
+		if (flags & DkBlitFlag_FlipZ)
+		{
+			srcInfo.m_iova += (dstRect->depth - 1) * srcInfo.m_layerStride;
+			srcLayerStride = -srcInfo.m_layerStride;
+		}
+
+		for (uint32_t z = 0; z < dstRect->depth; z ++)
+		{
+			Blit2DEngine(obj, srcInfo, dstInfo, params, dudx<<DiffFractBits, dvdy<<DiffFractBits, blitFlags, 0);
+			srcInfo.m_iova += srcLayerStride;
+			dstInfo.m_iova += dstInfo.m_layerStride;
+			blitFlags &= ~Blit2D_SetupEngine;
+		}
 	}
 	else
 	{
@@ -783,7 +842,14 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 			srcInfo.m_horizontal = -srcInfo.m_horizontal;
 		}
 
-		BlitCopyEngine(obj, srcInfo, dstInfo, params);
+		for (uint32_t z = 0; z < dstRect->depth; z ++)
+		{
+			uint32_t srcZ = z;
+			uint32_t dstZ = dstRect->z + z;
+			if (flags & DkBlitFlag_FlipZ)
+				srcZ = dstRect->depth - z - 1;
+			BlitCopyEngine(obj, srcInfo, dstInfo, params, srcZ, dstZ);
+		}
 	}
 }
 

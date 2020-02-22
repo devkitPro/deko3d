@@ -77,8 +77,10 @@ namespace dk::detail
 		uint32_t m_height;
 		uint32_t m_widthMs;
 		uint32_t m_heightMs;
+		uint32_t m_depth;
 		uint8_t m_bytesPerBlock;
 		bool m_isLinear;
+		bool m_isLayered;
 
 		enum
 		{
@@ -112,6 +114,6 @@ namespace dk::detail
 	constexpr unsigned DiffFractBits = 15;
 	constexpr unsigned SrcFractBits = 4;
 
-	void BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, BlitParams const& params);
+	void BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, BlitParams const& params, uint32_t srcZ, uint32_t dstZ);
 	void Blit2DEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, BlitParams const& params, int32_t dudx, int32_t dvdy, uint32_t flags, uint32_t factor);
 }

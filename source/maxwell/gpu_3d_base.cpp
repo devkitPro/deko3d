@@ -244,12 +244,6 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 	for (uint32_t i = 0; i < numColorTargets; i ++)
 	{
 		auto* view = colorTargets[i];
-#ifdef DEBUG
-		if (!view || !view->pImage)
-			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-		if (!(view->pImage->m_flags & DkImageFlags_UsageRender))
-			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
 		ImageInfo rt;
 #ifdef DEBUG
 		DkResult res = rt.fromImageView(view, ImageInfo::ColorRenderTarget);

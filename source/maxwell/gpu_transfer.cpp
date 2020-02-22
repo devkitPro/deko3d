@@ -25,7 +25,7 @@ void Queue::setupTransfer()
 	w << CmdInline(2D, Unknown221{}, 0x3f);
 }
 
-void dk::detail::BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, BlitParams const& params)
+void dk::detail::BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, BlitParams const& params, uint32_t srcZ, uint32_t dstZ)
 {
 	CmdBufWriter w{obj};
 	w.reserve(2*7 + 4 + 10);
@@ -35,11 +35,15 @@ void dk::detail::BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo co
 	uint32_t copyFlags = Copy::Execute::CopyMode{2} | Copy::Execute::Flush{} | Copy::Execute::Enable2D{};
 	bool useSwizzle = false;
 
+	if (src.m_isLayered)
+		srcIova += srcZ * src.m_layerStride;
 	if (src.m_isLinear)
 		srcIova += params.srcY * src.m_horizontal + params.srcX * src.m_bytesPerBlock;
 	else if (src.m_widthMs * src.m_bytesPerBlock > 0x10000)
 		useSwizzle = true;
 
+	if (dst.m_isLayered)
+		dstIova += dstZ * dst.m_layerStride;
 	if (dst.m_isLinear)
 		dstIova += params.dstY * dst.m_horizontal + params.dstX * dst.m_bytesPerBlock;
 	else if (dst.m_widthMs * dst.m_bytesPerBlock > 0x10000)
@@ -66,8 +70,8 @@ void dk::detail::BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo co
 			src.m_tileMode | 0x1000,
 			src.m_horizontal*srcHorizFactor,
 			src.m_vertical,
-			1U << ((src.m_tileMode >> 8) & 0xF),
-			0,
+			src.m_depth,
+			src.m_isLayered ? 0 : srcZ,
 			Copy::SrcPosXY::X{srcX} | Copy::SrcPosXY::Y{params.srcY});
 	}
 	else
@@ -82,8 +86,8 @@ void dk::detail::BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo co
 			dst.m_tileMode | 0x1000,
 			dst.m_horizontal*dstHorizFactor,
 			dst.m_vertical,
-			1U << ((dst.m_tileMode >> 8) & 0xF),
-			0,
+			dst.m_depth,
+			dst.m_isLayered ? 0 : dstZ,
 			Copy::DstPosXY::X{dstX} | Copy::DstPosXY::Y{params.dstY});
 	}
 	else
