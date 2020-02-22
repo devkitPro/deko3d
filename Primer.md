@@ -55,7 +55,7 @@ deko3d is written in the C++ language, however its API is accessible from both p
 	- `DkDrawIndirectData`
 	- `DkDrawIndexedIndirectData`
 	- `DkDispatchIndirectData`
-	- `DkBlitRect`
+	- `DkImageRect`
 	- `DkCopyBuf`
 
 ## Basic workflow
@@ -749,9 +749,9 @@ void dkCmdBufDispatchComputeIndirect(DkCmdBuf obj, DkGpuAddr indirect);
 
 ```c
 void dkCmdBufCopyBuffer(DkCmdBuf obj, DkGpuAddr srcAddr, DkGpuAddr dstAddr, uint32_t size);
-void dkCmdBufCopyImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags);
-void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags, uint32_t factor);
+void dkCmdBufCopyImage(DkCmdBuf obj, DkImageView const* srcView, DkImageRect const* srcRect, DkImageView const* dstView, DkImageRect const* dstRect, uint32_t flags);
+void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkImageRect const* srcRect, DkImageView const* dstView, DkImageRect const* dstRect, uint32_t flags, uint32_t factor);
 void dkCmdBufResolveImage(DkCmdBuf obj, DkImageView const* srcView, DkImageView const* dstView);
-void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags);
-void dkCmdBufCopyImageToBuffer(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkCopyBuf const* dst, uint32_t flags);
+void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView const* dstView, DkImageRect const* dstRect, uint32_t flags);
+void dkCmdBufCopyImageToBuffer(DkCmdBuf obj, DkImageView const* srcView, DkImageRect const* srcRect, DkCopyBuf const* dst, uint32_t flags);
 ```

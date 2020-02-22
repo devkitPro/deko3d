@@ -229,11 +229,11 @@ namespace dk
 		void pushConstants(DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data);
 		void pushData(DkGpuAddr addr, const void* data, uint32_t size);
 		void copyBuffer(DkGpuAddr srcAddr, DkGpuAddr dstAddr, uint32_t size);
-		void copyImage(DkImageView const& srcView, DkBlitRect const& srcRect, DkImageView const& dstView, DkBlitRect const& dstRect, uint32_t flags = 0);
-		void blitImage(DkImageView const& srcView, DkBlitRect const& srcRect, DkImageView const& dstView, DkBlitRect const& dstRect, uint32_t flags = 0, uint32_t factor = 0);
+		void copyImage(DkImageView const& srcView, DkImageRect const& srcRect, DkImageView const& dstView, DkImageRect const& dstRect, uint32_t flags = 0);
+		void blitImage(DkImageView const& srcView, DkImageRect const& srcRect, DkImageView const& dstView, DkImageRect const& dstRect, uint32_t flags = 0, uint32_t factor = 0);
 		void resolveImage(DkImageView const& srcView, DkImageView const& dstView);
-		void copyBufferToImage(DkCopyBuf const& src, DkImageView const& dstView, DkBlitRect const& dstRect, uint32_t flags = 0);
-		void copyImageToBuffer(DkImageView const& srcView, DkBlitRect const& srcRect, DkCopyBuf const& dst, uint32_t flags = 0);
+		void copyBufferToImage(DkCopyBuf const& src, DkImageView const& dstView, DkImageRect const& dstRect, uint32_t flags = 0);
+		void copyImageToBuffer(DkImageView const& srcView, DkImageRect const& srcRect, DkCopyBuf const& dst, uint32_t flags = 0);
 	};
 
 	struct Queue : public detail::Handle<::DkQueue>
@@ -888,12 +888,12 @@ namespace dk
 		::dkCmdBufCopyBuffer(*this, srcAddr, dstAddr, size);
 	}
 
-	inline void CmdBuf::copyImage(DkImageView const& srcView, DkBlitRect const& srcRect, DkImageView const& dstView, DkBlitRect const& dstRect, uint32_t flags)
+	inline void CmdBuf::copyImage(DkImageView const& srcView, DkImageRect const& srcRect, DkImageView const& dstView, DkImageRect const& dstRect, uint32_t flags)
 	{
 		::dkCmdBufCopyImage(*this, &srcView, &srcRect, &dstView, &dstRect, flags);
 	}
 
-	inline void CmdBuf::blitImage(DkImageView const& srcView, DkBlitRect const& srcRect, DkImageView const& dstView, DkBlitRect const& dstRect, uint32_t flags, uint32_t factor)
+	inline void CmdBuf::blitImage(DkImageView const& srcView, DkImageRect const& srcRect, DkImageView const& dstView, DkImageRect const& dstRect, uint32_t flags, uint32_t factor)
 	{
 		::dkCmdBufBlitImage(*this, &srcView, &srcRect, &dstView, &dstRect, flags, factor);
 	}
@@ -903,12 +903,12 @@ namespace dk
 		::dkCmdBufResolveImage(*this, &srcView, &dstView);
 	}
 
-	inline void CmdBuf::copyBufferToImage(DkCopyBuf const& src, DkImageView const& dstView, DkBlitRect const& dstRect, uint32_t flags)
+	inline void CmdBuf::copyBufferToImage(DkCopyBuf const& src, DkImageView const& dstView, DkImageRect const& dstRect, uint32_t flags)
 	{
 		::dkCmdBufCopyBufferToImage(*this, &src, &dstView, &dstRect, flags);
 	}
 
-	inline void CmdBuf::copyImageToBuffer(DkImageView const& srcView, DkBlitRect const& srcRect, DkCopyBuf const& dst, uint32_t flags)
+	inline void CmdBuf::copyImageToBuffer(DkImageView const& srcView, DkImageRect const& srcRect, DkCopyBuf const& dst, uint32_t flags)
 	{
 		::dkCmdBufCopyImageToBuffer(*this, &srcView, &srcRect, &dst, flags);
 	}

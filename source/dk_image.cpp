@@ -520,12 +520,12 @@ DkGpuAddr dkImageGetGpuAddr(DkImage const* obj)
 	return obj->m_iova;
 }
 
-void dkCmdBufCopyImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags)
+void dkCmdBufCopyImage(DkCmdBuf obj, DkImageView const* srcView, DkImageRect const* srcRect, DkImageView const* dstView, DkImageRect const* dstRect, uint32_t flags)
 {
 	obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
 }
 
-void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags, uint32_t factor)
+void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkImageRect const* srcRect, DkImageView const* dstView, DkImageRect const* dstRect, uint32_t flags, uint32_t factor)
 {
 	DkResult res;
 	ImageInfo srcInfo, dstInfo;
@@ -707,7 +707,7 @@ void dkCmdBufResolveImage(DkCmdBuf obj, DkImageView const* srcView, DkImageView 
 		Blit2D_SetupEngine | Blit2D_UseFilter, 0);
 }
 
-void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView const* dstView, DkBlitRect const* dstRect, uint32_t flags)
+void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView const* dstView, DkImageRect const* dstRect, uint32_t flags)
 {
 	ImageInfo dstInfo;
 	DkResult res = dstInfo.fromImageView(dstView, ImageInfo::TransferCopy);
@@ -853,7 +853,7 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 	}
 }
 
-void dkCmdBufCopyImageToBuffer(DkCmdBuf obj, DkImageView const* srcView, DkBlitRect const* srcRect, DkCopyBuf const* dst, uint32_t flags)
+void dkCmdBufCopyImageToBuffer(DkCmdBuf obj, DkImageView const* srcView, DkImageRect const* srcRect, DkCopyBuf const* dst, uint32_t flags)
 {
 	obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
 }
