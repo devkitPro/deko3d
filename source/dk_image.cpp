@@ -243,7 +243,7 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 		m_vertical    = m_height;
 		if (isRenderTarget)
 			m_tileMode = TM::IsLinear{};
-		m_arrayMode   = 0;
+		m_arrayMode   = isRenderTarget ? 0 : 1;
 		m_layerStride = 0;
 		m_isLinear = true;
 	}
@@ -560,7 +560,7 @@ void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkImageRect con
 		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	if (srcRect->y + srcRect->height > srcView->pImage->m_dimensions[1])
 		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (srcRect->z + srcRect->depth > srcInfo.m_depth)
+	if (srcRect->z + srcRect->depth > srcInfo.m_arrayMode)
 		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 
 	if (!dstRect || !dstRect->width || !dstRect->height || !dstRect->depth)
@@ -569,7 +569,7 @@ void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkImageRect con
 		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	if (dstRect->y + dstRect->height > dstView->pImage->m_dimensions[1])
 		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (dstRect->z + dstRect->depth > dstInfo.m_depth)
+	if (dstRect->z + dstRect->depth > dstInfo.m_arrayMode)
 		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 
 	if (srcRect->depth != dstRect->depth)
@@ -729,7 +729,7 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 	if (dstRect->y + dstRect->height > dstView->pImage->m_dimensions[1])
 		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (dstRect->z + dstRect->depth > dstInfo.m_depth)
+	if (dstRect->z + dstRect->depth > dstInfo.m_arrayMode)
 		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
 #endif
 
