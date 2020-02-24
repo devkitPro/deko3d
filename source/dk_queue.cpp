@@ -219,6 +219,7 @@ void Queue::signalFence(DkFence& fence, bool flush)
 
 	fence.m_type = DkFence::Internal;
 	fence.m_internal.m_semaphoreAddr = getDevice()->getSemaphoreGpuAddr(m_id);
+	fence.m_internal.m_semaphoreCpuAddr = &getDevice()->getSemaphoreCpuAddr(m_id)->sequence;
 
 	if (!isInErrorState())
 	{

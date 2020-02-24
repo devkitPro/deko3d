@@ -9,8 +9,37 @@ DkResult DkFence::wait(s32 timeout_us)
 		case DkFence::Invalid:
 			return DkResult_Fail;
 		case DkFence::Internal:
-			res = nvFenceWait(&m_internal.m_fence, timeout_us);
+		{
+			// Succeed early if the semaphore is signaled
+			if (internalPoll())
+				return DkResult_Success;
+
+			// Fail early if the timeout is zero
+			if (timeout_us == 0)
+				return DkResult_Timeout;
+
+			u64 start = armGetSystemTick();
+			do
+			{
+				s32 wait_timeout = 100000; // 10^5 μs = 100 ms
+				if (timeout_us >= 0)
+				{
+					s32 elapsed_us = armTicksToNs(armGetSystemTick() - start) / 1000U;
+					s32 remaining_us = timeout_us - elapsed_us;
+					if (remaining_us <= 0)
+					{
+						res = MAKERESULT(Module_LibnxNvidia, LibnxNvidiaError_Timeout);
+						break;
+					}
+					if (wait_timeout > remaining_us)
+						wait_timeout = remaining_us;
+				}
+				res = nvFenceWait(&m_internal.m_fence, wait_timeout);
+				if (R_FAILED(res) && res != MAKERESULT(Module_LibnxNvidia, LibnxNvidiaError_Timeout))
+					break;
+			} while (R_FAILED(res) || !internalPoll());
 			break;
+		}
 		case DkFence::External:
 			res = nvMultiFenceWait(&m_external.m_fence, timeout_us);
 			break;

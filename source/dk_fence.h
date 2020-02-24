@@ -18,6 +18,7 @@ struct Fence
 		Type m_type;
 		uint32_t m_semaphoreValue;
 		DkGpuAddr m_semaphoreAddr;
+		uint32_t volatile* m_semaphoreCpuAddr;
 		NvFence m_fence;
 	};
 
@@ -33,6 +34,11 @@ struct Fence
 		_Internal m_internal;
 		_External m_external;
 	};
+
+	bool internalPoll() const
+	{
+		return (int32_t)(*m_internal.m_semaphoreCpuAddr - m_internal.m_semaphoreValue) >= 0;
+	}
 
 	DkResult wait(s32 timeout_us = -1);
 };
