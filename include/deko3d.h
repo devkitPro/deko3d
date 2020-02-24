@@ -1034,8 +1034,8 @@ typedef enum DkVtxAttribType
 	DkVtxAttribType_Unorm   = 2,
 	DkVtxAttribType_Sint    = 3,
 	DkVtxAttribType_Uint    = 4,
-	DkVtxAttribType_Sscaled = 5,
-	DkVtxAttribType_Uscaled = 6,
+	DkVtxAttribType_Uscaled = 5,
+	DkVtxAttribType_Sscaled = 6,
 	DkVtxAttribType_Float   = 7,
 } DkVtxAttribType;
 
