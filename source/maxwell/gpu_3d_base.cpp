@@ -258,10 +258,9 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 		w << ColorTargetBindCmds(rt, i);
 
 		// Update data
-		DkImage const* image = view->pImage;
-		if (image->m_dimensions[0] < minWidth)  minWidth  = image->m_dimensions[0];
-		if (image->m_dimensions[1] < minHeight) minHeight = image->m_dimensions[1];
-		msMode = (DkMsMode)image->m_numSamplesLog2;
+		if (rt.m_width  < minWidth)  minWidth  = rt.m_width;
+		if (rt.m_height < minHeight) minHeight = rt.m_height;
+		msMode = (DkMsMode)view->pImage->m_numSamplesLog2;
 	}
 
 	// Disable all remaining render targets
@@ -297,7 +296,7 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 		DkImage const* image = depthTarget->pImage;
 		ZcullStorageInfo zinfo;
 		obj->getDevice()->calcZcullStorageInfo(zinfo,
-			image->m_dimensions[0], image->m_dimensions[1], rt.m_arrayMode,
+			rt.m_width, rt.m_height, rt.m_arrayMode,
 			depthTarget->format ? depthTarget->format : image->m_format,
 			(DkMsMode)image->m_bytesPerBlockLog2);
 
@@ -313,8 +312,8 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 		// mme scratch "weird zcull feature enable" is set here
 
 		// Update data
-		if (image->m_dimensions[0] < minWidth)  minWidth  = image->m_dimensions[0];
-		if (image->m_dimensions[1] < minHeight) minHeight = image->m_dimensions[1];
+		if (rt.m_width  < minWidth)  minWidth  = rt.m_width;
+		if (rt.m_height < minHeight) minHeight = rt.m_height;
 		if (!numColorTargets) msMode = (DkMsMode)image->m_numSamplesLog2;
 	}
 
