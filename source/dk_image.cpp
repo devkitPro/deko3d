@@ -243,7 +243,7 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 		m_vertical    = m_height;
 		if (isRenderTarget)
 			m_tileMode = TM::IsLinear{};
-		m_arrayMode   = isRenderTarget ? 0 : 1;
+		m_arrayMode   = 1;
 		m_layerStride = 0;
 		m_isLinear = true;
 	}
