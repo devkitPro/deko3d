@@ -524,6 +524,10 @@ namespace dk
 	struct SwapchainMaker : public ::DkSwapchainMaker
 	{
 		SwapchainMaker(DkDevice device, void* nativeWindow, DkImage const* const pImages[], uint32_t numImages) noexcept : DkSwapchainMaker{} { ::dkSwapchainMakerDefaults(this, device, nativeWindow, pImages, numImages); }
+		template <size_t N> SwapchainMaker(DkDevice device, void* nativeWindow, std::array<DkImage const*, N> const& images) noexcept : SwapchainMaker{device, nativeWindow, images.data(), images.size()} { }
+#ifdef DK_HPP_SUPPORT_VECTOR
+		SwapchainMaker(DkDevice device, void* nativeWindow, std::vector<DkImage const*> const& images) noexcept : SwapchainMaker{device, nativeWindow, images.data(), images.size()} { }
+#endif
 		Swapchain create();
 	};
 
