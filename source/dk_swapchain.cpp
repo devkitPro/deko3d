@@ -23,8 +23,8 @@ namespace
 		{ DkImageFormat_RGBA8_Unorm,      PIXEL_FORMAT_RGBA_8888, NvColorFormat_A8B8G8R8, },
 		{ DkImageFormat_RGBX8_Unorm_sRGB, PIXEL_FORMAT_RGBX_8888, NvColorFormat_X8B8G8R8, },
 		{ DkImageFormat_RGBA8_Unorm_sRGB, PIXEL_FORMAT_RGBA_8888, NvColorFormat_A8B8G8R8, },
-		{ DkImageFormat_RGB565_Unorm,     PIXEL_FORMAT_RGB_565,   NvColorFormat_R5G6B5,   },
 		{ DkImageFormat_RGBX8_Unorm,      PIXEL_FORMAT_RGBX_8888, NvColorFormat_X8B8G8R8, },
+		{ DkImageFormat_BGR565_Unorm,     PIXEL_FORMAT_RGB_565,   NvColorFormat_R5G6B5,   },
 		{ DkImageFormat_BGRA8_Unorm,      PIXEL_FORMAT_BGRA_8888, NvColorFormat_A8R8G8B8, },
 		{ DkImageFormat_BGRA8_Unorm_sRGB, PIXEL_FORMAT_BGRA_8888, NvColorFormat_A8R8G8B8, },
 	};
