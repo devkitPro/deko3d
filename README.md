@@ -60,3 +60,46 @@ The way mesa and nouveau are designed and developed makes it difficult to add su
 The NVN reverse engineering route has resulted in much cleaner, straightforward, and fruitful results - the homebrew community has received a more suitable and lightweight low level API, and without needing to depend on nouveau's uncertain future. In fact, at the time of writing, it is unfortunately not clear if nouveau will ever receive Vulkan support.
 
 With that said, deko3d is released under a permissive zlib license. All developers are free to study and use it as reference material, including nouveau developers; in fact they are very much welcome to do so. Specifically, there are certain improvements in the shader compiler (which *is* based off mesa/nouveau sources) which we would be more than happy to upstream; as well as assisting with anything else we might be asked about.
+
+## Future plans
+
+In its current form, deko3d provides support for around 80% of most common hardware features. However, deko3d is still a work in progress, and the following items are still waiting to be implemented (in no particular order):
+
+- A texture conversion tool
+- Event synchronization primitives
+- Conditional render
+- GPU reports and counters
+- Conservative raster
+- Zcull state save/restore
+- Calling command lists from other command lists
+- dkCmdBufCopyImage and dkCmdBufCopyImageToBuffer
+- Registering custom zero-bandwidth-clear color/depth values
+- Transform feedback
+- Multidraw
+- Variable group size in compute shaders
+- NV_draw_texture equivalent functionality
+- Passthrough geometry shaders
+- `gl_ViewportMask[]` (also known as NV_viewport_array2)
+- Reading sample positions in shaders (directly or indirectly)
+- Fragment shader interlock
+- Sparse textures
+- "Color reduction" (?)
+- "Stencil cull criteria" (?)
+- An unidentified special Zcull mode
+
+## Credits and acknowledgements
+
+deko3d is presently developed and maintained by **fincs**.<br>
+In no particular order, I would like to credit the following people:
+
+- [WinterMute](https://github.com/WinterMute) from [devkitPro](https://devkitpro.org/) for making the homebrew dream a reality through their incredible toolchains and ecosystem.
+- [plutoo](https://github.com/plutooo) from [switchbrew](https://github.com/switchbrew) for kickstarting GPU and NVN reverse engineering efforts.
+- [SciresM](https://github.com/SciresM) and [hexkyz](https://github.com/hexkyz) from the [Atmosphère](https://github.com/Atmosphere-NX) project for their invaluable contributions in the reverse engineering of Horizon OS.
+- [Rodrigo](https://github.com/ReinUsesLisp) and [Blinkhawk](https://github.com/FernandoS27) from the [yuzu](https://github.com/yuzu-emu) project for tirelessly listening to my rants and assisting me with feedback and GPU knowledge.
+- [Thog](https://github.com/Thog) and [gdkchan](https://github.com/gdkchan) from the [Ryujinx](https://github.com/Ryujinx) project for tirelessly listening to my rants and assisting me with feedback and GPU knowledge.
+
+In addition, deko3d would have never been a thing without these organizations:
+
+- [NVIDIA](https://github.com/NVIDIA) for designing and creating the Tegra X1 GPU, as well as the NVN API.
+- [Nintendo](https://github.com/Nintendo) for designing and creating Horizon OS.
+- [nouveau](https://nouveau.freedesktop.org/wiki/) for creating and maintaining the only open source OpenGL driver for Nvidia hardware.
