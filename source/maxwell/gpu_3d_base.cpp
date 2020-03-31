@@ -485,7 +485,7 @@ void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, con
 
 void dkCmdBufClearDepthStencil(DkCmdBuf obj, bool clearDepth, float depthValue, uint8_t stencilMask, uint8_t stencilValue)
 {
-	if (!clearDepth || !stencilMask)
+	if (!clearDepth && !stencilMask)
 		return;
 
 	CmdBufWriter w{obj};
