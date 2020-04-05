@@ -89,11 +89,10 @@ DkResult Device::initialize()
 		return res;
 
 	// Allocate memory for the semaphore queries
-	res = m_semaphoreMem.initialize(DkMemBlockFlags_CpuUncached | DkMemBlockFlags_GpuUncached,
+	res = m_semaphoreMem.initialize(DkMemBlockFlags_CpuUncached | DkMemBlockFlags_GpuUncached | DkMemBlockFlags_ZeroFillInit,
 		nullptr, s_numQueues*sizeof(NvLongSemaphore));
 	if (res != DkResult_Success)
 		return res;
-	memset(m_semaphoreMem.getCpuAddr(), 0, m_semaphoreMem.getSize());
 
 	// TODO: Set up built-in shaders, if we ever decide to have them?
 	// TODO: Get zbc active slot mask
