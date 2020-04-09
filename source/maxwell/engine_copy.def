@@ -2,58 +2,162 @@
 // MAXWELL_DMA_COPY_A
 engine Copy 0xB0B5;
 
-0x0c0 Execute bits (
-	0..1 CopyMode;
-	2    Flush;
-	3..4 Query enum (
+0x0c0 LaunchDma bits (
+	0..1 TransferType enum (
 		0 None;
-		1 OneWord;
-		2 FourWords;
+		1 Pipelined;
+		2 NonPipelined;
 	);
-	5..6 Interrupt enum (
+	2    FlushEnable bool;
+	3..4 SemaphoreType enum (
 		0 None;
-		1 Block;
-		2 NonBlock;
+		1 ReleaseOneWord;
+		2 ReleaseFourWords;
 	);
-	7    SrcIsPitchLinear bool;
-	8    DstIsPitchLinear bool;
-	9    Enable2D bool;
-	10   EnableSwizzle bool;
+	5..6 InterruptType enum (
+		0 None;
+		1 Blocking;
+		2 NonBlocking;
+	);
+	7 SrcMemoryLayout enum (
+		0 BlockLinear;
+		1 Pitch;
+	);
+	8 DstMemoryLayout enum (
+		0 BlockLinear;
+		1 Pitch;
+	);
+	9  MultiLineEnable bool;
+	10 RemapEnable bool;
+	11 ForceRmwDisable bool;
+	12 SrcType enum (
+		0 Virtual;
+		1 Physical;
+	);
+	13 DstType enum (
+		0 Virtual;
+		1 Physical;
+	);
+	14..17 SemaphoreReduction enum (
+		0  Imin;
+		1  Imax;
+		2  Ixor;
+		3  Iand;
+		4  Ior;
+		5  Iadd;
+		6  Inc;
+		7  Dec;
+		10 Fadd;
+	);
+	18 SemaphoreReductionSign enum (
+		0 Signed;
+		1 Unsigned;
+	);
+	19 SemaphoreReductionEnable bool;
+	20 BypassL2 enum (
+		0 UsePteSetting;
+		1 ForceVolatile;
+	);
 );
 
-0x100 SrcAddr iova;
-0x102 DstAddr iova;
-0x104 SrcPitch;
-0x105 DstPitch;
-0x106 XCount;
-0x107 YCount;
+0x100 OffsetIn iova;
+0x102 OffsetOut iova;
+0x104 PitchIn;
+0x105 PitchOut;
+0x106 LineLengthIn;
+0x107 LineCount;
 
-0x1c0 Const array[2];
-0x1c2 Swizzle bits (
-	0..3   X; // 0=x 1=y 2=z 3=w 4=Const[0] 5=Const[0] 6=0
-	4..7   Y;
-	8..11  Z;
-	12..15 W;
-	16..17 SizeMinus1;
-	20..22 SrcNumComponentsMinus1;
-	24..26 DstNumComponentsMinus1;
+0x1c0 SetRemapConst array[2];
+0x1c2 SetRemapComponents bits (
+	0..2   DstX; // 0=SrcX 1=SrcY 2=SrcZ 3=SrcW 4=RemapConst[0] 5=RemapConst[1] 6=NoWrite
+	4..6   DstY;
+	8..10  DstZ;
+	12..14 DstW;
+	16..17 ComponentSize enum (
+		0 One;
+		1 Two;
+		2 Three;
+		3 Four;
+	);
+	20..21 NumSrcComponents enum (
+		0 One;
+		1 Two;
+		2 Three;
+		3 Four;
+	);
+	24..25 NumDstComponents enum (
+		0 One;
+		1 Two;
+		2 Three;
+		3 Four;
+	);
 );
-0x1c3 DstTileMode; // you know the drill
-0x1c4 DstSizeX;
-0x1c5 DstSizeY;
-0x1c6 DstSizeZ;
-0x1c7 DstPosZ;
-0x1c8 DstPosXY bits (
+0x1c3 SetDstBlockSize bits (
+	0..3 Width enum (
+		0  OneGob;
+		14 QuarterGob;
+	);
+	4..7 Height enum (
+		0 OneGob;
+		1 TwoGobs;
+		2 FourGobs;
+		3 EightGobs;
+		4 SixteenGobs;
+		5 ThirtyTwoGobs;
+	);
+	8..11 Depth enum (
+		0 OneGob;
+		1 TwoGobs;
+		2 FourGobs;
+		3 EightGobs;
+		4 SixteenGobs;
+		5 ThirtyTwoGobs;
+	);
+	12..15 GobHeight enum (
+		0 Tesla4;
+		1 Fermi8;
+	);
+);
+0x1c4 SetDstWidth;
+0x1c5 SetDstHeight;
+0x1c6 SetDstDepth;
+0x1c7 SetDstLayer;
+0x1c8 SetDstOrigin bits (
 	0..15  X;
 	16..31 Y;
 );
 
-0x1ca SrcTileMode; // you know the drill
-0x1cb SrcSizeX;
-0x1cc SrcSizeY;
-0x1cd SrcSizeZ;
-0x1ce SrcPosZ;
-0x1cf SrcPosXY bits (
+0x1ca SetSrcBlockSize bits (
+	0..3 Width enum (
+		0  OneGob;
+		14 QuarterGob;
+	);
+	4..7 Height enum (
+		0 OneGob;
+		1 TwoGobs;
+		2 FourGobs;
+		3 EightGobs;
+		4 SixteenGobs;
+		5 ThirtyTwoGobs;
+	);
+	8..11 Depth enum (
+		0 OneGob;
+		1 TwoGobs;
+		2 FourGobs;
+		3 EightGobs;
+		4 SixteenGobs;
+		5 ThirtyTwoGobs;
+	);
+	12..15 GobHeight enum (
+		0 Tesla4;
+		1 Fermi8;
+	);
+);
+0x1cb SetSrcWidth;
+0x1cc SetSrcHeight;
+0x1cd SetSrcDepth;
+0x1ce SetSrcLayer;
+0x1cf SetSrcOrigin bits (
 	0..15  X;
 	16..31 Y;
 );

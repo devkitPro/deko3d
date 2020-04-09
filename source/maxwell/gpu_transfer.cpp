@@ -32,7 +32,7 @@ void dk::detail::BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo co
 
 	DkGpuAddr srcIova = src.m_iova;
 	DkGpuAddr dstIova = dst.m_iova;
-	uint32_t copyFlags = Copy::Execute::CopyMode{2} | Copy::Execute::Flush{} | Copy::Execute::Enable2D{};
+	uint32_t copyFlags = Copy::LaunchDma::TransferType::NonPipelined | Copy::LaunchDma::FlushEnable{} | Copy::LaunchDma::MultiLineEnable{};
 	bool useSwizzle = false;
 
 	if (src.m_isLayered)
@@ -66,54 +66,54 @@ void dk::detail::BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo co
 
 	if (!src.m_isLinear)
 	{
-		w << Cmd(Copy, SrcTileMode{},
-			src.m_tileMode | 0x1000,
+		w << Cmd(Copy, SetSrcBlockSize{},
+			src.m_tileMode | Copy::SetSrcBlockSize::GobHeight::Fermi8,
 			src.m_horizontal*srcHorizFactor,
 			src.m_vertical,
 			src.m_depth,
 			src.m_isLayered ? 0 : srcZ,
-			Copy::SrcPosXY::X{srcX} | Copy::SrcPosXY::Y{params.srcY});
+			Copy::SetSrcOrigin::X{srcX} | Copy::SetSrcOrigin::Y{params.srcY});
 	}
 	else
 	{
-		copyFlags |= Copy::Execute::SrcIsPitchLinear{};
-		w << Cmd(Copy, SrcPitch{}, src.m_horizontal);
+		copyFlags |= Copy::LaunchDma::SrcMemoryLayout::Pitch;
+		w << Cmd(Copy, PitchIn{}, src.m_horizontal);
 	}
 
 	if (!dst.m_isLinear)
 	{
-		w << Cmd(Copy, DstTileMode{},
-			dst.m_tileMode | 0x1000,
+		w << Cmd(Copy, SetDstBlockSize{},
+			dst.m_tileMode | Copy::SetDstBlockSize::GobHeight::Fermi8,
 			dst.m_horizontal*dstHorizFactor,
 			dst.m_vertical,
 			dst.m_depth,
 			dst.m_isLayered ? 0 : dstZ,
-			Copy::DstPosXY::X{dstX} | Copy::DstPosXY::Y{params.dstY});
+			Copy::SetDstOrigin::X{dstX} | Copy::SetDstOrigin::Y{params.dstY});
 	}
 	else
 	{
-		copyFlags |= Copy::Execute::DstIsPitchLinear{};
-		w << Cmd(Copy, DstPitch{}, dst.m_horizontal);
+		copyFlags |= Copy::LaunchDma::DstMemoryLayout::Pitch;
+		w << Cmd(Copy, PitchOut{}, dst.m_horizontal);
 	}
 
 	if (useSwizzle)
 	{
-		copyFlags |= Copy::Execute::EnableSwizzle{};
+		copyFlags |= Copy::LaunchDma::RemapEnable{};
 		uint32_t compSize = 2;
 		if (src.m_bytesPerBlock == 4 || src.m_bytesPerBlock == 8 || src.m_bytesPerBlock == 16)
 			compSize = 4;
 
-		using S = Copy::Swizzle;
-		w << Cmd(Copy, Const{}, 0, 0,
-			S::X{0} | S::Y{1} | S::Z{2} | S::W{3} |
-			S::SizeMinus1{compSize-1} |
-			S::SrcNumComponentsMinus1{src.m_bytesPerBlock/compSize-1} |
-			S::DstNumComponentsMinus1{dst.m_bytesPerBlock/compSize-1});
+		using S = Copy::SetRemapComponents;
+		w << Cmd(Copy, SetRemapConst{}, 0, 0,
+			S::DstX{0} | S::DstY{1} | S::DstZ{2} | S::DstW{3} |
+			S::ComponentSize{compSize-1} |
+			S::NumSrcComponents{src.m_bytesPerBlock/compSize-1} |
+			S::NumDstComponents{dst.m_bytesPerBlock/compSize-1});
 	}
 
-	w << Cmd(Copy, SrcAddr{}, Iova(srcIova), Iova(dstIova));
-	w << Cmd(Copy, XCount{}, width, params.height);
-	w << Cmd(Copy, Execute{}, copyFlags);
+	w << Cmd(Copy, OffsetIn{}, Iova(srcIova), Iova(dstIova));
+	w << Cmd(Copy, LineLengthIn{}, width, params.height);
+	w << Cmd(Copy, LaunchDma{}, copyFlags);
 }
 
 void dk::detail::Blit2DEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, BlitParams const& params, int32_t dudx, int32_t dvdy, uint32_t flags, uint32_t factor)
@@ -252,12 +252,12 @@ void dkCmdBufCopyBuffer(DkCmdBuf obj, DkGpuAddr srcAddr, DkGpuAddr dstAddr, uint
 	{
 		uint32_t curSize = size > 0x3FFFFF ? 0x3FFFFF : size;
 
-		using E = Copy::Execute;
+		using E = Copy::LaunchDma;
 		w.reserve(9); // one more for extra flush
-		w << Cmd(Copy, SrcAddr{}, Iova(srcAddr), Iova(dstAddr));
-		w << Cmd(Copy, XCount{}, curSize);
-		w << CmdInline(Copy, Execute{},
-			E::CopyMode{2} | E::Flush{} | E::SrcIsPitchLinear{} | E::DstIsPitchLinear{}
+		w << Cmd(Copy, OffsetIn{}, Iova(srcAddr), Iova(dstAddr));
+		w << Cmd(Copy, LineLengthIn{}, curSize);
+		w << CmdInline(Copy, LaunchDma{},
+			E::TransferType::NonPipelined | E::FlushEnable{} | E::SrcMemoryLayout::Pitch | E::DstMemoryLayout::Pitch
 		);
 
 		size -= curSize;
