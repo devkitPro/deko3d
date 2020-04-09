@@ -10,13 +10,9 @@ using E = Engine3D;
 
 void dkCmdBufBindVtxAttribState(DkCmdBuf obj, DkVtxAttribState const attribs[], uint32_t numAttribs)
 {
-#ifdef DEBUG
-	if (numAttribs > DK_MAX_VERTEX_ATTRIBS)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (numAttribs && !attribs)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(numAttribs > DK_MAX_VERTEX_ATTRIBS);
+	DK_DEBUG_NON_NULL_ARRAY(attribs, numAttribs);
 	CmdBufWriter w{obj};
 	w.reserve(1+DK_MAX_VERTEX_ATTRIBS);
 
@@ -32,13 +28,9 @@ void dkCmdBufBindVtxAttribState(DkCmdBuf obj, DkVtxAttribState const attribs[], 
 
 void dkCmdBufBindVtxBufferState(DkCmdBuf obj, DkVtxBufferState const buffers[], uint32_t numBuffers)
 {
-#ifdef DEBUG
-	if (numBuffers > DK_MAX_VERTEX_BUFFERS)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (numBuffers && !buffers)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(numBuffers > DK_MAX_VERTEX_BUFFERS);
+	DK_DEBUG_NON_NULL_ARRAY(buffers, numBuffers);
 	CmdBufWriter w{obj};
 	w.reserve(4*numBuffers + 1*(DK_MAX_VERTEX_BUFFERS-numBuffers));
 
@@ -58,13 +50,9 @@ void dkCmdBufBindVtxBufferState(DkCmdBuf obj, DkVtxBufferState const buffers[], 
 
 void dkCmdBufBindVtxBuffers(DkCmdBuf obj, uint32_t firstId, DkBufExtents const buffers[], uint32_t numBuffers)
 {
-#ifdef DEBUG
-	if (firstId > DK_MAX_VERTEX_BUFFERS || numBuffers > DK_MAX_VERTEX_BUFFERS || (firstId+numBuffers) > DK_MAX_VERTEX_BUFFERS)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (numBuffers && !buffers)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(firstId > DK_MAX_VERTEX_BUFFERS || numBuffers > DK_MAX_VERTEX_BUFFERS || (firstId+numBuffers) > DK_MAX_VERTEX_BUFFERS);
+	DK_DEBUG_NON_NULL_ARRAY(buffers, numBuffers);
 	CmdBufWriter w{obj};
 	w.reserve(5*numBuffers);
 

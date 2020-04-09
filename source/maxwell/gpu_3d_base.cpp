@@ -227,11 +227,8 @@ void Queue::setup3DEngine()
 
 void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTargets[], uint32_t numColorTargets, DkImageView const* depthTarget)
 {
-#ifdef DEBUG
-	if (numColorTargets > DK_MAX_RENDER_TARGETS)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(numColorTargets > DK_MAX_RENDER_TARGETS);
 	CmdBufWriter w{obj};
 	w.reserve(2 + numColorTargets*9 + (8-numColorTargets)*1 + (depthTarget ? (12+14) : 1) + 4);
 
@@ -245,16 +242,7 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 	{
 		auto* view = colorTargets[i];
 		ImageInfo rt;
-#ifdef DEBUG
-		DkResult res = rt.fromImageView(view, ImageInfo::ColorRenderTarget);
-		if (res != DkResult_Success)
-		{
-			obj->raiseError(DK_FUNC_ERROR_CONTEXT, res);
-			return;
-		}
-#else
 		rt.fromImageView(view, ImageInfo::ColorRenderTarget);
-#endif
 		w << ColorTargetBindCmds(rt, i);
 
 		// Update data
@@ -278,16 +266,8 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 	else
 	{
 		ImageInfo rt;
-#ifdef DEBUG
-		DkResult res = rt.fromImageView(depthTarget, ImageInfo::DepthRenderTarget);
-		if (res != DkResult_Success)
-		{
-			obj->raiseError(DK_FUNC_ERROR_CONTEXT, res);
-			return;
-		}
-#else
 		rt.fromImageView(depthTarget, ImageInfo::DepthRenderTarget);
-#endif
+
 		w << Cmd(3D, DepthTargetAddr{}, Iova(rt.m_iova), rt.m_format, rt.m_tileMode, rt.m_layerStride);
 		w << CmdInline(3D, DepthTargetEnable{}, 0);
 		w << CmdInline(3D, DepthTargetEnable{}, 1);
@@ -328,12 +308,9 @@ void dkCmdBufBindRenderTargets(DkCmdBuf obj, DkImageView const* const colorTarge
 
 void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewports[], uint32_t numViewports)
 {
-#ifdef DEBUG
-	if (firstId > DK_NUM_VIEWPORTS || numViewports > DK_NUM_VIEWPORTS || (firstId+numViewports) > DK_NUM_VIEWPORTS)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (numViewports && !viewports)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(firstId > DK_NUM_VIEWPORTS || numViewports > DK_NUM_VIEWPORTS || (firstId+numViewports) > DK_NUM_VIEWPORTS, "viewport range out of bounds");
+	DK_DEBUG_NON_NULL_ARRAY(viewports, numViewports);
 
 	bool isOriginOpenGL = obj->getDevice()->isOriginModeOpenGL();
 	bool isDepthOpenGL  = obj->getDevice()->isDepthModeOpenGL();
@@ -379,13 +356,9 @@ void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewp
 
 void dkCmdBufSetViewportSwizzles(DkCmdBuf obj, uint32_t firstId, DkViewportSwizzle const swizzles[], uint32_t numSwizzles)
 {
-#ifdef DEBUG
-	if (firstId > DK_NUM_VIEWPORTS || numSwizzles > DK_NUM_VIEWPORTS || (firstId+numSwizzles) > DK_NUM_VIEWPORTS)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (numSwizzles && !swizzles)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(firstId > DK_NUM_VIEWPORTS || numSwizzles > DK_NUM_VIEWPORTS || (firstId+numSwizzles) > DK_NUM_VIEWPORTS, "viewport range out of bounds");
+	DK_DEBUG_NON_NULL_ARRAY(swizzles, numSwizzles);
 	CmdBufWriter w{obj};
 	w.reserve(2*numSwizzles);
 
@@ -402,13 +375,9 @@ void dkCmdBufSetViewportSwizzles(DkCmdBuf obj, uint32_t firstId, DkViewportSwizz
 
 void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors)
 {
-#ifdef DEBUG
-	if (firstId > DK_NUM_SCISSORS || numScissors > DK_NUM_SCISSORS || (firstId+numScissors) > DK_NUM_SCISSORS)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (numScissors && !scissors)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(firstId > DK_NUM_SCISSORS || numScissors > DK_NUM_SCISSORS || (firstId+numScissors) > DK_NUM_SCISSORS, "viewport range out of bounds");
+	DK_DEBUG_NON_NULL_ARRAY(scissors, numScissors);
 	CmdBufWriter w{obj};
 	w.reserve(3*numScissors);
 
@@ -456,12 +425,9 @@ void Queue::decompressSurface(DkImage const* image)
 
 void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, const void* clearData)
 {
-#ifdef DEBUG
-	if (targetId >= DK_MAX_RENDER_TARGETS)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!clearData)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(targetId >= DK_MAX_RENDER_TARGETS);
+	DK_DEBUG_NON_NULL(clearData);
 	if (!clearMask)
 		return;
 
@@ -485,6 +451,7 @@ void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, con
 
 void dkCmdBufClearDepthStencil(DkCmdBuf obj, bool clearDepth, float depthValue, uint8_t stencilMask, uint8_t stencilValue)
 {
+	DK_ENTRYPOINT(obj);
 	if (!clearDepth && !stencilMask)
 		return;
 
@@ -525,6 +492,7 @@ void dkCmdBufClearDepthStencil(DkCmdBuf obj, bool clearDepth, float depthValue, 
 
 void dkCmdBufDiscardColor(DkCmdBuf obj, uint32_t targetId)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(1);
 
@@ -533,6 +501,7 @@ void dkCmdBufDiscardColor(DkCmdBuf obj, uint32_t targetId)
 
 void dkCmdBufDiscardDepthStencil(DkCmdBuf obj)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(1);
 
@@ -541,6 +510,7 @@ void dkCmdBufDiscardDepthStencil(DkCmdBuf obj)
 
 void dkCmdBufDraw(DkCmdBuf obj, DkPrimitive prim, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(7);
 
@@ -551,13 +521,9 @@ void dkCmdBufDraw(DkCmdBuf obj, DkPrimitive prim, uint32_t vertexCount, uint32_t
 
 void dkCmdBufDrawIndirect(DkCmdBuf obj, DkPrimitive prim, DkGpuAddr indirect)
 {
-#ifdef DEBUG
-	if (indirect == DK_GPU_ADDR_INVALID)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (indirect & 3)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(indirect == DK_GPU_ADDR_INVALID);
+	DK_DEBUG_DATA_ALIGN(indirect, 4);
 	CmdBufWriter w{obj};
 	w.reserve(3);
 
@@ -569,6 +535,7 @@ void dkCmdBufDrawIndirect(DkCmdBuf obj, DkPrimitive prim, DkGpuAddr indirect)
 
 void dkCmdBufDrawIndexed(DkCmdBuf obj, DkPrimitive prim, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(8);
 
@@ -579,13 +546,9 @@ void dkCmdBufDrawIndexed(DkCmdBuf obj, DkPrimitive prim, uint32_t indexCount, ui
 
 void dkCmdBufDrawIndexedIndirect(DkCmdBuf obj, DkPrimitive prim, DkGpuAddr indirect)
 {
-#ifdef DEBUG
-	if (indirect == DK_GPU_ADDR_INVALID)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (indirect & 3)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(indirect == DK_GPU_ADDR_INVALID);
+	DK_DEBUG_DATA_ALIGN(indirect, 4);
 	CmdBufWriter w{obj};
 	w.reserve(3);
 

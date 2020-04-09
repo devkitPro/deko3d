@@ -3,8 +3,25 @@
 #include "dk_memblock.h"
 #include "codesegmgr.h"
 
+#ifdef DEBUG
+#define DK_DEVICE_ERROR(_m, _ctx, _res, _msg) \
+	::dk::detail::InvokeDebugCallback((_m), (_ctx), (_res), (_msg))
+#else
+#define DK_DEVICE_ERROR(_m, _ctx, _res, _msg) \
+	::dk::detail::RaiseError(_res)
+#endif
+
 namespace dk::detail
 {
+
+#ifdef DEBUG
+
+NX_INLINE void InvokeDebugCallback(DkDeviceMaker const& m, const char* context, DkResult res, const char* message)
+{
+	m.cbDebug(m.userData, context, res, message);
+}
+
+#endif
 
 struct GpuInfo
 {
@@ -100,31 +117,15 @@ public:
 
 	void calcZcullStorageInfo(ZcullStorageInfo& out, uint32_t width, uint32_t height, uint32_t depth, DkImageFormat format, DkMsMode msMode);
 
-	void raiseError(const char* context, DkResult result) const
-	{
-		m_maker.cbError(m_maker.userData, context, result);
-	}
-
-	void* allocMem(size_t size, size_t alignment = __STDCPP_DEFAULT_NEW_ALIGNMENT__) const noexcept
-	{
-		void* ptr = nullptr;
-		DkResult res = m_maker.cbAlloc(m_maker.userData, alignment, size, &ptr);
-		if (res != DkResult_Success)
-			m_maker.cbError(m_maker.userData, DK_FUNC_ERROR_CONTEXT, res);
-		return ptr;
-	}
-
-	void freeMem(void* mem) const noexcept
-	{
-		m_maker.cbFree(m_maker.userData, mem);
-	}
+	void* allocMem(size_t size, size_t alignment = __STDCPP_DEFAULT_NEW_ALIGNMENT__) const noexcept;
+	void freeMem(void* mem) const noexcept;
 
 	void* operator new(size_t size, DkDeviceMaker const& m) noexcept
 	{
 		void* ptr = nullptr;
 		DkResult res = m.cbAlloc(m.userData, __STDCPP_DEFAULT_NEW_ALIGNMENT__, size, &ptr);
 		if (res != DkResult_Success)
-			m.cbError(m.userData, DK_FUNC_ERROR_CONTEXT, res);
+			DK_DEVICE_ERROR(m, "dkDeviceCreate", res, "out of memory for device");
 		return ptr;
 	};
 

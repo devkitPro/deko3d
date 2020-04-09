@@ -93,10 +93,8 @@ void dkMultisampleStateSetLocations(DkMultisampleState* obj, DkSampleLocation co
 
 void dkCmdBufBindMultisampleState(DkCmdBuf obj, DkMultisampleState const* state)
 {
-#ifdef DEBUG
-	if (!state)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_NON_NULL(state);
 
 	CmdBufWriter w{obj};
 	w.reserve(12);
@@ -126,6 +124,7 @@ void dkCmdBufBindMultisampleState(DkCmdBuf obj, DkMultisampleState const* state)
 
 void dkCmdBufSetSampleMask(DkCmdBuf obj, uint32_t mask)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(5);
 
@@ -134,6 +133,7 @@ void dkCmdBufSetSampleMask(DkCmdBuf obj, uint32_t mask)
 
 void dkCmdBufSetCoverageModulationTable(DkCmdBuf obj, float const table[16])
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(6);
 
@@ -158,6 +158,7 @@ void dkCmdBufSetCoverageModulationTable(DkCmdBuf obj, float const table[16])
 
 void dkCmdBufResolveDepthValues(DkCmdBuf obj)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(5);
 

@@ -87,12 +87,11 @@ void ComputeQueue::bindShader(CtrlCmdComputeShader const* cmd)
 	{
 		// There isn't - so now check if there's enough memory to run the shader at all
 		uint32_t minRequiredScratchMem = (cmd->perWarpScratchSize * info.numWarpsPerSm + 0x7FFF) &~ 0x7FFF;
-#ifdef DEBUG
-		printf("Warning: Throttling compute shaders (0x%x - 0x%x - 0x%x)\n", cmd->perWarpScratchSize, minRequiredScratchMem, totalScratchMem);
-#endif
+		DK_WARNING("throttling compute shaders (0x%x - 0x%x - 0x%x)", cmd->perWarpScratchSize, minRequiredScratchMem, totalScratchMem);
+
 		if (totalScratchMem < minRequiredScratchMem)
 		{
-			m_parent.raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_OutOfMemory);
+			DK_ERROR(DkResult_OutOfMemory, "not enough scratch memory to run compute shaders");
 			return;
 		}
 

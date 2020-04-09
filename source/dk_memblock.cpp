@@ -142,36 +142,30 @@ DkGpuAddr MemBlock::getGpuAddrForImage(uint32_t offset, uint32_t size, NvKind ki
 		return m_gpuAddrGeneric + offset;
 	if (R_FAILED(nvAddressSpaceModify(getDevice()->getAddrSpace(),
 		m_gpuAddrCompressed, offset, size, kind)))
-		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
+		DK_ERROR(DkResult_Fail, "failed to remap memory block for image usage");
 	return m_gpuAddrCompressed + offset;
 }
 
 DkMemBlock dkMemBlockCreate(DkMemBlockMaker const* maker)
 {
-	DkMemBlock obj = nullptr;
-#ifdef DEBUG
-	if (maker->size & (DK_MEMBLOCK_ALIGNMENT-1))
-		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
-	else if (uintptr_t(maker->storage) & (DK_MEMBLOCK_ALIGNMENT-1))
-		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
-	else
-#endif
-	obj = new(maker->device) MemBlock(maker->device);
-	if (obj)
+	DK_ENTRYPOINT(maker->device);
+	DK_DEBUG_SIZE_ALIGN(maker->size, DK_MEMBLOCK_ALIGNMENT);
+	DK_DEBUG_DATA_ALIGN(maker->storage, DK_MEMBLOCK_ALIGNMENT);
+
+	DkMemBlock obj = new(maker->device) MemBlock(maker->device);
+	DkResult res = obj->initialize(maker->flags, maker->storage, maker->size);
+	if (res != DkResult_Success)
 	{
-		DkResult res = obj->initialize(maker->flags, maker->storage, maker->size);
-		if (res != DkResult_Success)
-		{
-			delete obj;
-			obj = nullptr;
-			ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, res);
-		}
+		delete obj;
+		DK_ERROR(res, "initialization failure");
+		return nullptr;
 	}
 	return obj;
 }
 
 void dkMemBlockDestroy(DkMemBlock obj)
 {
+	DK_ENTRYPOINT(obj);
 	delete obj;
 }
 
@@ -192,13 +186,11 @@ uint32_t dkMemBlockGetSize(DkMemBlock obj)
 
 DkResult dkMemBlockFlushCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size)
 {
-	if (!obj->isCpuCached() || !size)
-		return DkResult_Success;
-#ifdef DEBUG
-	if (offset >= obj->getSize() || size > obj->getSize() || offset + size > obj->getSize())
-		return DkResult_BadInput;
-#endif
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(offset >= obj->getSize() || size > obj->getSize() || offset + size > obj->getSize(), "memory range out of bounds");
 
-	armDCacheFlush((uint8_t*)obj->getCpuAddr() + offset, size);
+	if (obj->isCpuCached() && size)
+		armDCacheFlush((uint8_t*)obj->getCpuAddr() + offset, size);
+
 	return DkResult_Success;
 }

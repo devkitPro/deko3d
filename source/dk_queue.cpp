@@ -168,7 +168,7 @@ void Queue::appendGpfifoEntries(CtrlCmdGpfifoEntry const* entries, uint32_t numE
 		if (R_FAILED(nvGpuChannelAppendEntry(&m_gpuChannel, ent.iova, ent.numCmds, flags, threshold)))
 		{
 			m_state = Error;
-			raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
+			DK_ERROR(DkResult_Fail, "could not append entries to gpfifo");
 			return;
 		}
 	}
@@ -207,7 +207,7 @@ void Queue::waitFence(DkFence& fence)
 			}
 			break;
 		default:
-			raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
+			DK_ERROR(DkResult_BadState, "invalid fence type");
 	}
 }
 
@@ -317,7 +317,7 @@ void Queue::flush()
 {
 	if (isInErrorState())
 	{
-		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
+		DK_ERROR(DkResult_Fail, "attempted to flush queue in error state");
 		return;
 	}
 
@@ -331,7 +331,7 @@ void Queue::flush()
 		if (R_FAILED(nvGpuChannelKickoff(&m_gpuChannel)))
 		{
 			m_state = Error;
-			raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
+			DK_ERROR(DkResult_Fail, "gpu channel kickoff failed");
 			return;
 		}
 		// - Update device query data (is this really necessary?)
@@ -355,46 +355,35 @@ void Queue::waitIdle()
 
 DkQueue dkQueueCreate(DkQueueMaker const* maker)
 {
-	DkQueue obj = nullptr;
-#ifdef DEBUG
-	if (!maker)
-		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	else if (maker->commandMemorySize < DK_QUEUE_MIN_CMDMEM_SIZE)
-		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	else if (maker->commandMemorySize & (DK_MEMBLOCK_ALIGNMENT-1))
-		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
-	else if (maker->flushThreshold < DK_MEMBLOCK_ALIGNMENT || maker->flushThreshold > maker->commandMemorySize)
-		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	else if (maker->perWarpScratchMemorySize & (DK_PER_WARP_SCRATCH_MEM_ALIGNMENT-1))
-		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
-	else if (!maker->maxConcurrentComputeJobs && (maker->flags & DkQueueFlags_Compute))
-		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	else
-#endif
-	{
-		size_t extraSize = 0;
-		if (maker->flags & DkQueueFlags_Compute)
-			extraSize += sizeof(ComputeQueue);
+	DK_ENTRYPOINT(maker->device);
+	DK_DEBUG_BAD_INPUT(maker->commandMemorySize < DK_QUEUE_MIN_CMDMEM_SIZE);
+	DK_DEBUG_SIZE_ALIGN(maker->commandMemorySize, DK_MEMBLOCK_ALIGNMENT);
+	DK_DEBUG_BAD_INPUT(maker->flushThreshold < DK_MEMBLOCK_ALIGNMENT || maker->flushThreshold > maker->commandMemorySize);
+	DK_DEBUG_SIZE_ALIGN(maker->perWarpScratchMemorySize, DK_PER_WARP_SCRATCH_MEM_ALIGNMENT);
+	DK_DEBUG_BAD_INPUT(!maker->maxConcurrentComputeJobs && (maker->flags & DkQueueFlags_Compute));
 
-		int32_t id = maker->device->reserveQueueId();
-		if (id >= 0)
-			obj = new(maker->device, extraSize) Queue(*maker, id);
-	}
-	if (obj)
+	size_t extraSize = 0;
+	if (maker->flags & DkQueueFlags_Compute)
+		extraSize += sizeof(ComputeQueue);
+
+	int32_t id = maker->device->reserveQueueId();
+	if (id < 0)
+		DK_ERROR(DkResult_BadState, "too many queues created");
+
+	DkQueue obj = new(maker->device, extraSize) Queue(*maker, id);
+	DkResult res = obj->initialize();
+	if (res != DkResult_Success)
 	{
-		DkResult res = obj->initialize();
-		if (res != DkResult_Success)
-		{
-			delete obj;
-			obj = nullptr;
-			ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, res);
-		}
+		delete obj;
+		DK_ERROR(res, "initialization failure");
+		return nullptr;
 	}
 	return obj;
 }
 
 void dkQueueDestroy(DkQueue obj)
 {
+	DK_ENTRYPOINT(obj);
 	delete obj;
 }
 
@@ -405,26 +394,31 @@ bool dkQueueIsInErrorState(DkQueue obj)
 
 void dkQueueWaitFence(DkQueue obj, DkFence* fence)
 {
+	DK_ENTRYPOINT(obj);
 	obj->waitFence(*fence);
 }
 
 void dkQueueSignalFence(DkQueue obj, DkFence* fence, bool flush)
 {
+	DK_ENTRYPOINT(obj);
 	obj->signalFence(*fence, flush);
 }
 
 void dkQueueSubmitCommands(DkQueue obj, DkCmdList cmds)
 {
+	DK_ENTRYPOINT(obj);
 	obj->submitCommands(cmds);
 }
 
 void dkQueueFlush(DkQueue obj)
 {
+	DK_ENTRYPOINT(obj);
 	obj->flush();
 }
 
 void dkQueueWaitIdle(DkQueue obj)
 {
+	DK_ENTRYPOINT(obj);
 	obj->waitIdle();
 }
 
@@ -434,23 +428,17 @@ void dkQueueWaitIdle(DkQueue obj)
 
 DK_WEAK void Queue::setup3DEngine()
 {
-#ifdef DEBUG
-	printf("Warning: Graphics-capable DkQueue created, but Draw never called\n");
-#endif
+	DK_WARNING("graphics-capable DkQueue created, but Draw never called");
 }
 
 DK_WEAK void ComputeQueue::initialize()
 {
-#ifdef DEBUG
-	printf("Warning: Compute-capable DkQueue created, but Dispatch never called\n");
-#endif
+	DK_WARNING("compute-capable DkQueue created, but Dispatch never called");
 }
 
 DK_WEAK CtrlCmdHeader const* ComputeQueue::processCtrlCmd(CtrlCmdHeader const* cmd)
 {
-#ifdef DEBUG
-	printf("Warning: Compute command called, but Dispatch never called\n");
-#endif
+	DK_WARNING("compute command called, but Dispatch never called");
 
 	switch (cmd->type)
 	{

@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include "dk_device.h"
 
 using namespace dk::detail;
@@ -8,16 +9,24 @@ extern "C" u32 __nx_applet_exit_mode;
 
 namespace
 {
-	void defaultErrorFunc(void* userdata, const char* context, DkResult result)
-	{
 #ifdef DEBUG
-		printf("{FATAL} deko3d error in %s, result:%d\n", context, result);
-		__nx_applet_exit_mode = 1;
-		exit(1);
-#else
-		fatalThrow(MAKERESULT(359, result));
-#endif
+	thread_local struct {
+		DkDeviceMaker const* maker;
+		const char* funcname;
+	} g_debugContext;
+
+	void defaultDebugFunc(void* userdata, const char* context, DkResult result, const char* message)
+	{
+		if (result != DkResult_Success)
+		{
+			fprintf(stderr, "{FATAL} deko3d error (%d) in %s - %s\n", result, context, message);
+			__nx_applet_exit_mode = 1;
+			exit(1);
+		}
+		else
+			fprintf(stderr, "deko3d warning in %s: %s\n", context, message);
 	}
+#endif
 
 	DkResult defaultAllocFunc(void* userdata, size_t alignment, size_t size, void** out)
 	{
@@ -107,7 +116,7 @@ Device::~Device()
 #ifdef DEBUG
 	for (uint32_t i = 0; i < s_numQueues; i ++)
 		if (m_queueTable[i])
-			raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
+			DK_ERROR(DkResult_BadState, "unfreed queues");
 #endif
 
 	m_semaphoreMem.destroy(); // must do this before NvLib is wound down
@@ -139,35 +148,49 @@ void Device::returnQueueId(uint32_t id)
 	m_usedQueues[id/32] &= ~(1U << (id & 0x3F));
 }
 
+void* Device::allocMem(size_t size, size_t alignment) const noexcept
+{
+	void* ptr = nullptr;
+	DkResult res = m_maker.cbAlloc(m_maker.userData, alignment, size, &ptr);
+	if (res != DkResult_Success)
+		DK_DEVICE_ERROR(m_maker, g_debugContext.funcname, res, "allocation callback failed");
+	return ptr;
+}
+
+void Device::freeMem(void* mem) const noexcept
+{
+	m_maker.cbFree(m_maker.userData, mem);
+}
+
 DkDevice dkDeviceCreate(DkDeviceMaker const* maker)
 {
 	DkDeviceMaker m = *maker;
-	if (!m.cbError) m.cbError = defaultErrorFunc;
+#ifdef DEBUG
+	if (!m.cbDebug) m.cbDebug = defaultDebugFunc;
+#endif
 	if (!m.cbAlloc) m.cbAlloc = defaultAllocFunc;
 	if (!m.cbFree)  m.cbFree  = defaultFreeFunc;
 
 	DkDevice dev = new(m) Device(m);
-	if (dev)
+	DkResult res = dev->initialize();
+	if (res != DkResult_Success)
 	{
-		DkResult res = dev->initialize();
-		if (res != DkResult_Success)
-		{
-			delete dev;
-			dev = nullptr;
-			m.cbError(m.userData, DK_FUNC_ERROR_CONTEXT, res);
-		}
+		delete dev;
+		DK_DEVICE_ERROR(m, "dkDeviceCreate", res, "initialization failure");
+		return nullptr;
 	}
 	return dev;
 }
 
 void dkDeviceDestroy(DkDevice obj)
 {
+	DK_ENTRYPOINT(obj);
 	delete obj;
 }
 
 void* ObjBase::operator new(size_t size, DkDevice device)
 {
-	return Device::operator new(size, device->getMaker());
+	return device->allocMem(size);
 }
 
 void ObjBase::operator delete(void* ptr)
@@ -175,10 +198,42 @@ void ObjBase::operator delete(void* ptr)
 	static_cast<ObjBase*>(ptr)->freeMem(ptr);
 }
 
-void ObjBase::raiseError(DkDevice device, const char* context, DkResult result)
+#ifdef DEBUG
+
+void dk::detail::SetContextForDebug(Device const* dev, const char* funcname)
 {
-	device->raiseError(context, result);
+	g_debugContext.maker = &dev->getMaker();
+	g_debugContext.funcname = funcname;
 }
+
+void dk::detail::RaiseError(DkResult result, const char* message)
+{
+	InvokeDebugCallback(*g_debugContext.maker, g_debugContext.funcname, result, message);
+	// If above returns, just fall back on the default debug callback
+	defaultDebugFunc(nullptr, g_debugContext.funcname, result, message);
+	__builtin_trap();
+}
+
+void dk::detail::WarningMsg(const char* fmt, ...)
+{
+	char message[1024];
+
+	va_list va;
+	va_start(va, fmt);
+	vsnprintf(message, sizeof(message), fmt, va);
+	va_end(va);
+
+	InvokeDebugCallback(*g_debugContext.maker, g_debugContext.funcname, DkResult_Success, message);
+}
+
+#else
+
+void dk::detail::RaiseError(DkResult result)
+{
+	fatalThrow(MAKERESULT(359, result));
+}
+
+#endif
 
 void* ObjBase::allocMem(size_t size, size_t alignment) const noexcept
 {

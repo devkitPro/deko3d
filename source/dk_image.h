@@ -90,7 +90,7 @@ namespace dk::detail
 			TransferCopy      = 3,
 		};
 
-		DkResult fromImageView(DkImageView const* view, unsigned usage);
+		void fromImageView(DkImageView const* view, unsigned usage);
 	};
 
 	enum

@@ -48,6 +48,7 @@ void Queue::postSubmitFlush()
 
 void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(12);
 
@@ -117,13 +118,9 @@ void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags)
 
 void dkCmdBufBindImageDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t numDescriptors)
 {
-#ifdef DEBUG
-	if (setAddr & (DK_IMAGE_DESCRIPTOR_ALIGNMENT-1))
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
-	if (!numDescriptors)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_DATA_ALIGN(setAddr, DK_IMAGE_DESCRIPTOR_ALIGNMENT);
+	DK_DEBUG_NON_ZERO(numDescriptors);
 	CmdBufWriter w{obj};
 	w.reserve(8);
 
@@ -133,13 +130,9 @@ void dkCmdBufBindImageDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t nu
 
 void dkCmdBufBindSamplerDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t numDescriptors)
 {
-#ifdef DEBUG
-	if (setAddr & (DK_SAMPLER_DESCRIPTOR_ALIGNMENT-1))
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
-	if (!numDescriptors)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_DATA_ALIGN(setAddr, DK_SAMPLER_DESCRIPTOR_ALIGNMENT);
+	DK_DEBUG_NON_ZERO(numDescriptors);
 	CmdBufWriter w{obj};
 	w.reserve(8);
 
@@ -149,23 +142,15 @@ void dkCmdBufBindSamplerDescriptorSet(DkCmdBuf obj, DkGpuAddr setAddr, uint32_t 
 
 void dkCmdBufPushConstants(DkCmdBuf obj, DkGpuAddr uboAddr, uint32_t uboSize, uint32_t offset, uint32_t size, const void* data)
 {
-#ifdef DEBUG
-	if (uboAddr & (DK_UNIFORM_BUF_ALIGNMENT-1))
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
-	if (uboSize > DK_UNIFORM_BUF_MAX_SIZE)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (offset & 3)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
-	if (size & 3)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
-	if ((offset >= uboSize) || (size > uboSize))
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if ((offset + size) > uboSize)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!data)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_DATA_ALIGN(uboAddr, DK_UNIFORM_BUF_ALIGNMENT);
+	DK_DEBUG_SIZE_ALIGN(uboSize, DK_UNIFORM_BUF_ALIGNMENT);
+	DK_DEBUG_BAD_INPUT(uboSize > DK_UNIFORM_BUF_MAX_SIZE);
+	DK_DEBUG_DATA_ALIGN(offset, 4);
+	DK_DEBUG_SIZE_ALIGN(size, 4);
+	DK_DEBUG_BAD_INPUT((offset >= uboSize) || (size > uboSize));
+	DK_DEBUG_BAD_INPUT((offset + size) > uboSize);
+	DK_DEBUG_NON_NULL(data);
 	uint32_t sizeWords = size/4;
 	CmdBufWriter w{obj};
 	w.reserve(7 + sizeWords);

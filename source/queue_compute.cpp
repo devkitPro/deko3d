@@ -83,10 +83,10 @@ CtrlCmdHeader const* ComputeQueue::processCtrlCmd(CtrlCmdHeader const* cmd)
 
 void dkCmdBufDispatchCompute(DkCmdBuf obj, uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)
 {
-#ifdef DEBUG
-	if (!numGroupsX || !numGroupsY || !numGroupsZ)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_NON_ZERO(numGroupsX);
+	DK_DEBUG_NON_ZERO(numGroupsY);
+	DK_DEBUG_NON_ZERO(numGroupsZ);
 
 	CmdBufWriter w{obj};
 	auto* cmd = w.addCtrl<CtrlCmdComputeDispatch>();
@@ -101,12 +101,9 @@ void dkCmdBufDispatchCompute(DkCmdBuf obj, uint32_t numGroupsX, uint32_t numGrou
 
 void dkCmdBufDispatchComputeIndirect(DkCmdBuf obj, DkGpuAddr indirect)
 {
-#ifdef DEBUG
-	if (indirect == DK_GPU_ADDR_INVALID)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (indirect & 3)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
-#endif
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(indirect == DK_GPU_ADDR_INVALID);
+	DK_DEBUG_DATA_ALIGN(indirect, 4);
 
 	CmdBufWriter w{obj};
 	auto* cmd = w.addCtrl<CtrlCmdComputeAddress>();

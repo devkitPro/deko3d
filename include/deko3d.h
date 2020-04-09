@@ -96,7 +96,7 @@ typedef enum
 	DkResult_MisalignedSize,
 	DkResult_MisalignedData,
 	DkResult_BadInput,
-	DkResult_BadMemFlags,
+	DkResult_BadFlags,
 	DkResult_BadState,
 } DkResult;
 
@@ -105,7 +105,7 @@ typedef enum
 typedef uint64_t DkGpuAddr;
 typedef uintptr_t DkCmdList;
 typedef uint32_t DkResHandle;
-typedef void (*DkErrorFunc)(void* userData, const char* context, DkResult result);
+typedef void (*DkDebugFunc)(void* userData, const char* context, DkResult result, const char* message);
 typedef DkResult (*DkAllocFunc)(void* userData, size_t alignment, size_t size, void** out);
 typedef void (*DkFreeFunc)(void* userData, void* mem);
 typedef void (*DkCmdBufAddMemFunc)(void* userData, DkCmdBuf cmdbuf, size_t minReqSize);
@@ -121,7 +121,7 @@ enum
 typedef struct DkDeviceMaker
 {
 	void* userData;
-	DkErrorFunc cbError;
+	DkDebugFunc cbDebug;
 	DkAllocFunc cbAlloc;
 	DkFreeFunc cbFree;
 	uint32_t flags;
@@ -130,7 +130,7 @@ typedef struct DkDeviceMaker
 DK_CONSTEXPR void dkDeviceMakerDefaults(DkDeviceMaker* maker)
 {
 	maker->userData = NULL;
-	maker->cbError = NULL;
+	maker->cbDebug = NULL;
 	maker->cbAlloc = NULL;
 	maker->cbFree = NULL;
 	maker->flags = DkDeviceFlags_DepthZeroToOne | DkDeviceFlags_OriginUpperLeft;

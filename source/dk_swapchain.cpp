@@ -43,22 +43,14 @@ DkResult Swapchain::initialize(void* nativeWindow, DkImage const* const images[]
 	m_nwin = (NWindow*)nativeWindow;
 	m_numImages = numImages;
 
-#ifdef DEBUG
-	for (uint32_t i = 0; i < numImages; i ++)
-		if (!images[i])
-			return DkResult_BadInput;
-#endif
-
 	DkImage const& firstImage = *images[0];
 	uint32_t width = firstImage.m_dimensions[0];
 	uint32_t height = firstImage.m_dimensions[1];
 	DkImageFormat format = firstImage.m_format;
 	auto* fmtData = findFormat(format);
 #ifdef DEBUG
-	if (!(firstImage.m_flags & DkImageFlags_UsagePresent))
-		return DkResult_BadInput;
 	if (!fmtData)
-		return DkResult_NotImplemented;
+		return DkResult_BadState;
 #endif
 
 	// Set up NvGraphicBuffer template
@@ -86,12 +78,6 @@ DkResult Swapchain::initialize(void* nativeWindow, DkImage const* const images[]
 	for (uint32_t i = 0; i < numImages; i ++)
 	{
 		DkImage const& img = *images[i];
-#ifdef DEBUG
-		if (!(img.m_flags & DkImageFlags_UsagePresent))
-			return DkResult_BadInput;
-		if (img.m_format != format || img.m_dimensions[0] != width || img.m_dimensions[1] != height)
-			return DkResult_BadInput;
-#endif
 
 		// Configure this image
 		m_images[i] = &img;
@@ -124,7 +110,7 @@ void Swapchain::acquireImage(int& imageSlot, DkFence& fence)
 {
 	fence.m_type = DkFence::External;
 	if (R_FAILED(nwindowDequeueBuffer(m_nwin, &imageSlot, &fence.m_external.m_fence)))
-		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
+		DK_ERROR(DkResult_Fail, "failed to dequeue buffer");
 }
 
 void Swapchain::presentImage(int imageSlot, DkFence const& fence)
@@ -132,75 +118,76 @@ void Swapchain::presentImage(int imageSlot, DkFence const& fence)
 	NvMultiFence nvfence = {};
 	nvMultiFenceCreate(&nvfence, &fence.m_internal.m_fence);
 	if (R_FAILED(nwindowQueueBuffer(m_nwin, imageSlot, &nvfence)))
-		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
+		DK_ERROR(DkResult_Fail, "failed to enqueue buffer");
 }
 
 void Swapchain::setCrop(int32_t left, int32_t top, int32_t right, int32_t bottom)
 {
 	if (R_FAILED(nwindowSetCrop(m_nwin, left, top, right, bottom)))
-		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
+		DK_ERROR(DkResult_Fail, "failed to set window crop");
 }
 
 void Swapchain::setSwapInterval(uint32_t interval)
 {
 	if (R_FAILED(nwindowSetSwapInterval(m_nwin, interval)))
-		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_Fail);
+		DK_ERROR(DkResult_Fail, "failed to set swap interval");
 }
 
 DkSwapchain dkSwapchainCreate(DkSwapchainMaker const* maker)
 {
-	DkSwapchain obj = nullptr;
-#ifdef DEBUG
-	if (!maker || !maker->device)
-		return nullptr; // can't do much here
-	if (!maker->nativeWindow || !nwindowIsValid((NWindow*)maker->nativeWindow))
-		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	else if (!maker->numImages)
-		ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+	DK_ENTRYPOINT(maker->device);
+	DK_DEBUG_NON_NULL(maker->nativeWindow);
+	DK_DEBUG_BAD_INPUT(!nwindowIsValid((NWindow*)maker->nativeWindow), "invalid native window handle");
+	DK_DEBUG_NON_ZERO(maker->numImages);
+	for (uint32_t i = 0; i < maker->numImages; i ++)
 	{
-		size_t extraSize = sizeof(DkImage const*) * maker->numImages;
-		obj = new(maker->device, extraSize) Swapchain(maker->device);
+		DK_DEBUG_NON_NULL(maker->pImages[i]);
+		DK_DEBUG_BAD_FLAGS(!(maker->pImages[i]->m_flags & DkImageFlags_UsagePresent), "DkImageFlags_UsagePresent must be set");
+		DK_DEBUG_BAD_INPUT(maker->pImages[i]->m_format != maker->pImages[0]->m_format, "mismatched swapchain image formats");
+		DK_DEBUG_BAD_INPUT(maker->pImages[i]->m_dimensions[0] != maker->pImages[0]->m_dimensions[0], "mismatched swapchain image widths");
+		DK_DEBUG_BAD_INPUT(maker->pImages[i]->m_dimensions[1] != maker->pImages[0]->m_dimensions[1], "mismatched swapchain image heights");
 	}
-	if (obj)
+
+	size_t extraSize = sizeof(DkImage const*) * maker->numImages;
+	DkSwapchain obj = new(maker->device, extraSize) Swapchain(maker->device);
+	DkResult res = obj->initialize(maker->nativeWindow, maker->pImages, maker->numImages);
+	if (res != DkResult_Success)
 	{
-		DkResult res = obj->initialize(maker->nativeWindow, maker->pImages, maker->numImages);
-		if (res != DkResult_Success)
-		{
-			delete obj;
-			obj = nullptr;
-			ObjBase::raiseError(maker->device, DK_FUNC_ERROR_CONTEXT, res);
-		}
+		delete obj;
+		DK_ERROR(res, "initialization failure");
 	}
 	return obj;
 }
 
 void dkSwapchainDestroy(DkSwapchain obj)
 {
+	DK_ENTRYPOINT(obj);
 	delete obj;
 }
 
 void dkSwapchainAcquireImage(DkSwapchain obj, int* imageSlot, DkFence* fence)
 {
-#ifdef DEBUG
-	if (!imageSlot || !fence)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_NON_NULL(imageSlot);
+	DK_DEBUG_NON_NULL(fence);
 	obj->acquireImage(*imageSlot, *fence);
 }
 
 void dkSwapchainSetCrop(DkSwapchain obj, int32_t left, int32_t top, int32_t right, int32_t bottom)
 {
+	DK_ENTRYPOINT(obj);
 	obj->setCrop(left, top, right, bottom);
 }
 
 void dkSwapchainSetSwapInterval(DkSwapchain obj, uint32_t interval)
 {
+	DK_ENTRYPOINT(obj);
 	obj->setSwapInterval(interval);
 }
 
 int dkQueueAcquireImage(DkQueue obj, DkSwapchain swapchain)
 {
+	DK_ENTRYPOINT(obj);
 	int imageSlot;
 	DkFence fence;
 	swapchain->acquireImage(imageSlot, fence);
@@ -210,10 +197,9 @@ int dkQueueAcquireImage(DkQueue obj, DkSwapchain swapchain)
 
 void dkQueuePresentImage(DkQueue obj, DkSwapchain swapchain, int imageSlot)
 {
-#ifdef DEBUG
-	if (imageSlot < 0 || (unsigned)imageSlot >= swapchain->getNumImages())
-		return obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(imageSlot < 0 || (unsigned)imageSlot >= swapchain->getNumImages(), "image slot out of bounds");
+
 	DkImage const* image = swapchain->getImage(imageSlot);
 	if (image->m_flags & DkImageFlags_HwCompression)
 		obj->decompressSurface(image);

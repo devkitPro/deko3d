@@ -10,6 +10,7 @@ using E = Engine3D;
 
 void dkCmdBufBindIdxBuffer(DkCmdBuf obj, DkIdxFormat format, DkGpuAddr address)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(4);
 
@@ -19,6 +20,7 @@ void dkCmdBufBindIdxBuffer(DkCmdBuf obj, DkIdxFormat format, DkGpuAddr address)
 
 void dkCmdBufSetPrimitiveRestart(DkCmdBuf obj, bool enable, uint32_t index)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(3);
 

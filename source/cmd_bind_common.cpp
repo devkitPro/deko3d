@@ -39,27 +39,17 @@ namespace
 
 void dkCmdBufBindShaders(DkCmdBuf obj, uint32_t stageMask, DkShader const* const shaders[], uint32_t numShaders)
 {
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_NON_NULL_ARRAY(shaders, numShaders);
 	CmdBufWriter w{obj};
-
-#ifdef DEBUG
-	if (!shaders && numShaders)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
 
 	if (stageMask & DkStageFlag_Compute)
 	{
-#ifdef DEBUG
-		if (stageMask &~ DkStageFlag_Compute)
-			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-		if (numShaders != 1)
-			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+		DK_DEBUG_BAD_FLAGS(stageMask &~ DkStageFlag_Compute, "must only bind DkStageFlag_Compute by itself");
+		DK_DEBUG_BAD_INPUT(numShaders != 1, "must only bind a single compute shader");
 
 		DkShader const* shader = shaders[0];
-#ifdef DEBUG
-		if (shader->m_stage != DkStage_Compute)
-			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+		DK_DEBUG_BAD_INPUT(shader->m_stage != DkStage_Compute, "specified compute shader not a compute shader");
 
 		auto* cmd = w.addCtrl<CtrlCmdComputeShader>();
 		if (cmd)
@@ -175,20 +165,12 @@ void dkCmdBufBindShaders(DkCmdBuf obj, uint32_t stageMask, DkShader const* const
 
 void dkCmdBufBindUniformBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkBufExtents const buffers[], uint32_t numBuffers)
 {
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(stage < DkStage_Vertex || stage > DkStage_Compute, "invalid stage");
+	DK_DEBUG_NON_NULL_ARRAY(buffers, numBuffers);
+	DK_DEBUG_BAD_INPUT(!checkInRange(firstId, numBuffers, DK_NUM_UNIFORM_BUFS));
+	DK_DEBUG_CHECK(checkBuffers(buffers, numBuffers, DK_UNIFORM_BUF_ALIGNMENT, DK_UNIFORM_BUF_MAX_SIZE));
 	CmdBufWriter w{obj};
-
-#ifdef DEBUG
-	if (stage < DkStage_Vertex || stage > DkStage_Compute)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!buffers && numBuffers)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!checkInRange(firstId, numBuffers, DK_NUM_UNIFORM_BUFS))
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-
-	DkResult chk = checkBuffers(buffers, numBuffers, DK_UNIFORM_BUF_ALIGNMENT, DK_UNIFORM_BUF_MAX_SIZE);
-	if (chk != DkResult_Success)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, chk);
-#endif
 
 	if (stage == DkStage_Compute)
 	{
@@ -220,16 +202,11 @@ void dkCmdBufBindUniformBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, D
 
 void dkCmdBufBindStorageBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkBufExtents const buffers[], uint32_t numBuffers)
 {
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(stage < DkStage_Vertex || stage > DkStage_Compute, "invalid stage");
+	DK_DEBUG_NON_NULL_ARRAY(buffers, numBuffers);
+	DK_DEBUG_BAD_INPUT(!checkInRange(firstId, numBuffers, DK_NUM_STORAGE_BUFS));
 	CmdBufWriter w{obj};
-
-#ifdef DEBUG
-	if (stage < DkStage_Vertex || stage > DkStage_Compute)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!buffers && numBuffers)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!checkInRange(firstId, numBuffers, DK_NUM_STORAGE_BUFS))
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
 
 	if (stage == DkStage_Compute)
 	{
@@ -257,16 +234,11 @@ void dkCmdBufBindStorageBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, D
 
 void dkCmdBufBindTextures(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHandle const handles[], uint32_t numHandles)
 {
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(stage < DkStage_Vertex || stage > DkStage_Compute, "invalid stage");
+	DK_DEBUG_NON_NULL_ARRAY(handles, numHandles);
+	DK_DEBUG_BAD_INPUT(!checkInRange(firstId, numHandles, DK_NUM_TEXTURE_BINDINGS));
 	CmdBufWriter w{obj};
-
-#ifdef DEBUG
-	if (stage < DkStage_Vertex || stage > DkStage_Compute)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!handles && numHandles)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!checkInRange(firstId, numHandles, DK_NUM_TEXTURE_BINDINGS))
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
 
 	if (stage == DkStage_Compute)
 	{
@@ -290,16 +262,11 @@ void dkCmdBufBindTextures(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHa
 
 void dkCmdBufBindImages(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHandle const handles[], uint32_t numHandles)
 {
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(stage < DkStage_Vertex || stage > DkStage_Compute, "invalid stage");
+	DK_DEBUG_NON_NULL_ARRAY(!handles, numHandles);
+	DK_DEBUG_BAD_INPUT(!checkInRange(firstId, numHandles, DK_NUM_IMAGE_BINDINGS));
 	CmdBufWriter w{obj};
-
-#ifdef DEBUG
-	if (stage < DkStage_Vertex || stage > DkStage_Compute)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!handles && numHandles)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!checkInRange(firstId, numHandles, DK_NUM_IMAGE_BINDINGS))
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
 
 	if (stage == DkStage_Compute)
 	{

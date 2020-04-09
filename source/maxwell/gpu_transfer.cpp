@@ -208,14 +208,11 @@ void dk::detail::Blit2DEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo cons
 
 void dkCmdBufPushData(DkCmdBuf obj, DkGpuAddr addr, const void* data, uint32_t size)
 {
-#ifdef DEBUG
-	if (addr == DK_GPU_ADDR_INVALID || !data)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (size > 0x7FFC)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (size & 3)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
-#endif
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(addr == DK_GPU_ADDR_INVALID);
+	DK_DEBUG_NON_NULL(data);
+	DK_DEBUG_BAD_INPUT(size > 0x7FFC);
+	DK_DEBUG_SIZE_ALIGN(size, 4);
 	if (!size)
 		return;
 
@@ -236,10 +233,9 @@ void dkCmdBufPushData(DkCmdBuf obj, DkGpuAddr addr, const void* data, uint32_t s
 
 void dkCmdBufCopyBuffer(DkCmdBuf obj, DkGpuAddr srcAddr, DkGpuAddr dstAddr, uint32_t size)
 {
-#ifdef DEBUG
-	if (srcAddr == DK_GPU_ADDR_INVALID || dstAddr == DK_GPU_ADDR_INVALID)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(srcAddr == DK_GPU_ADDR_INVALID);
+	DK_DEBUG_BAD_INPUT(dstAddr == DK_GPU_ADDR_INVALID);
 	if (!size)
 		return;
 

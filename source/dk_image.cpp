@@ -96,52 +96,45 @@ uint64_t DkImageLayout::calcLevelOffset(unsigned level) const
 	return offset;
 }
 
-DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
+void ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 {
-#ifdef DEBUG
-	if (!view || !view->pImage)
-		return DkResult_BadInput;
-#endif
+	DK_DEBUG_NON_NULL(view);
+	DK_DEBUG_NON_NULL(view->pImage);
 
 	DkImage const* image = view->pImage;
 	DkImageType type = view->type ? view->type : image->m_type;
 	DkImageFormat format = view->format ? view->format : image->m_format;
 	FormatTraits const& traits = formatTraits[format];
 
-#ifdef DEBUG
 	// Check type compatibility
-	if (GetBaseImageType(type) != GetBaseImageType(image->m_type))
-		return DkResult_BadInput;
+	DK_DEBUG_BAD_INPUT(GetBaseImageType(type) != GetBaseImageType(image->m_type),
+		"DkImageView format override has mismatching base type");
 	if (format != image->m_format)
 	{
 		// Check format compatibility
-		if (traits.bytesPerBlock != image->m_bytesPerBlock)
-			return DkResult_BadInput;
-		if (traits.blockWidth != image->m_blockW)
-			return DkResult_BadInput;
-		if (traits.blockHeight != image->m_blockH)
-			return DkResult_BadInput;
+		DK_DEBUG_BAD_INPUT(traits.bytesPerBlock != image->m_bytesPerBlock,
+			"DkImageView format override has mismatching bpp");
+		DK_DEBUG_BAD_INPUT(traits.blockWidth != image->m_blockW,
+			"DkImageView format override has mismatching block width");
+		DK_DEBUG_BAD_INPUT(traits.blockHeight != image->m_blockH,
+			"DkImageView format override has mismatching block height");
 	}
-#endif
 
-	bool isRenderTarget = usage == ColorRenderTarget || usage == DepthRenderTarget;
-#ifdef DEBUG
-	bool formatIsDepth = traits.depthBits || traits.stencilBits;
-	if (isRenderTarget && !(image->m_flags & DkImageFlags_UsageRender))
-		return DkResult_BadInput;
-	if (usage == Transfer2D && !(image->m_flags & DkImageFlags_Usage2DEngine))
-		return DkResult_BadInput;
-	if (usage == ColorRenderTarget && formatIsDepth)
-		return DkResult_BadInput;
-	if (usage == DepthRenderTarget && !formatIsDepth)
-		return DkResult_BadInput;
-	if (usage == DepthRenderTarget && (type == DkImageType_3D || (image->m_flags & DkImageFlags_PitchLinear)))
-		return DkResult_BadInput;
-	if (view->mipLevelOffset >= image->m_mipLevels)
-		return DkResult_BadInput;
-	if (type == DkImageType_3D && (view->layerOffset || view->layerCount))
-		return DkResult_BadInput;
-#endif
+	[[maybe_unused]] const bool isRenderTarget = usage == ColorRenderTarget || usage == DepthRenderTarget;
+	[[maybe_unused]] const bool formatIsDepth = traits.depthBits || traits.stencilBits;
+	DK_DEBUG_BAD_FLAGS(isRenderTarget && !(image->m_flags & DkImageFlags_UsageRender),
+		"image used as render target must have DkImageFlags_UsageRender set");
+	DK_DEBUG_BAD_FLAGS(usage == Transfer2D && !(image->m_flags & DkImageFlags_Usage2DEngine),
+		"image used with the 2D engine must have DkImageFlags_Usage2DEngine set");
+	DK_DEBUG_BAD_INPUT(usage == ColorRenderTarget && formatIsDepth,
+		"attempted to use depth image as color render target");
+	DK_DEBUG_BAD_INPUT(usage == DepthRenderTarget && !formatIsDepth,
+		"attempted to use color image as depth render target");
+	DK_DEBUG_BAD_INPUT(usage == DepthRenderTarget && (type == DkImageType_3D || (image->m_flags & DkImageFlags_PitchLinear)),
+		"depth render targets cannot be DkImageType_3D or DkImageFlags_PitchLinear");
+	DK_DEBUG_BAD_INPUT(view->mipLevelOffset >= image->m_mipLevels, "mip level out of bounds");
+	DK_DEBUG_BAD_INPUT(type == DkImageType_3D && (view->layerOffset || view->layerCount),
+		"cannot use layerOffset/layerCount in DkImageView with DkImageType_3D images");
 
 	bool layered;
 	switch (type)
@@ -163,7 +156,7 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 			break;
 #ifdef DEBUG
 		default:
-			return DkResult_BadInput;
+			DK_ERROR(DkResult_BadInput, "invalid overridden type in DkImageView");
 #endif
 	}
 
@@ -195,10 +188,8 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 
 		if (view->layerOffset)
 		{
-#ifdef DEBUG
-			if (view->layerOffset >= image->m_dimensions[2])
-				return DkResult_BadInput;
-#endif
+			DK_DEBUG_BAD_INPUT(view->layerOffset >= image->m_dimensions[2],
+				"DkImageView layerOffset out of bounds");
 			m_iova += view->layerOffset * image->m_layerSize;
 		}
 
@@ -208,10 +199,8 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 		{
 			if (view->layerCount)
 			{
-#ifdef DEBUG
-				if (view->layerOffset + view->layerCount > image->m_dimensions[2])
-					return DkResult_BadInput;
-#endif
+				DK_DEBUG_BAD_INPUT(view->layerOffset + view->layerCount > image->m_dimensions[2],
+					"DkImageView layerOffset+layerCount out of bounds");
 				m_arrayMode = view->layerCount;
 			}
 			else
@@ -234,11 +223,7 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 	}
 	else
 	{
-#ifdef DEBUG
-		if (layered)
-			return DkResult_BadInput;
-#endif
-
+		DK_DEBUG_BAD_INPUT(layered, "pitch linear images cannot be layered");
 		m_horizontal  = image->m_stride;
 		m_vertical    = m_height;
 		if (isRenderTarget)
@@ -247,24 +232,16 @@ DkResult ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 		m_layerStride = 0;
 		m_isLinear = true;
 	}
-
-	return DkResult_Success;
 }
 
 void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker)
 {
-#ifdef DEBUG
-	if (!obj || !maker || !maker->device)
-		return; // no way to report error back aaaaaaaaaaa
-	if (maker->type <= DkImageType_None || maker->type > DkImageType_Buffer)
-		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (maker->format <= DkImageFormat_None || maker->format >= DkImageFormat_Count)
-		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if ((maker->type == DkImageType_2DMS || maker->type == DkImageType_2DMSArray) && maker->msMode == DkMsMode_1x)
-		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!maker->mipLevels)
-		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+	DK_ENTRYPOINT(maker->device);
+	DK_DEBUG_BAD_INPUT(maker->type <= DkImageType_None || maker->type > DkImageType_Buffer, "invalid type");
+	DK_DEBUG_BAD_INPUT(maker->format <= DkImageFormat_None || maker->format >= DkImageFormat_Count, "invalid format");
+	DK_DEBUG_BAD_INPUT((maker->type == DkImageType_2DMS || maker->type == DkImageType_2DMSArray) && maker->msMode == DkMsMode_1x,
+		"cannot use multisampling mode with non-multisampling image types");
+	DK_DEBUG_BAD_INPUT(!maker->mipLevels, "there needs to be at least one mip level");
 
 	memset(obj, 0, sizeof(*obj));
 	obj->m_type = maker->type;
@@ -323,11 +300,8 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 			break;
 	}
 
-#ifdef DEBUG
 	for (unsigned i = 0; i < (obj->m_dimsPerLayer + obj->m_hasLayers); i ++)
-		if (!maker->dimensions[i])
-			return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+		DK_DEBUG_NON_ZERO(maker->dimensions[i]);
 
 	obj->m_dimensions[0] = maker->dimensions[0];
 	obj->m_dimensions[1] = maker->dimensions[1];
@@ -361,23 +335,21 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 	obj->m_blockW = traits.blockWidth;
 	obj->m_blockH = traits.blockHeight;
 
-#ifdef DEBUG
-	if ((obj->m_flags & DkImageFlags_UsageRender) && !(traits.flags & FormatTraitFlags_CanRender))
-		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if ((obj->m_flags & DkImageFlags_UsageLoadStore) && !(traits.flags & FormatTraitFlags_CanLoadStore))
-		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if ((obj->m_flags & DkImageFlags_Usage2DEngine) && !(traits.flags & FormatTraitFlags_CanUse2DEngine))
-		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if ((obj->m_flags & DkImageFlags_Usage2DEngine) && obj->m_dimsPerLayer > 2)
-		return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput); // 3D textures with 2D engine: there are ways to work around it but it's ugly so we won't bother.
+	DK_DEBUG_BAD_FLAGS((obj->m_flags & DkImageFlags_UsageRender) && !(traits.flags & FormatTraitFlags_CanRender),
+		"specified format does not support DkImageFlags_UsageRender");
+	DK_DEBUG_BAD_FLAGS((obj->m_flags & DkImageFlags_UsageLoadStore) && !(traits.flags & FormatTraitFlags_CanLoadStore),
+		"specified format does not support DkImageFlags_UsageLoadStore");
+	DK_DEBUG_BAD_FLAGS((obj->m_flags & DkImageFlags_Usage2DEngine) && !(traits.flags & FormatTraitFlags_CanUse2DEngine),
+		"specified format does not support DkImageFlags_Usage2DEngine");
+	DK_DEBUG_BAD_INPUT((obj->m_flags & DkImageFlags_Usage2DEngine) && obj->m_dimsPerLayer > 2,
+		"DkImageFlags_Usage2DEngine not supported with 3D images"); // 3D images with 2D engine: there are ways to work around it but it's ugly so we won't bother.
 	if (obj->m_flags & DkImageFlags_UsagePresent)
 	{
-		if (obj->m_flags & DkImageFlags_PitchLinear)
-			return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-		if (obj->m_dimsPerLayer != 2 || obj->m_hasLayers || obj->m_numSamplesLog2 != DkMsMode_1x)
-			return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
+		DK_DEBUG_BAD_FLAGS(obj->m_flags & DkImageFlags_PitchLinear,
+			"cannot use DkImageFlags_UsagePresent with DkImageFlags_PitchLinear");
+		DK_DEBUG_BAD_INPUT(obj->m_dimsPerLayer != 2 || obj->m_hasLayers || obj->m_numSamplesLog2 != DkMsMode_1x,
+			"presentable images must be 2D non-layered non-multisampled images");
 	}
-#endif
 
 	switch (obj->m_numSamplesLog2)
 	{
@@ -418,12 +390,10 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 
 	if (obj->m_flags & DkImageFlags_PitchLinear)
 	{
-#ifdef DEBUG
-		if (obj->m_dimsPerLayer != 2 || obj->m_hasLayers)
-			return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-		if (obj->m_mipLevels > 1)
-			return maker->device->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+		DK_DEBUG_BAD_INPUT(obj->m_dimsPerLayer != 2 || obj->m_hasLayers,
+			"pitch linear images must be 2D non-layered");
+		DK_DEBUG_BAD_INPUT(obj->m_mipLevels > 1,
+			"pitch linear images cannot have more than one mipmap level");
 
 		obj->m_stride = maker->pitchStride;
 		obj->m_layerSize = maker->pitchStride * obj->m_dimensions[1];
@@ -500,14 +470,9 @@ uint32_t dkImageLayoutGetAlignment(DkImageLayout const* obj)
 
 void dkImageInitialize(DkImage* obj, DkImageLayout const* layout, DkMemBlock memBlock, uint32_t offset)
 {
-#ifdef DEBUG
-	if (!obj || !layout || !memBlock)
-		return; // no way to report error back aaaaaaaaaaa
-	if (offset & (layout->m_alignment - 1))
-		memBlock->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
-	if (layout->m_memKind != NvKind_Pitch && !memBlock->isImage())
-		memBlock->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadMemFlags);
-#endif
+	DK_ENTRYPOINT(memBlock);
+	DK_DEBUG_DATA_ALIGN(offset, layout->m_alignment);
+	DK_DEBUG_BAD_FLAGS(layout->m_memKind != NvKind_Pitch && !memBlock->isImage(), "DkMemBlock must be created with DkMemBlockFlags_Image");
 
 	memcpy(obj, layout, sizeof(*layout));
 	obj->m_iova = memBlock->getGpuAddrForImage(offset, layout->m_storageSize, (NvKind)layout->m_memKind);
@@ -522,59 +487,33 @@ DkGpuAddr dkImageGetGpuAddr(DkImage const* obj)
 
 void dkCmdBufCopyImage(DkCmdBuf obj, DkImageView const* srcView, DkImageRect const* srcRect, DkImageView const* dstView, DkImageRect const* dstRect, uint32_t flags)
 {
-	obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
+	DK_ENTRYPOINT_NOT_IMPLEMENTED(obj);
 }
 
 void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkImageRect const* srcRect, DkImageView const* dstView, DkImageRect const* dstRect, uint32_t flags, uint32_t factor)
 {
-	DkResult res;
+	DK_ENTRYPOINT(obj);
+
 	ImageInfo srcInfo, dstInfo;
+	srcInfo.fromImageView(srcView, ImageInfo::Transfer2D);
+	dstInfo.fromImageView(dstView, ImageInfo::Transfer2D);
 
-	res = srcInfo.fromImageView(srcView, ImageInfo::Transfer2D);
-#ifdef DEBUG
-	if (res != DkResult_Success)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, res);
-#endif
+	[[maybe_unused]] const bool isSrcTexCompressed = srcView->pImage->m_blockW > 1;
+	[[maybe_unused]] const bool isDstTexCompressed = dstView->pImage->m_blockW > 1;
+	DK_DEBUG_BAD_INPUT(isSrcTexCompressed != isDstTexCompressed, "mismatched compression attributes");
+	DK_DEBUG_BAD_INPUT(isSrcTexCompressed && srcInfo.m_format != dstInfo.m_format, "compression formats must match");
 
-	res = dstInfo.fromImageView(dstView, ImageInfo::Transfer2D);
-#ifdef DEBUG
-	if (res != DkResult_Success)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, res);
-#endif
+	DK_DEBUG_BAD_INPUT(!srcRect || !srcRect->width || !srcRect->height || !srcRect->depth, "invalid srcRect");
+	DK_DEBUG_BAD_INPUT(srcRect->x + srcRect->width > srcView->pImage->m_dimensions[0], "srcRect x/width out of bounds");
+	DK_DEBUG_BAD_INPUT(srcRect->y + srcRect->height > srcView->pImage->m_dimensions[1], "srcRect y/height out of bounds");
+	DK_DEBUG_BAD_INPUT(srcRect->z + srcRect->depth > srcInfo.m_arrayMode, "srcRect z/depth out of bounds");
 
-#ifndef DEBUG
-	(void)res;
-#endif
+	DK_DEBUG_BAD_INPUT(!dstRect || !dstRect->width || !dstRect->height || !dstRect->depth, "invalid dstRect");
+	DK_DEBUG_BAD_INPUT(dstRect->x + dstRect->width > dstView->pImage->m_dimensions[0], "dstRect x/width out of bounds");
+	DK_DEBUG_BAD_INPUT(dstRect->y + dstRect->height > dstView->pImage->m_dimensions[1], "dstRect y/height out of bounds");
+	DK_DEBUG_BAD_INPUT(dstRect->z + dstRect->depth > dstInfo.m_arrayMode, "dstRect z/depth out of bounds");
 
-	bool isSrcTexCompressed = srcView->pImage->m_blockW > 1;
-#ifdef DEBUG
-	bool isDstTexCompressed = dstView->pImage->m_blockW > 1;
-	if (isSrcTexCompressed != isDstTexCompressed)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (isSrcTexCompressed && srcInfo.m_format != dstInfo.m_format)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-
-	if (!srcRect || !srcRect->width || !srcRect->height || !srcRect->depth)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (srcRect->x + srcRect->width > srcView->pImage->m_dimensions[0])
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (srcRect->y + srcRect->height > srcView->pImage->m_dimensions[1])
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (srcRect->z + srcRect->depth > srcInfo.m_arrayMode)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-
-	if (!dstRect || !dstRect->width || !dstRect->height || !dstRect->depth)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (dstRect->x + dstRect->width > dstView->pImage->m_dimensions[0])
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (dstRect->y + dstRect->height > dstView->pImage->m_dimensions[1])
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (dstRect->z + dstRect->depth > dstInfo.m_arrayMode)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-
-	if (srcRect->depth != dstRect->depth)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+	DK_DEBUG_BAD_INPUT(srcRect->depth != dstRect->depth, "srcRect/dstRect depth must match");
 
 	BlitParams params;
 	params.srcX = srcRect->x;
@@ -663,33 +602,18 @@ void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkImageRect con
 
 void dkCmdBufResolveImage(DkCmdBuf obj, DkImageView const* srcView, DkImageView const* dstView)
 {
-	DkResult res;
+	DK_ENTRYPOINT(obj);
+
 	ImageInfo srcInfo, dstInfo;
+	srcInfo.fromImageView(srcView, ImageInfo::Transfer2D);
+	dstInfo.fromImageView(dstView, ImageInfo::Transfer2D);
 
-	res = srcInfo.fromImageView(srcView, ImageInfo::Transfer2D);
-#ifdef DEBUG
-	if (res != DkResult_Success)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, res);
-#endif
-
-	res = dstInfo.fromImageView(dstView, ImageInfo::Transfer2D);
-#ifdef DEBUG
-	if (res != DkResult_Success)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, res);
-#endif
-
-#ifdef DEBUG
-	if (!srcView->pImage->m_numSamplesLog2 || dstView->pImage->m_numSamplesLog2)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (srcInfo.m_isLayered || dstInfo.m_isLayered)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (srcInfo.m_width != dstInfo.m_width)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (srcInfo.m_height != dstInfo.m_height)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#else
-	(void)res;
-#endif
+	DK_DEBUG_BAD_INPUT(!srcView->pImage->m_numSamplesLog2 || dstView->pImage->m_numSamplesLog2,
+		"must specify multisampled source and non-multisampled destination");
+	DK_DEBUG_BAD_INPUT(srcInfo.m_isLayered || dstInfo.m_isLayered,
+		"cannot use layered source/destination");
+	DK_DEBUG_BAD_INPUT(srcInfo.m_width != dstInfo.m_width, "mismatched width");
+	DK_DEBUG_BAD_INPUT(srcInfo.m_height != dstInfo.m_height, "mismatched height");
 
 	unsigned samplesX = srcView->pImage->m_samplesX;
 	unsigned samplesY = srcView->pImage->m_samplesY;
@@ -709,29 +633,16 @@ void dkCmdBufResolveImage(DkCmdBuf obj, DkImageView const* srcView, DkImageView 
 
 void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView const* dstView, DkImageRect const* dstRect, uint32_t flags)
 {
+	DK_ENTRYPOINT(obj);
+
 	ImageInfo dstInfo;
-	DkResult res = dstInfo.fromImageView(dstView, ImageInfo::TransferCopy);
-#ifdef DEBUG
-	if (res != DkResult_Success)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, res);
-#endif
+	dstInfo.fromImageView(dstView, ImageInfo::TransferCopy);
 
-#ifndef DEBUG
-	(void)res;
-#endif
-
-#ifdef DEBUG
-	if (!src || src->addr == DK_GPU_ADDR_INVALID)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (!dstRect || !dstRect->width || !dstRect->height || !dstRect->depth)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (dstRect->x + dstRect->width > dstView->pImage->m_dimensions[0])
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (dstRect->y + dstRect->height > dstView->pImage->m_dimensions[1])
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (dstRect->z + dstRect->depth > dstInfo.m_arrayMode)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+	DK_DEBUG_BAD_INPUT(!src || src->addr == DK_GPU_ADDR_INVALID, "invalid src");
+	DK_DEBUG_BAD_INPUT(!dstRect || !dstRect->width || !dstRect->height || !dstRect->depth, "invalid dstView");
+	DK_DEBUG_BAD_INPUT(dstRect->x + dstRect->width > dstView->pImage->m_dimensions[0], "dstRect x/width out of bounds");
+	DK_DEBUG_BAD_INPUT(dstRect->y + dstRect->height > dstView->pImage->m_dimensions[1], "dstRect y/height out of bounds");
+	DK_DEBUG_BAD_INPUT(dstRect->z + dstRect->depth > dstInfo.m_arrayMode, "dstRect z/depth out of bounds");
 
 	BlitParams params;
 	params.srcX = 0;
@@ -746,11 +657,8 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 
 	if (isCompressed)
 	{
-#ifdef DEBUG
 		// Horizontal/vertical flips can't be used with compressed formats for obvious reasons
-		if (flags & (DkBlitFlag_FlipX|DkBlitFlag_FlipY))
-			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
-#endif
+		DK_DEBUG_BAD_FLAGS(flags & (DkBlitFlag_FlipX|DkBlitFlag_FlipY), "cannot use DkBlitFlag_FlipX/FlipY with compressed formats");
 
 		params.dstX = adjustBlockSize(params.dstX, traits.blockWidth);
 		params.dstY = adjustBlockSize(params.dstY, traits.blockHeight);
@@ -773,30 +681,18 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 	srcInfo.m_isLinear = true;
 	srcInfo.m_isLayered = true;
 
-#ifdef DEBUG
-	bool canUse2D = true;
-	if (!(dstView->pImage->m_flags & DkImageFlags_Usage2DEngine))
-		canUse2D = false;
-	if (!(traits.flags & FormatTraitFlags_CanUse2DEngine))
-		canUse2D = false;
-	if (srcInfo.m_iova & (DK_IMAGE_LINEAR_STRIDE_ALIGNMENT-1))
-		canUse2D = false; // Technically there are ways to work around this by extending width a bit, but w/e
-	if (srcInfo.m_horizontal & (DK_IMAGE_LINEAR_STRIDE_ALIGNMENT-1))
-		canUse2D = false;
-	if (isCompressed)
-		canUse2D = false; // Technically the 2D engine *can* be used with compressed formats, but there isn't really any point in doing so
-#endif
-
 	bool needs2D = false;
 	if (flags & (DkBlitFlag_FlipX))
 		needs2D = true;
 
 	if (needs2D)
 	{
-#ifdef DEBUG
-		if (!canUse2D)
-			obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadState);
-#endif
+		// Check whether we can really use the 2D engine
+		DK_DEBUG_BAD_FLAGS(!(dstView->pImage->m_flags & DkImageFlags_Usage2DEngine), "DkImageFlags_Usage2DEngine required in destination image");
+		DK_DEBUG_BAD_FLAGS(!(traits.flags & FormatTraitFlags_CanUse2DEngine), "specified format does not support DkImageFlags_Usage2DEngine");
+		DK_DEBUG_DATA_ALIGN(srcInfo.m_iova, DK_IMAGE_LINEAR_STRIDE_ALIGNMENT); // Technically there are ways to work around this by extending width a bit, but w/e
+		DK_DEBUG_SIZE_ALIGN(srcInfo.m_horizontal, DK_IMAGE_LINEAR_STRIDE_ALIGNMENT);
+		DK_DEBUG_BAD_INPUT(isCompressed, "cannot use 2D engine with compressed formats"); // Technically the 2D engine *can* be used with compressed formats, but there isn't really any point in doing so
 
 		int dudx = 1, dvdy = 1;
 
@@ -855,5 +751,5 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 
 void dkCmdBufCopyImageToBuffer(DkCmdBuf obj, DkImageView const* srcView, DkImageRect const* srcRect, DkCopyBuf const* dst, uint32_t flags)
 {
-	obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_NotImplemented);
+	DK_ENTRYPOINT_NOT_IMPLEMENTED(obj);
 }

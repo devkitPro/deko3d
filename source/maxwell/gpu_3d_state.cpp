@@ -29,11 +29,8 @@ namespace
 
 void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state)
 {
-#ifdef DEBUG
-	if (!state)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_NON_NULL(state);
 	CmdBufWriter w{obj};
 	w.reserve(14);
 
@@ -77,11 +74,8 @@ void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state)
 
 void dkCmdBufBindColorState(DkCmdBuf obj, DkColorState const* state)
 {
-#ifdef DEBUG
-	if (!state)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_NON_NULL(state);
 	CmdBufWriter w{obj};
 	w.reserve(5);
 
@@ -101,11 +95,8 @@ void dkCmdBufBindColorState(DkCmdBuf obj, DkColorState const* state)
 
 void dkCmdBufBindColorWriteState(DkCmdBuf obj, DkColorWriteState const* state)
 {
-#ifdef DEBUG
-	if (!state)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_NON_NULL(state);
 	CmdBufWriter w{obj};
 	w.reserve(2);
 
@@ -114,14 +105,10 @@ void dkCmdBufBindColorWriteState(DkCmdBuf obj, DkColorWriteState const* state)
 
 void dkCmdBufBindBlendStates(DkCmdBuf obj, uint32_t firstId, DkBlendState const states[], uint32_t numStates)
 {
-#ifdef DEBUG
-	if (!states)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (firstId >= DK_MAX_RENDER_TARGETS || numStates > DK_MAX_RENDER_TARGETS)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (firstId + numStates > DK_MAX_RENDER_TARGETS)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_NON_NULL_ARRAY(states, numStates);
+	DK_DEBUG_BAD_INPUT(firstId >= DK_MAX_RENDER_TARGETS || numStates > DK_MAX_RENDER_TARGETS);
+	DK_DEBUG_BAD_INPUT(firstId + numStates > DK_MAX_RENDER_TARGETS);
 	if (!numStates)
 		return;
 
@@ -144,11 +131,8 @@ void dkCmdBufBindBlendStates(DkCmdBuf obj, uint32_t firstId, DkBlendState const 
 
 void dkCmdBufBindDepthStencilState(DkCmdBuf obj, DkDepthStencilState const* state)
 {
-#ifdef DEBUG
-	if (!state)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_NON_NULL(state);
 	CmdBufWriter w{obj};
 	w.reserve(3);
 
@@ -160,6 +144,7 @@ void dkCmdBufBindDepthStencilState(DkCmdBuf obj, DkDepthStencilState const* stat
 
 void dkCmdBufSetDepthBias(DkCmdBuf obj, float constantFactor, float clamp, float slopeFactor)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(6);
 
@@ -170,6 +155,7 @@ void dkCmdBufSetDepthBias(DkCmdBuf obj, float constantFactor, float clamp, float
 
 void dkCmdBufSetPointSize(DkCmdBuf obj, float size)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(3);
 
@@ -179,6 +165,7 @@ void dkCmdBufSetPointSize(DkCmdBuf obj, float size)
 
 void dkCmdBufSetLineWidth(DkCmdBuf obj, float width)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(3);
 
@@ -189,6 +176,7 @@ void dkCmdBufSetLineWidth(DkCmdBuf obj, float width)
 
 void dkCmdBufSetDepthBounds(DkCmdBuf obj, bool enable, float near, float far)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(4);
 
@@ -199,6 +187,7 @@ void dkCmdBufSetDepthBounds(DkCmdBuf obj, bool enable, float near, float far)
 
 void dkCmdBufSetAlphaRef(DkCmdBuf obj, float ref)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(2);
 
@@ -207,6 +196,7 @@ void dkCmdBufSetAlphaRef(DkCmdBuf obj, float ref)
 
 void dkCmdBufSetBlendConst(DkCmdBuf obj, float red, float green, float blue, float alpha)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(5);
 
@@ -215,6 +205,7 @@ void dkCmdBufSetBlendConst(DkCmdBuf obj, float red, float green, float blue, flo
 
 void dkCmdBufSetStencil(DkCmdBuf obj, DkFace face, uint8_t mask, uint8_t funcRef, uint8_t funcMask)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(6);
 
@@ -235,17 +226,11 @@ void dkCmdBufSetStencil(DkCmdBuf obj, DkFace face, uint8_t mask, uint8_t funcRef
 
 void dkCmdBufSetTileSize(DkCmdBuf obj, uint32_t width, uint32_t height)
 {
-#ifdef DEBUG
-	if (width < 16 || width > 16384)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (width & (width - 1))
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (height < 16 || height > 16384)
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (height & (height - 1))
-		obj->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-#endif
-
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(width < 16 || width > 16384);
+	DK_DEBUG_BAD_INPUT(width & (width - 1), "tile width must be a power of two");
+	DK_DEBUG_BAD_INPUT(height < 16 || height > 16384);
+	DK_DEBUG_BAD_INPUT(height & (height - 1), "tile height must be a power of two");
 	CmdBufWriter w{obj};
 	w.reserve(2);
 
@@ -254,6 +239,7 @@ void dkCmdBufSetTileSize(DkCmdBuf obj, uint32_t width, uint32_t height)
 
 void dkCmdBufTiledCacheOp(DkCmdBuf obj, DkTiledCacheOp op)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(1);
 
@@ -283,6 +269,7 @@ void dkCmdBufTiledCacheOp(DkCmdBuf obj, DkTiledCacheOp op)
 
 void dkCmdBufSetPatchSize(DkCmdBuf obj, uint32_t size)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(1);
 
@@ -291,6 +278,7 @@ void dkCmdBufSetPatchSize(DkCmdBuf obj, uint32_t size)
 
 void dkCmdBufSetTessOuterLevels(DkCmdBuf obj, float level0, float level1, float level2, float level3)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(5);
 
@@ -299,6 +287,7 @@ void dkCmdBufSetTessOuterLevels(DkCmdBuf obj, float level0, float level1, float 
 
 void dkCmdBufSetTessInnerLevels(DkCmdBuf obj, float level0, float level1)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
 	w.reserve(3);
 

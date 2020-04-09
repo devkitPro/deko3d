@@ -38,32 +38,13 @@ namespace
 
 void dkShaderInitialize(DkShader* obj, DkShaderMaker const* maker)
 {
-#ifdef DEBUG
-	if (!obj)
-		return;
-#endif
-
+	DK_ENTRYPOINT(maker->codeMem);
 	memset(obj, 0, sizeof(*obj));
-
-#ifdef DEBUG
-	if (!maker || !maker->codeMem)
-		return;
-#endif
 
 	// Validate memory block
 	DkMemBlock blk = maker->codeMem;
-#ifdef DEBUG
-	if (!blk->isCode())
-	{
-		blk->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-		return;
-	}
-	if (maker->codeOffset & (DK_SHADER_CODE_ALIGNMENT-1))
-	{
-		blk->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
-		return;
-	}
-#endif
+	DK_DEBUG_BAD_FLAGS(!blk->isCode(), "DkMemBlock must be created with DkMemBlockFlags_Code");
+	DK_DEBUG_DATA_ALIGN(maker->codeOffset, DK_SHADER_CODE_ALIGNMENT);
 
 	// Find the DKSH header
 	bool hasSeparateControl = maker->control != nullptr;
@@ -72,37 +53,19 @@ void dkShaderInitialize(DkShader* obj, DkShaderMaker const* maker)
 	if (!hasSeparateControl)
 		phdr = (DkshHeader*)((u8*)blk->getCpuAddr() + codeBaseOffset);
 
-#ifdef DEBUG
 	// Validate the DKSH header
-	if (phdr->magic != DKSH_MAGIC)
-	{
-		blk->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-		return;
-	}
-	if ((phdr->control_sz|phdr->code_sz) & (DK_SHADER_CODE_ALIGNMENT-1))
-	{
-		blk->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
-		return;
-	}
-	if (maker->programId >= phdr->num_programs)
-	{
-		blk->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-		return;
-	}
-#endif
+	DK_DEBUG_BAD_INPUT(phdr->magic != DKSH_MAGIC, "invalid DKSH shader");
+	DK_DEBUG_SIZE_ALIGN(phdr->control_sz, DK_SHADER_CODE_ALIGNMENT);
+	DK_DEBUG_SIZE_ALIGN(phdr->code_sz, DK_SHADER_CODE_ALIGNMENT);
+	DK_DEBUG_BAD_INPUT(maker->programId >= phdr->num_programs, "programId out of bounds");
 
 	// Calculate the offset to the code section within the device's code segment
 	if (!hasSeparateControl)
 		codeBaseOffset += phdr->control_sz;
 
-#ifdef DEBUG
 	// Ensure the code section doesn't extend into the memory block's unusable area
-	if (codeBaseOffset + phdr->code_sz > blk->getSize() - DK_SHADER_CODE_UNUSABLE_SIZE)
-	{
-		blk->raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-		return;
-	}
-#endif
+	DK_DEBUG_BAD_INPUT(codeBaseOffset + phdr->code_sz > blk->getSize() - DK_SHADER_CODE_UNUSABLE_SIZE,
+		"shader code must not be stored in the last DK_SHADER_CODE_UNUSABLE_SIZE bytes of the DkMemBlock");
 
 	// Find the address to the program header
 	auto* progTable = (DkshProgramHeader*)((u8*)phdr + phdr->programs_off);

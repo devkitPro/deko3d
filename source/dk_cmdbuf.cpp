@@ -23,16 +23,6 @@ CmdBuf::~CmdBuf()
 
 void CmdBuf::addMemory(DkMemBlock mem, uint32_t offset, uint32_t size)
 {
-#ifdef DEBUG
-	if (!mem || !size)
-		return raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadInput);
-	if (offset & (DK_CMDMEM_ALIGNMENT-1))
-		return raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedData);
-	if (size & (DK_CMDMEM_ALIGNMENT-1))
-		return raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_MisalignedSize);
-	if (mem->isGpuNoAccess() || !mem->isCpuUncached())
-		return raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_BadMemFlags);
-#endif
 	signOffGpfifoEntry();
 	m_cmdChunkStartIova = mem->getGpuAddrPitch() + offset;
 	m_cmdStartIova = m_cmdChunkStartIova;
@@ -101,15 +91,13 @@ CmdWord* CmdBuf::requestCmdMem(uint32_t size)
 {
 	if (!m_cbAddMem)
 	{
-		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_OutOfMemory);
-		__builtin_trap(); // Trap, because callers expect this function to always succeed
+		DK_ERROR(DkResult_OutOfMemory, "out of command memory and no add-mem callback set");
 		return nullptr;
 	}
 	m_cbAddMem(m_userData, this, (size+m_numReservedWords)*sizeof(CmdWord));
 	if ((m_cmdPos + size) >= m_cmdEnd)
 	{
-		raiseError(DK_FUNC_ERROR_CONTEXT, DkResult_OutOfMemory);
-		__builtin_trap(); // As above
+		DK_ERROR(DkResult_OutOfMemory, "add-mem callback did not add enough command memory");
 		return nullptr;
 	}
 	return m_cmdPos;
@@ -240,6 +228,7 @@ CtrlCmdHeader* CmdBuf::appendCtrlCmd(size_t size)
 
 DkCmdBuf dkCmdBufCreate(DkCmdBufMaker const* maker)
 {
+	DK_ENTRYPOINT(maker->device);
 	DkCmdBuf obj = nullptr;
 	obj = new(maker->device) CmdBuf(*maker);
 	return obj;
@@ -247,27 +236,38 @@ DkCmdBuf dkCmdBufCreate(DkCmdBufMaker const* maker)
 
 void dkCmdBufDestroy(DkCmdBuf obj)
 {
+	DK_ENTRYPOINT(obj);
 	delete obj;
 }
 
 void dkCmdBufAddMemory(DkCmdBuf obj, DkMemBlock mem, uint32_t offset, uint32_t size)
 {
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_NON_NULL(mem);
+	DK_DEBUG_NON_ZERO(size);
+	DK_DEBUG_DATA_ALIGN(offset, DK_CMDMEM_ALIGNMENT);
+	DK_DEBUG_SIZE_ALIGN(size, DK_CMDMEM_ALIGNMENT);
+	DK_DEBUG_BAD_FLAGS(mem->isGpuNoAccess() || !mem->isCpuUncached(), "DkMemBlock must be created with DkMemBlockFlags_CpuUncached and DkMemBlockFlags_GpuCached");
 	obj->addMemory(mem, offset, size);
 }
 
 DkCmdList dkCmdBufFinishList(DkCmdBuf obj)
 {
+	DK_ENTRYPOINT(obj);
 	return obj->finishList();
 }
 
 void dkCmdBufClear(DkCmdBuf obj)
 {
+	DK_ENTRYPOINT(obj);
 	obj->clear();
 }
 
 void dkCmdBufWaitFence(DkCmdBuf obj, DkFence* fence)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
+
 	auto* cmd = w.addCtrl<CtrlCmdFence>();
 	if (cmd)
 	{
@@ -278,7 +278,9 @@ void dkCmdBufWaitFence(DkCmdBuf obj, DkFence* fence)
 
 void dkCmdBufSignalFence(DkCmdBuf obj, DkFence* fence, bool flush)
 {
+	DK_ENTRYPOINT(obj);
 	CmdBufWriter w{obj};
+
 	auto* cmd = w.addCtrl<CtrlCmdFence>();
 	if (cmd)
 	{
