@@ -165,6 +165,11 @@ void Queue::setup3DEngine()
 	w << MacroFillArray<E::MmeProgramOffsets>(0);
 	w << Cmd(3D, MmeDepthRenderTargetIova{}, 0xFFFFFFFF);
 
+	w << MacroSetRegisterInArray<E::VertexArray>(E::VertexArray::Start{}+0, 0);
+	w << MacroSetRegisterInArray<E::VertexArray>(E::VertexArray::Start{}+1, 0x1000);
+	w << MacroFillRegisters(E::VertexArrayLimit{}+0, 2, 16, 0);
+	w << MacroFillRegisters(E::VertexArrayLimit{}+1, 2, 16, 0xFFF);
+
 	w << Cmd(3D, IndexArrayLimitIova{}, Iova(0xFFFFFFFFFFUL));
 	w << CmdInline(3D, SampleCounterEnable{}, 1);
 	w << CmdInline(3D, ClipDistanceEnable{}, 0xFF); // Enable all clip distances
@@ -173,6 +178,7 @@ void Queue::setup3DEngine()
 	w << CmdInline(3D, PointSpriteEnable{}, 1);
 	w << CmdInline(3D, PointCoordReplace{}, E::PointCoordReplace::Enable{1});
 	w << CmdInline(3D, VertexProgramPointSize{}, E::VertexProgramPointSize::Enable{});
+	w << Cmd(3D, PointSpriteSize{}, 1.0f);
 	w << CmdInline(3D, PipeNop{}, 0);
 
 	w << CmdInline(3D, StencilFrontFuncMask{}, 0xFF);
