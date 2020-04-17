@@ -263,6 +263,19 @@ void dkCmdBufClear(DkCmdBuf obj)
 	obj->clear();
 }
 
+void dkCmdBufCallList(DkCmdBuf obj, DkCmdList list)
+{
+	DK_ENTRYPOINT(obj);
+	CmdBufWriter w{obj};
+
+	auto* cmd = w.addCtrl<CtrlCmdJumpCall>();
+	if (cmd)
+	{
+		cmd->type = CtrlCmdHeader::Call;
+		cmd->ptr = reinterpret_cast<CtrlCmdHeader const*>(list);
+	}
+}
+
 void dkCmdBufWaitFence(DkCmdBuf obj, DkFence* fence)
 {
 	DK_ENTRYPOINT(obj);

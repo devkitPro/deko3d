@@ -172,6 +172,7 @@ namespace dk
 		void addMemory(DkMemBlock mem, uint32_t offset, uint32_t size);
 		DkCmdList finishList();
 		void clear();
+		void callList(DkCmdList list);
 		void waitFence(DkFence& fence);
 		void signalFence(DkFence& fence, bool flush = false);
 		void barrier(DkBarrier mode, uint32_t invalidateFlags);
@@ -602,6 +603,11 @@ namespace dk
 	inline void CmdBuf::clear()
 	{
 		::dkCmdBufClear(*this);
+	}
+
+	inline void CmdBuf::callList(DkCmdList list)
+	{
+		::dkCmdBufCallList(*this, list);
 	}
 
 	inline void CmdBuf::waitFence(DkFence& fence)

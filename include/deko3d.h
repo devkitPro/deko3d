@@ -1183,6 +1183,7 @@ void dkCmdBufDestroy(DkCmdBuf obj);
 void dkCmdBufAddMemory(DkCmdBuf obj, DkMemBlock mem, uint32_t offset, uint32_t size);
 DkCmdList dkCmdBufFinishList(DkCmdBuf obj);
 void dkCmdBufClear(DkCmdBuf obj);
+void dkCmdBufCallList(DkCmdBuf obj, DkCmdList list);
 void dkCmdBufWaitFence(DkCmdBuf obj, DkFence* fence);
 void dkCmdBufSignalFence(DkCmdBuf obj, DkFence* fence, bool flush);
 void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags);

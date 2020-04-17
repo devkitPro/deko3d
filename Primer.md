@@ -297,6 +297,7 @@ void dkCmdBufDestroy(DkCmdBuf obj);
 void dkCmdBufAddMemory(DkCmdBuf obj, DkMemBlock mem, uint32_t offset, uint32_t size);
 DkCmdList dkCmdBufFinishList(DkCmdBuf obj);
 void dkCmdBufClear(DkCmdBuf obj);
+void dkCmdBufCallList(DkCmdBuf obj, DkCmdList list);
 //...
 ```
 
@@ -311,6 +312,8 @@ If the current slice of backing memory runs out of space during recording, eithe
 - Otherwise, the `cbAddMem` callback is called, which is expected to in turn call `dkCmdBufAddMemory` in order to resolve the situation. If the callback doesn't add enough memory, a fatal error is raised.
 
 This mechanism is intended to be used for command buffers backed by dynamic memory, so that they can refill themselves with fresh new memory as needed.
+
+Command lists can be reused by other command lists as well. When `dkCmdBufCallList` is called, a reference to the specified `DkCmdList` is inserted into the currently recording command list. This is useful for recording a certain set of commands only once, and afterwards calling this sublist as many times as desired from a parent command list. This also means that sublists need to stay valid for the total lifetime of their parent(s).
 
 `DkCmdBuf` objects are *externally synchronized*; in other words, they are not in charge of synchronization themselves and thus multiple threads cannot use the same command buffer at the same time. The intended workflow in a multithreaded application is to have multiple worker threads recording commands independently (each fitted with its own command buffer), and have the parent thread collect and submit all the `DkCmdList` handles from the worker threads.
 
