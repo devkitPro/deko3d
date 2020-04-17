@@ -166,6 +166,10 @@ During development or experimentation it is recommended to link to the Debug ver
 ### Devices (`DkDevice`)
 
 ```c
+typedef void (*DkDebugFunc)(void* userData, const char* context, DkResult result, const char* message);
+typedef DkResult (*DkAllocFunc)(void* userData, size_t alignment, size_t size, void** out);
+typedef void (*DkFreeFunc)(void* userData, void* mem);
+
 struct DkDeviceMaker
 {
 	void* userData;
@@ -174,6 +178,7 @@ struct DkDeviceMaker
 	DkFreeFunc cbFree;
 	uint32_t flags;
 };
+
 void dkDeviceMakerDefaults(DkDeviceMaker* maker);
 DkDevice dkDeviceCreate(DkDeviceMaker const* maker);
 void dkDeviceDestroy(DkDevice obj);
@@ -183,8 +188,8 @@ void dkDeviceDestroy(DkDevice obj);
 
 Field      | Default   | Description
 -----------|-----------|------------------
-`userData` | NULL      | User specified data to be passed to callback
-`cbError`  | NULL      | Optional callback used when deko3d detects an unrecoverable error
+`userData` | NULL      | User specified data to be passed to the callbacks
+`cbDebug`  | NULL      | Optional callback used by the debug version of the library.
 `cbAlloc`  | NULL      | Optional callback used when deko3d needs to allocate memory
 `cbFree`   | NULL      | Optional callback used when deko3d needs to free allocated memory
 `flags`    | See below | Device creation flags (see below)
@@ -196,9 +201,16 @@ Field      | Default   | Description
 `OriginUpperLeft`    | ✓       | Image rows are stored sequentially from top to bottom, with 0.0 corresponding to the top edge of the image and 1.0 (or the image height if non-normalized) corresponding to the bottom
 `OriginLowerLeft`    |         | Image rows are stored sequentially from bottom to top, with 0.0 corresponding to the bottom edge of the image and 1.0 (or the image height if non-normalized) corresponding to the top
 
-If an error occurs and no error callback has been supplied, deko3d aborts program execution. If the release version of the library is used, a Fatal system error is thrown; if the debug version is used on the contrary, error text is sent to stdout, then the application forcefully closes back to the HOME menu.
+The debugging version of the library can use an optional callback (`cbDebug`). There are two situations in which deko3d makes usage of the debug callback:
 
-> **Warning**: The error handling mechanism/validation layer in deko3d is very much preliminary and subject to future enhancements and overhauls. Expect future versions of deko3d to introduce breaking changes when using a custom error handling callback.
+- Warnings: a suboptimal situation is detected, and deko3d calls the callback with `DkResult_Success` as the result parameter. This is a non-fatal invocation which keeps the application running afterwards.
+- Errors: a certain parameter/state validation check fails, or an unrecoverable system/GPU error occurs. In this situation the result parameter is different from `DkResult_Success`, and the debug callback is expected to not return.
+
+In both cases, the `context` parameter is a string indicating the name of the most recently called deko3d entrypoint, while `message` is a string containing additional information to be used for debugging purposes.
+
+If no debugging callback has been supplied (or if the callback returns during error handling), deko3d outputs information to stderr. In the case of errors, an error message is displayed on the screen using the error applet, and the application forcefully closes back to the HOME menu.
+
+In the release version of deko3d, warnings and parameter/state validation don't exist. However, if unrecoverable errors happen, a Fatal system error is forcefully thrown. The release version of deko3d does not make use of `cbDebug` *at all*.
 
 By default if memory allocation callbacks are not provided, deko3d uses the standard heap (i.e. malloc/free) for dynamic memory allocations.
 
