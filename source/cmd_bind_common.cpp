@@ -134,7 +134,7 @@ void dkCmdBufBindShaders(DkCmdBuf obj, uint32_t stageMask, DkShader const* const
 			case DkStage_Fragment:
 				w << MakeInlineCmd(Subchannel3D, 0x3d0, hdr.frag.has_table_3d1);
 				if (hdr.frag.has_table_3d1)
-					w << MakeIncreasingCmd(Subchannel3D, 0x3d0,
+					w << MakeIncreasingCmd(Subchannel3D, 0x3d1,
 						hdr.frag.table_3d1[0], hdr.frag.table_3d1[1], hdr.frag.table_3d1[2], hdr.frag.table_3d1[3]);
 				w << MakeInlineCmd(Subchannel3D, 0x084, hdr.frag.early_fragment_tests);
 				w << MakeInlineCmd(Subchannel3D, 0x3c7, hdr.frag.post_depth_coverage);
