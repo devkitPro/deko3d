@@ -20,6 +20,12 @@ namespace
 		if (result != DkResult_Success)
 		{
 			fprintf(stderr, "{FATAL} deko3d error (%d) in %s - %s\n", result, context, message);
+
+			ErrorApplicationConfig c;
+			errorApplicationCreate(&c, context, message);
+			errorApplicationSetNumber(&c, result);
+			errorApplicationShow(&c);
+
 			__nx_applet_exit_mode = 1;
 			exit(1);
 		}
