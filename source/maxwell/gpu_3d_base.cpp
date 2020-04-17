@@ -115,6 +115,10 @@ void Queue::setup3DEngine()
 	w << CmdInline(3D, ZcullUnknown65a{}, 0x11);
 	w << CmdInline(3D, ZcullTestMask{}, 0x00);
 	w << CmdInline(3D, ZcullRegion{}, hasZcull() ? 0 : 0x3f);
+	w << CmdInline(3D, MmeStencilCullCriteria{}, 0);
+	w << Macro(SetStencilCullCriteria,
+		E::ZcullStencilCriteria::Func{DkCompareOp_NotEqual-1} | E::ZcullStencilCriteria::FuncMask{0xFF}
+	);
 	w << Cmd(3D, SetInstrumentationMethodHeader{}, 0x49000000);
 	w << Cmd(3D, SetInstrumentationMethodData{}, 0x49000001);
 	w << Cmd(3D, MmeDriverConstbufIova{}, m_workBuf.getGraphicsCbuf() >> 8, m_workBuf.getGraphicsCbufSize());
@@ -473,7 +477,10 @@ void dkCmdBufClearDepthStencil(DkCmdBuf obj, bool clearDepth, float depthValue, 
 		bool isDepthLessThanHalf = depthValue<0.5f;
 		bool isDepthOneOrZero    = depthValue==1.0f || depthValue==0.0f;
 		w << Cmd(3D, ZcullClearDepth{}, ZCD::IsLessThanHalf{isDepthLessThanHalf} | ZCD::IsOneOrZero{isDepthOneOrZero});
-		w << Cmd(3D, ZcullClearMode{}, 0xFF000005); // ??
+		// Here, old official software would configure the stencil cull criteria, while newer official
+		// software configures it during 3D engine setup and allows the user to change it afterwards.
+		// We choose to implement the latter approach, so we don't do anything here.
+		// TODO: "weird zcull feature" gets reset here
 		w << Cmd(3D, ClearDepth{}, depthValue);
 		clearArg |= CB::Depth{};
 	}

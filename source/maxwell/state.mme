@@ -58,3 +58,16 @@ BindDepthStencilState::
 	bfl 24:r2 4 to mem  # StencilBackOpZFail
 	*bfl 20:r2 4 to mem # StencilBackOpZPass
 	bfl 28:r2 4 to mem  # StencilBackFunc
+
+# Updates the current zcull stencil criteria, skipping the update if it's unchanged
+# Arguments:
+# - 0: Word to write to ZcullStencilCriteria
+SetStencilCullCriteria::
+	ldi MmeStencilCullCriteria to r2
+	sub r1 r2 to r7
+	*bnz r7 .cancelExit
+	ZcullStencilCriteria'0 to addr
+.cancelExit
+	r1 to mem
+	*MmeStencilCullCriteria'0 to addr
+	r1 to mem

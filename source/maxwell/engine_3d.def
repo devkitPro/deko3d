@@ -205,7 +205,11 @@ engine _3D 0xB197;
 0x373 TessellationPatchSize;
 0x374 AdvancedBlendEnable bool;
 
-0x376 ZcullClearMode; // unknown, 0xFF000005 observed
+0x376 ZcullStencilCriteria bits (
+	0..7   Func; // same as DkCompareOp but starting with 0 instead of 1
+	16..23 FuncRef;
+	24..31 FuncMask;
+);
 
 0x378 FragmentBarrier;
 
@@ -747,3 +751,5 @@ engine _3D 0xB197;
 0xD20 MmeProgramOffsets array[6];
 
 0xD26 MmeDepthRenderTargetIova;
+
+0xD27 MmeStencilCullCriteria;
