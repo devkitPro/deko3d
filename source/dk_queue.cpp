@@ -15,7 +15,7 @@ DkResult Queue::initialize()
 	DkResult res;
 
 	// Create GPU channel
-	if (R_FAILED(nvGpuChannelCreate(&m_gpuChannel, getDevice()->getAddrSpace())))
+	if (R_FAILED(nvGpuChannelCreate(&m_gpuChannel, getDevice()->getAddrSpace(), NvChannelPriority_Medium)))
 		return DkResult_Fail;
 
 	// Allocate cmdbuf
