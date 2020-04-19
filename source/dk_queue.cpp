@@ -167,8 +167,8 @@ void Queue::appendGpfifoEntries(CtrlCmdGpfifoEntry const* entries, uint32_t numE
 		u32 threshold = (ent.flags & CtrlCmdGpfifoEntry::AutoKick) ? 8 : 0;
 		if (R_FAILED(nvGpuChannelAppendEntry(&m_gpuChannel, ent.iova, ent.numCmds, flags, threshold)))
 		{
-			m_state = Error;
-			DK_ERROR(DkResult_Fail, "could not append entries to gpfifo");
+			if (!checkError())
+				DK_ERROR(DkResult_Fail, "gpfifo entry append failed, but no error was reported");
 			return;
 		}
 	}
@@ -179,6 +179,9 @@ void Queue::waitFence(DkFence& fence)
 #ifdef DK_QUEUE_DEBUG
 	printf("  waitFence %p\n", &fence);
 #endif
+
+	if (isInErrorState())
+		return;
 
 	using S = EngineGpfifo::Semaphore;
 	using F = EngineGpfifo::FenceAction;
@@ -331,8 +334,8 @@ void Queue::flush()
 		// - Do the ZBC shit
 		if (R_FAILED(nvGpuChannelKickoff(&m_gpuChannel)))
 		{
-			m_state = Error;
-			DK_ERROR(DkResult_Fail, "gpu channel kickoff failed");
+			if (!checkError())
+				DK_ERROR(DkResult_Fail, "gpu channel kickoff failed, but no error was reported");
 			return;
 		}
 		// - Update device query data (is this really necessary?)
@@ -408,6 +411,9 @@ void dkQueueSignalFence(DkQueue obj, DkFence* fence, bool flush)
 void dkQueueSubmitCommands(DkQueue obj, DkCmdList cmds)
 {
 	DK_ENTRYPOINT(obj);
+	if (obj->isInErrorState())
+		DK_ERROR(DkResult_Fail, "attempt to submit commands to a queue in error state");
+
 	obj->submitCommands(cmds);
 }
 

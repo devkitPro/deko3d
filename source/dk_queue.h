@@ -123,6 +123,7 @@ public:
 	void waitIdle();
 
 	void decompressSurface(DkImage const* image);
+	bool checkError();
 };
 
 }

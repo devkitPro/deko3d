@@ -188,6 +188,9 @@ void dkSwapchainSetSwapInterval(DkSwapchain obj, uint32_t interval)
 int dkQueueAcquireImage(DkQueue obj, DkSwapchain swapchain)
 {
 	DK_ENTRYPOINT(obj);
+	if (obj->isInErrorState())
+		DK_ERROR(DkResult_Fail, "attempted to acquire image using a queue in error state");
+
 	int imageSlot;
 	DkFence fence;
 	swapchain->acquireImage(imageSlot, fence);
@@ -199,6 +202,8 @@ void dkQueuePresentImage(DkQueue obj, DkSwapchain swapchain, int imageSlot)
 {
 	DK_ENTRYPOINT(obj);
 	DK_DEBUG_BAD_INPUT(imageSlot < 0 || (unsigned)imageSlot >= swapchain->getNumImages(), "image slot out of bounds");
+	if (obj->isInErrorState())
+		DK_ERROR(DkResult_Fail, "attempted to present image using a queue in error state");
 
 	DkImage const* image = swapchain->getImage(imageSlot);
 	if (image->m_flags & DkImageFlags_HwCompression)

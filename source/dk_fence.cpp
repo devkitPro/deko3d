@@ -1,4 +1,5 @@
 #include "dk_fence.h"
+#include "dk_device.h"
 
 DkResult DkFence::wait(s32 timeout_us)
 {
@@ -37,6 +38,7 @@ DkResult DkFence::wait(s32 timeout_us)
 				res = nvFenceWait(&m_internal.m_fence, wait_timeout);
 				if (R_FAILED(res) && res != MAKERESULT(Module_LibnxNvidia, LibnxNvidiaError_Timeout))
 					break;
+				m_internal.m_device->checkQueueErrors();
 			} while (R_FAILED(res) || !internalPoll());
 			break;
 		}

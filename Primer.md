@@ -386,9 +386,9 @@ Queues manage their list of work items in a lazy fashion. In other words, the wo
 
 After the queue is flushed, deko3d inserts a barrier that invalidates the image, shader, descriptor and L2 caches - in fact this is the very first work item that will be executed the *next* time the queue is flushed. This makes it possible to update graphical resources on the CPU such as vertex buffers or image/sampler descriptor sets between batches of work items submitted to the queue.
 
-If for some reason the GPU encounters an error while processing work items, it enters error state. This can be detected using `dkQueueIsInErrorState`. Once a queue enters error state it is completely toast, and the only thing that can be done is destroying it.
+If for some reason the GPU encounters an error while processing work items, the queue enters error state. This can be detected using `dkQueueIsInErrorState`. Once a queue enters error state it is completely toast, and the only legal operation on it is `dkQueueDestroy`. In addition, the debugging version of deko3d is able to print information about the GPU error using the warning mechanism provided by the debug callback.
 
-> **Warning**: Currently deko3d does not have very good GPU error recovery support. It is advised to avoid crashing the GPU if possible.
+> **Warning**: Even though deko3d can recover from GPU errors, the operating system seems to be programmed to kill processes that have crashed the GPU a few seconds afterwards. Currently it is not known if this behavior of the OS can be disabled. As a result, it is advised to avoid crashing the GPU if possible; otherwise a few seconds of grace are available in order to e.g. commit unsaved changes to persistent storage.
 
 The GPU can be instructed to wait on a fence using the `dkQueueWaitFence` function. Likewise, a fence can be signaled using `dkQueueSignalFence`. If the `flush` parameter in this function is set to `true` the GPU flushes any dirty cache lines to memory; allowing other observers (such as the CPU) to see the result of writes performed by the GPU up to the point when the fence is signaled. This is important in case e.g. the CPU needs to read the result of GPU work that is performed on a memory block that is set to `DkMemBlockFlags_GpuCached`, such as compute shader writes.
 

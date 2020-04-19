@@ -115,6 +115,7 @@ public:
 		return ++m_semaphores[id];
 	}
 
+	void checkQueueErrors() noexcept;
 	void calcZcullStorageInfo(ZcullStorageInfo& out, uint32_t width, uint32_t height, uint32_t depth, DkImageFormat format, DkMsMode msMode);
 
 	void* allocMem(size_t size, size_t alignment = __STDCPP_DEFAULT_NEW_ALIGNMENT__) const noexcept;
