@@ -19,6 +19,7 @@ struct Fence
 		uint32_t m_semaphoreValue;
 		DkGpuAddr m_semaphoreAddr;
 		uint32_t volatile* m_semaphoreCpuAddr;
+		DkDevice m_device;
 		NvFence m_fence;
 	};
 

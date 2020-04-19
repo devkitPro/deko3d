@@ -58,6 +58,9 @@ DkResult DkFence::wait(s32 timeout_us)
 
 DkResult dkFenceWait(DkFence* obj, int64_t timeout_ns)
 {
+	if (obj->m_type == DkFence::Internal)
+		DK_ENTRYPOINT(obj->m_internal.m_device);
+
 	s32 timeout_us = -1;
 	if (timeout_ns >= 0)
 		timeout_us = timeout_ns / 1000;
