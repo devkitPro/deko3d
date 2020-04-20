@@ -449,7 +449,7 @@ void dkCmdBufClearColor(DkCmdBuf obj, uint32_t targetId, uint32_t clearMask, con
 
 	w << SetShadowRamControl(SRC::MethodPassthrough);
 	w << CmdInline(3D, SetMultisampleRasterEnable{}, 0);
-	w << Macro(ClearColor,
+	w << MacroInline(ClearColor,
 		((clearMask&0xF)<<E::ClearBuffers::Red::Shift) | E::ClearBuffers::TargetId{targetId}
 	);
 
