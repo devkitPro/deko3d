@@ -87,8 +87,36 @@ void CmdBuf::clear()
 	}
 }
 
+void CmdBuf::beginCapture(uint32_t* storage, uint32_t max_words)
+{
+	clear();
+
+	m_isCapturing = true;
+	m_cmdChunkStart = nullptr;
+	m_cmdStart = (CmdWord*)storage;
+	m_cmdPos = m_cmdStart;
+	m_cmdEnd = m_cmdPos + max_words;
+}
+
+uint32_t CmdBuf::endCapture()
+{
+	uint32_t ret = m_cmdPos - m_cmdStart;
+
+	m_isCapturing = false;
+	m_cmdStart = nullptr;
+	m_cmdPos = nullptr;
+	m_cmdEnd = nullptr;
+
+	return ret;
+}
+
 CmdWord* CmdBuf::requestCmdMem(uint32_t size)
 {
+	if (m_isCapturing)
+	{
+		DK_ERROR(DkResult_BadState, "out of capture memory");
+		return nullptr;
+	}
 	if (!m_cbAddMem)
 	{
 		DK_ERROR(DkResult_OutOfMemory, "out of command memory and no add-mem callback set");
@@ -167,6 +195,8 @@ bool CmdBuf::appendRawGpfifoEntry(DkGpuAddr iova, uint32_t numCmds, uint32_t fla
 
 CtrlCmdHeader* CmdBuf::appendCtrlCmd(size_t size)
 {
+	DK_DEBUG_BAD_STATE(m_isCapturing, "capturing this command is not supported");
+
 	CtrlCmdHeader* ret = nullptr;
 	if (getCtrlSpaceFree() >= size)
 		ret = static_cast<CtrlCmdHeader*>(m_ctrlPos);
@@ -248,19 +278,50 @@ void dkCmdBufAddMemory(DkCmdBuf obj, DkMemBlock mem, uint32_t offset, uint32_t s
 	DK_DEBUG_DATA_ALIGN(offset, DK_CMDMEM_ALIGNMENT);
 	DK_DEBUG_SIZE_ALIGN(size, DK_CMDMEM_ALIGNMENT);
 	DK_DEBUG_BAD_FLAGS(mem->isGpuNoAccess() || !mem->isCpuUncached(), "DkMemBlock must be created with DkMemBlockFlags_CpuUncached and DkMemBlockFlags_GpuCached");
+	DK_DEBUG_BAD_STATE(obj->isCapturing(), "illegal operation during command capture");
 	obj->addMemory(mem, offset, size);
 }
 
 DkCmdList dkCmdBufFinishList(DkCmdBuf obj)
 {
 	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_STATE(obj->isCapturing(), "illegal operation during command capture");
 	return obj->finishList();
 }
 
 void dkCmdBufClear(DkCmdBuf obj)
 {
 	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_STATE(obj->isCapturing(), "illegal operation during command capture");
 	obj->clear();
+}
+
+void dkCmdBufBeginCaptureCmds(DkCmdBuf obj, uint32_t* storage, uint32_t max_words)
+{
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_NON_NULL(storage);
+	DK_DEBUG_NON_ZERO(max_words);
+	DK_DEBUG_BAD_STATE(obj->isCapturing(), "command capture already active");
+	obj->beginCapture(storage, max_words);
+}
+
+uint32_t dkCmdBufEndCaptureCmds(DkCmdBuf obj)
+{
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_STATE(!obj->isCapturing(), "command capture not active");
+	return obj->endCapture();
+}
+
+void dkCmdBufReplayCmds(DkCmdBuf obj, const uint32_t* words, uint32_t num_words)
+{
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_NON_NULL_ARRAY(words, num_words);
+	if (!num_words)
+		return;
+
+	CmdBufWriter w{obj};
+	w.reserve(num_words);
+	w.addRawData(words, num_words*4);
 }
 
 void dkCmdBufCallList(DkCmdBuf obj, DkCmdList list)

@@ -28,6 +28,7 @@ class CmdBuf : public ObjBase
 
 	uint32_t m_numReservedWords;
 	bool m_hasFlushFunc;
+	bool m_isCapturing;
 
 	union
 	{
@@ -47,7 +48,7 @@ class CmdBuf : public ObjBase
 	maxwell::CmdWord *m_cmdChunkStart, *m_cmdStart, *m_cmdPos, *m_cmdEnd;
 public:
 	constexpr CmdBuf(DkCmdBufMaker const& maker, uint32_t rw = 0) noexcept : ObjBase{maker.device},
-		m_userData{maker.userData}, m_cbAddMem{maker.cbAddMem}, m_numReservedWords{rw}, m_hasFlushFunc{false},
+		m_userData{maker.userData}, m_cbAddMem{maker.cbAddMem}, m_numReservedWords{rw}, m_hasFlushFunc{false}, m_isCapturing{false},
 		m_ctrlChunkCur{}, m_ctrlChunkFree{}, m_ctrlGpfifo{}, m_ctrlStart{}, m_ctrlPos{}, m_ctrlEnd{},
 		m_cmdChunkStartIova{}, m_cmdStartIova{}, m_cmdChunkStart{}, m_cmdStart{}, m_cmdPos{}, m_cmdEnd{} { }
 	~CmdBuf();
@@ -72,7 +73,11 @@ public:
 	DkCmdList finishList();
 	void clear();
 
+	void beginCapture(uint32_t* storage, uint32_t max_words);
+	uint32_t endCapture();
+
 	constexpr bool isDirty() const noexcept { return m_cmdStart != m_cmdPos; }
+	constexpr bool isCapturing() const noexcept { return m_isCapturing; }
 	constexpr uint32_t getCmdOffset() const noexcept { return uint32_t((char*)(void*)m_cmdPos - (char*)(void*)m_cmdChunkStart); }
 	constexpr size_t getCtrlSpaceFree() const noexcept { return size_t((char*)(void*)m_ctrlEnd-(char*)(void*)m_ctrlPos); }
 	maxwell::CmdWord* requestCmdMem(uint32_t size);

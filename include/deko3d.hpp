@@ -172,6 +172,9 @@ namespace dk
 		void addMemory(DkMemBlock mem, uint32_t offset, uint32_t size);
 		DkCmdList finishList();
 		void clear();
+		void beginCaptureCmds(uint32_t* storage, uint32_t max_words);
+		uint32_t endCaptureCmds();
+		void replayCmds(detail::ArrayProxy<uint32_t const> words);
 		void callList(DkCmdList list);
 		void waitFence(DkFence& fence);
 		void signalFence(DkFence& fence, bool flush = false);
@@ -603,6 +606,21 @@ namespace dk
 	inline void CmdBuf::clear()
 	{
 		::dkCmdBufClear(*this);
+	}
+
+	inline void CmdBuf::beginCaptureCmds(uint32_t* storage, uint32_t max_words)
+	{
+		::dkCmdBufBeginCaptureCmds(*this, storage, max_words);
+	}
+
+	inline uint32_t CmdBuf::endCaptureCmds()
+	{
+		return ::dkCmdBufEndCaptureCmds(*this);
+	}
+
+	inline void CmdBuf::replayCmds(detail::ArrayProxy<uint32_t const> words)
+	{
+		::dkCmdBufReplayCmds(*this, words.data(), words.size());
 	}
 
 	inline void CmdBuf::callList(DkCmdList list)

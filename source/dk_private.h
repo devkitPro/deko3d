@@ -49,6 +49,10 @@
 	if (_expr) DK_ERROR(DkResult_BadFlags, DK_FILELINE DK_MACRO_DEFAULT("bad flags: " #_expr,##__VA_ARGS__)); \
 })
 
+#define DK_DEBUG_BAD_STATE(_expr,...) ({ \
+	if (_expr) DK_ERROR(DkResult_BadState, DK_FILELINE DK_MACRO_DEFAULT("bad state: " #_expr,##__VA_ARGS__)); \
+})
+
 #define DK_DEBUG_DATA_ALIGN(_data,_align) ({ \
 	if (::dk::detail::IsMisaligned((_data),(_align))) \
 		DK_ERROR(DkResult_MisalignedData, DK_FILELINE "misaligned data: " #_data " (" #_align ")"); \
@@ -79,6 +83,7 @@
 #define DK_DEBUG_NON_NULL_ARRAY(...) ((void)0)
 #define DK_DEBUG_BAD_INPUT(...) ((void)0)
 #define DK_DEBUG_BAD_FLAGS(...) ((void)0)
+#define DK_DEBUG_BAD_STATE(...) ((void)0)
 #define DK_DEBUG_DATA_ALIGN(...) ((void)0)
 #define DK_DEBUG_SIZE_ALIGN(...) ((void)0)
 #define DK_DEBUG_CHECK(...) ((void)0)
