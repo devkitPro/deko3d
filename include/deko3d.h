@@ -215,6 +215,10 @@ enum
 {
 	DkQueueFlags_Graphics     = 1U << 0,
 	DkQueueFlags_Compute      = 1U << 1,
+	DkQueueFlags_MediumPrio   = 0U << 2,
+	DkQueueFlags_HighPrio     = 1U << 2,
+	DkQueueFlags_LowPrio      = 2U << 2,
+	DkQueueFlags_PrioMask     = 3U << 2,
 	DkQueueFlags_EnableZcull  = 0U << 4,
 	DkQueueFlags_DisableZcull = 1U << 4,
 };
@@ -233,7 +237,7 @@ DK_CONSTEXPR void dkQueueMakerDefaults(DkQueueMaker* maker, DkDevice device)
 {
 	maker->device = device;
 	maker->flags =
-		DkQueueFlags_Graphics | DkQueueFlags_Compute |
+		DkQueueFlags_Graphics | DkQueueFlags_Compute | DkQueueFlags_MediumPrio |
 		DkQueueFlags_EnableZcull;
 	maker->commandMemorySize = DK_QUEUE_MIN_CMDMEM_SIZE;
 	maker->flushThreshold = DK_QUEUE_MIN_CMDMEM_SIZE/8;

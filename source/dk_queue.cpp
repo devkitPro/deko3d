@@ -14,8 +14,18 @@ DkResult Queue::initialize()
 {
 	DkResult res;
 
+	// Calculate channel priority
+	NvChannelPriority prio;
+	switch (m_flags & DkQueueFlags_PrioMask)
+	{
+		default:
+		case DkQueueFlags_MediumPrio: prio = NvChannelPriority_Medium; break;
+		case DkQueueFlags_HighPrio:   prio = NvChannelPriority_High;   break;
+		case DkQueueFlags_LowPrio:    prio = NvChannelPriority_Low;    break;
+	}
+
 	// Create GPU channel
-	if (R_FAILED(nvGpuChannelCreate(&m_gpuChannel, getDevice()->getAddrSpace(), NvChannelPriority_Medium)))
+	if (R_FAILED(nvGpuChannelCreate(&m_gpuChannel, getDevice()->getAddrSpace(), prio)))
 		return DkResult_Fail;
 
 	// Allocate cmdbuf

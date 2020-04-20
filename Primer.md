@@ -372,6 +372,9 @@ Field                      | Default                                  | Descript
 -----------------|---------|------------
 `Graphics`       | ✓       | The queue can execute graphics commands
 `Compute`        | ✓       | The queue can execute compute commands
+`MediumPrio`     | ✓       | The queue has medium priority
+`HighPrio`       |         | The queue has high priority
+`LowPrio`        |         | The queue has low priority
 `EnableZcull`    | ✓       | Zcull is enabled
 `DisableZcull`   |         | Zcull is disabled
 
