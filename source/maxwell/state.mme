@@ -71,3 +71,11 @@ SetStencilCullCriteria::
 	r1 to mem
 	*MmeStencilCullCriteria'0 to addr
 	r1 to mem
+
+# Updates an unknown register based off conservative raster state
+UpdateConservativeRaster::
+	ldi SetConservativeRasterEnable to r1
+	ldi MmeConservativeRasterDilateEnabled to r2
+	Unknown0bb'0 to addr
+	*and r1 r2 to r1
+	lsl r1 4 to mem

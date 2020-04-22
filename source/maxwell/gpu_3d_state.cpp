@@ -1,3 +1,4 @@
+#include <math.h>
 #include "../dk_device.h"
 #include "../cmdbuf_writer.h"
 
@@ -172,6 +173,36 @@ void dkCmdBufSetLineWidth(DkCmdBuf obj, float width)
 	// According to nouveau (nvc0_rasterizer_state_create), Maxwell 2nd gen+ only reads LineWidthSmooth.
 	// However for consistency with official code, we'll set LineWidthAliased too.
 	w << Cmd(3D, LineWidthSmooth{}, width, width);
+}
+
+void dkCmdBufSetConservativeRasterEnable(DkCmdBuf obj, bool enable)
+{
+	DK_ENTRYPOINT(obj);
+
+	CmdBufWriter w{obj};
+	w.reserve(5);
+
+	w << CmdInline(3D, PipeNop{}, 0);
+	w << CmdInline(3D, PipeNop{}, 0);
+	w << CmdInline(3D, PipeNop{}, 0);
+	w << CmdInline(3D, SetConservativeRasterEnable{}, enable);
+	w << MacroInline(UpdateConservativeRaster, 0);
+}
+
+void dkCmdBufSetConservativeRasterDilate(DkCmdBuf obj, float dilate)
+{
+	DK_ENTRYPOINT(obj);
+
+	int dilateInt = (int)ceilf(dilate*4.0f);
+	if (dilateInt < 0) dilateInt = 0;
+	else if (dilateInt > 3) dilateInt = 3;
+
+	CmdBufWriter w{obj};
+	w.reserve(6);
+
+	w << Macro(WriteHardwareReg, 0x418800, dilateInt<<23, 3<<23);
+	w << CmdInline(3D, MmeConservativeRasterDilateEnabled{}, dilateInt>0);
+	w << MacroInline(UpdateConservativeRaster, 0);
 }
 
 void dkCmdBufSetDepthBounds(DkCmdBuf obj, bool enable, float near, float far)

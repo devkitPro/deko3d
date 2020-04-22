@@ -202,10 +202,13 @@ namespace dk
 		void bindIdxBuffer(DkIdxFormat format, DkGpuAddr address);
 		void setViewports(uint32_t firstId, detail::ArrayProxy<DkViewport const> viewports);
 		void setViewportSwizzles(uint32_t firstId, detail::ArrayProxy<DkViewportSwizzle const> swizzles);
+		void setSubpixelPrecisionBias(uint32_t xbits, uint32_t ybits);
 		void setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors);
 		void setDepthBias(float constantFactor, float clamp, float slopeFactor);
 		void setPointSize(float size);
 		void setLineWidth(float width);
+		void setConservativeRasterEnable(bool enable);
+		void setConservativeRasterDilate(float dilate);
 		void setSampleMask(uint32_t mask);
 		void setCoverageModulationTable(float const table[16]);
 		void setDepthBounds(bool enable, float near, float far);
@@ -758,6 +761,11 @@ namespace dk
 		::dkCmdBufSetViewportSwizzles(*this, firstId, swizzles.data(), swizzles.size());
 	}
 
+	inline void CmdBuf::setSubpixelPrecisionBias(uint32_t xbits, uint32_t ybits)
+	{
+		::dkCmdBufSetSubpixelPrecisionBias(*this, xbits, ybits);
+	}
+
 	inline void CmdBuf::setScissors(uint32_t firstId, detail::ArrayProxy<DkScissor const> scissors)
 	{
 		::dkCmdBufSetScissors(*this, firstId, scissors.data(), scissors.size());
@@ -776,6 +784,16 @@ namespace dk
 	inline void CmdBuf::setLineWidth(float width)
 	{
 		::dkCmdBufSetLineWidth(*this, width);
+	}
+
+	inline void CmdBuf::setConservativeRasterEnable(bool enable)
+	{
+		::dkCmdBufSetConservativeRasterEnable(*this, enable);
+	}
+
+	inline void CmdBuf::setConservativeRasterDilate(float dilate)
+	{
+		::dkCmdBufSetConservativeRasterDilate(*this, dilate);
 	}
 
 	inline void CmdBuf::setSampleMask(uint32_t mask)

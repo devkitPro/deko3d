@@ -117,7 +117,7 @@ engine _3D 0xB197;
 	);
 	0x07 SubpixelPrecisionBias bits (
 		0..4  X;
-		8..11 Y;
+		8..12 Y;
 	);
 	0x08 next;
 );
@@ -751,5 +751,5 @@ engine _3D 0xB197;
 0xD20 MmeProgramOffsets array[6];
 
 0xD26 MmeDepthRenderTargetIova;
-
 0xD27 MmeStencilCullCriteria;
+0xD28 MmeConservativeRasterDilateEnabled;

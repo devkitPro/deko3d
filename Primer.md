@@ -675,7 +675,7 @@ Special features:
 - Legacy smoothing
 - Depth bias
 - Multisampling
-- Conservative rasterization (not yet supported)
+- Conservative rasterization
 
 ```c
 struct DkRasterizerState;
@@ -684,6 +684,9 @@ struct DkSampleLocation;
 void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state);
 void dkCmdBufSetPointSize(DkCmdBuf obj, float size);
 void dkCmdBufSetLineWidth(DkCmdBuf obj, float width);
+void dkCmdBufSetConservativeRasterEnable(DkCmdBuf obj, bool enable);
+void dkCmdBufSetConservativeRasterDilate(DkCmdBuf obj, float dilate);
+void dkCmdBufSetSubpixelPrecisionBias(DkCmdBuf obj, uint32_t xbits, uint32_t ybits);
 void dkCmdBufSetDepthBias(DkCmdBuf obj, float constantFactor, float clamp, float slopeFactor);
 void dkCmdBufBindMultisampleState(DkCmdBuf obj, DkMultisampleState const* state);
 void dkMultisampleStateSetLocations(DkMultisampleState* obj, DkSampleLocation const* locations, uint32_t numLocations);
@@ -700,7 +703,7 @@ void dkMultisampleStateSetLocations(DkMultisampleState* obj, DkSampleLocation co
 	- [EXT_raster_multisample](https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_raster_multisample.txt) (General target-independent rasterization)
 	- [NV_framebuffer_mixed_samples](https://www.khronos.org/registry/OpenGL/extensions/NV/NV_framebuffer_mixed_samples.txt) (Higher MSAA mode for depth buffer, which afterwards results in coverage reduction)
 	- [NV_sample_locations](https://www.khronos.org/registry/OpenGL/extensions/NV/NV_sample_locations.txt) (programmable sample locations)
-- [NV_conservative_raster](https://www.khronos.org/registry/OpenGL/extensions/NV/NV_conservative_raster.txt) (not yet supported by deko3d)
+- [NV_conservative_raster](https://www.khronos.org/registry/OpenGL/extensions/NV/NV_conservative_raster.txt)
 	- [NV_conservative_raster_dilate](https://www.khronos.org/registry/OpenGL/extensions/NV/NV_conservative_raster_dilate.txt)
 
 ### Fragment early tests

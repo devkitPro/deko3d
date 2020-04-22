@@ -193,6 +193,7 @@ void Queue::setup3DEngine()
 	w << CmdInline(3D, DepthTargetArrayMode{}, E::DepthTargetArrayMode::Layers{1});
 	w << CmdInline(3D, SetConservativeRasterEnable{}, 0);
 	w << Macro(WriteHardwareReg, 0x00418800, 0x00000000, 0x01800000);
+	w << CmdInline(3D, MmeConservativeRasterDilateEnabled{}, 0);
 	w << CmdInline(3D, Unknown0bb{}, 0);
 
 	w << CmdInline(3D, SetMultisampleRasterEnable{}, 0);
@@ -381,6 +382,18 @@ void dkCmdBufSetViewportSwizzles(DkCmdBuf obj, uint32_t firstId, DkViewportSwizz
 		w << Cmd(3D, ViewportTransform::Swizzles{id},
 			S::X{sw.x} | S::Y{sw.y} | S::Z{sw.z} | S::W{sw.w});
 	}
+}
+
+void dkCmdBufSetSubpixelPrecisionBias(DkCmdBuf obj, uint32_t xbits, uint32_t ybits)
+{
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(xbits >= 0x20, "xbits is out of range (0..31)");
+	DK_DEBUG_BAD_INPUT(ybits >= 0x20, "ybits is out of range (0..31)");
+	CmdBufWriter w{obj};
+	w.reserve(5);
+
+	using SPB = Engine3D::ViewportTransform::SubpixelPrecisionBias;
+	w << MacroSetRegisterInArray<E::ViewportTransform>(SPB{}, SPB::X{xbits} | SPB::Y{ybits});
 }
 
 void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissors[], uint32_t numScissors)
