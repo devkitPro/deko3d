@@ -296,7 +296,7 @@ namespace dk
 		DeviceMaker& setCbAlloc(DkAllocFunc cbAlloc) noexcept { this->cbAlloc = cbAlloc; return *this; }
 		DeviceMaker& setCbFree(DkFreeFunc cbFree) noexcept { this->cbFree = cbFree; return *this; }
 		DeviceMaker& setFlags(uint32_t flags) noexcept { this->flags = flags; return *this; }
-		Device create();
+		Device create() const;
 	};
 
 	struct MemBlockMaker : public ::DkMemBlockMaker
@@ -306,7 +306,7 @@ namespace dk
 		MemBlockMaker(MemBlockMaker&&) = default;
 		MemBlockMaker& setFlags(uint32_t flags) noexcept { this->flags = flags; return *this; }
 		MemBlockMaker& setStorage(void* storage) noexcept { this->storage = storage; return *this; }
-		MemBlock create();
+		MemBlock create() const;
 	};
 
 	struct CmdBufMaker : public ::DkCmdBufMaker
@@ -314,7 +314,7 @@ namespace dk
 		CmdBufMaker(DkDevice device) noexcept : DkCmdBufMaker{} { ::dkCmdBufMakerDefaults(this, device); }
 		CmdBufMaker& setUserData(void* userData) noexcept { this->userData = userData; return *this; }
 		CmdBufMaker& setCbAddMem(DkCmdBufAddMemFunc cbAddMem) noexcept { this->cbAddMem = cbAddMem; return *this; }
-		CmdBuf create();
+		CmdBuf create() const;
 	};
 
 	struct QueueMaker : public ::DkQueueMaker
@@ -325,7 +325,7 @@ namespace dk
 		QueueMaker& setFlushThreshold(uint32_t flushThreshold) noexcept { this->flushThreshold = flushThreshold; return *this; }
 		QueueMaker& setPerWarpScratchMemorySize(uint32_t perWarpScratchMemorySize) noexcept { this->perWarpScratchMemorySize = perWarpScratchMemorySize; return *this; }
 		QueueMaker& setMaxConcurrentComputeJobs(uint32_t maxConcurrentComputeJobs) noexcept { this->maxConcurrentComputeJobs = maxConcurrentComputeJobs; return *this; }
-		Queue create();
+		Queue create() const;
 	};
 
 	struct ShaderMaker : public ::DkShaderMaker
@@ -333,7 +333,7 @@ namespace dk
 		ShaderMaker(DkMemBlock codeMem, uint32_t codeOffset) noexcept : DkShaderMaker{} { ::dkShaderMakerDefaults(this, codeMem, codeOffset); }
 		ShaderMaker& setControl(const void* control) noexcept { this->control = control; return *this; }
 		ShaderMaker& setProgramId(uint32_t programId) noexcept { this->programId = programId; return *this; }
-		void initialize(Shader& obj);
+		void initialize(Shader& obj) const;
 	};
 
 	struct ImageLayoutMaker : public ::DkImageLayoutMaker
@@ -353,7 +353,7 @@ namespace dk
 		ImageLayoutMaker& setMipLevels(uint32_t mipLevels) noexcept { this->mipLevels = mipLevels; return *this; }
 		ImageLayoutMaker& setPitchStride(uint32_t pitchStride) noexcept { this->pitchStride = pitchStride; return *this; }
 		ImageLayoutMaker& setTileSize(DkTileSize tileSize) noexcept { this->tileSize = tileSize; return *this; }
-		void initialize(ImageLayout& obj);
+		void initialize(ImageLayout& obj) const;
 	};
 
 	struct ImageView : public ::DkImageView
@@ -538,10 +538,10 @@ namespace dk
 #ifdef DK_HPP_SUPPORT_VECTOR
 		SwapchainMaker(DkDevice device, void* nativeWindow, std::vector<DkImage const*> const& images) noexcept : SwapchainMaker{device, nativeWindow, images.data(), images.size()} { }
 #endif
-		Swapchain create();
+		Swapchain create() const;
 	};
 
-	inline Device DeviceMaker::create()
+	inline Device DeviceMaker::create() const
 	{
 		return Device{::dkDeviceCreate(this)};
 	}
@@ -552,7 +552,7 @@ namespace dk
 		_clear();
 	}
 
-	inline MemBlock MemBlockMaker::create()
+	inline MemBlock MemBlockMaker::create() const
 	{
 		return MemBlock{::dkMemBlockCreate(this)};
 	}
@@ -588,7 +588,7 @@ namespace dk
 		return ::dkFenceWait(this, timeout_ns);
 	}
 
-	inline CmdBuf CmdBufMaker::create()
+	inline CmdBuf CmdBufMaker::create() const
 	{
 		return CmdBuf{::dkCmdBufCreate(this)};
 	}
@@ -962,7 +962,7 @@ namespace dk
 		::dkCmdBufCopyImageToBuffer(*this, &srcView, &srcRect, &dst, flags);
 	}
 
-	inline Queue QueueMaker::create()
+	inline Queue QueueMaker::create() const
 	{
 		return Queue{::dkQueueCreate(this)};
 	}
@@ -1013,7 +1013,7 @@ namespace dk
 		::dkQueuePresentImage(*this, swapchain, imageSlot);
 	}
 
-	inline void ShaderMaker::initialize(Shader& obj)
+	inline void ShaderMaker::initialize(Shader& obj) const
 	{
 		::dkShaderInitialize(&obj, this);
 	}
@@ -1028,7 +1028,7 @@ namespace dk
 		return ::dkShaderGetStage(this);
 	}
 
-	inline void ImageLayoutMaker::initialize(ImageLayout& obj)
+	inline void ImageLayoutMaker::initialize(ImageLayout& obj) const
 	{
 		::dkImageLayoutInitialize(&obj, this);
 	}
@@ -1074,7 +1074,7 @@ namespace dk
 		return *this;
 	}
 
-	inline Swapchain SwapchainMaker::create()
+	inline Swapchain SwapchainMaker::create() const
 	{
 		return Swapchain{::dkSwapchainCreate(this)};
 	}
