@@ -359,25 +359,28 @@ namespace dk
 	struct ImageView : public ::DkImageView
 	{
 		ImageView(Image const& image) noexcept : DkImageView{} { ::dkImageViewDefaults(this, &image); }
-		void setType(DkImageType type = DkImageType_None) noexcept { this->type = type; }
-		void setFormat(DkImageFormat format = DkImageFormat_None) noexcept { this->format = format; }
-		void setSwizzle(DkImageSwizzle x = DkImageSwizzle_Red, DkImageSwizzle y = DkImageSwizzle_Green, DkImageSwizzle z = DkImageSwizzle_Blue, DkImageSwizzle w = DkImageSwizzle_Alpha) noexcept
+		ImageView& setType(DkImageType type = DkImageType_None) noexcept { this->type = type; return *this; }
+		ImageView& setFormat(DkImageFormat format = DkImageFormat_None) noexcept { this->format = format; return *this; }
+		ImageView& setSwizzle(DkImageSwizzle x = DkImageSwizzle_Red, DkImageSwizzle y = DkImageSwizzle_Green, DkImageSwizzle z = DkImageSwizzle_Blue, DkImageSwizzle w = DkImageSwizzle_Alpha) noexcept
 		{
 			this->swizzle[0] = x;
 			this->swizzle[1] = y;
 			this->swizzle[2] = z;
 			this->swizzle[3] = w;
+			return *this;
 		}
-		void setDsSource(DkDsSource dsSource) noexcept { this->dsSource = dsSource; }
-		void setLayers(uint16_t layerOffset = 0, uint16_t layerCount = 0) noexcept
+		ImageView& setDsSource(DkDsSource dsSource) noexcept { this->dsSource = dsSource; return *this; }
+		ImageView& setLayers(uint16_t layerOffset = 0, uint16_t layerCount = 0) noexcept
 		{
 			this->layerOffset = layerOffset;
 			this->layerCount = layerCount;
+			return *this;
 		}
-		void setMipLevels(uint8_t mipLevelOffset = 0, uint8_t mipLevelCount = 0) noexcept
+		ImageView& setMipLevels(uint8_t mipLevelOffset = 0, uint8_t mipLevelCount = 0) noexcept
 		{
 			this->mipLevelOffset = mipLevelOffset;
 			this->mipLevelCount = mipLevelCount;
+			return *this;
 		}
 	};
 
