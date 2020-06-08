@@ -207,6 +207,8 @@ namespace dk
 		void setDepthBias(float constantFactor, float clamp, float slopeFactor);
 		void setPointSize(float size);
 		void setLineWidth(float width);
+		void setLineStipple(bool enable, uint32_t factor, uint16_t pattern);
+		void setPolygonStipple(uint32_t const pattern[32]);
 		void setConservativeRasterEnable(bool enable);
 		void setConservativeRasterDilate(float dilate);
 		void setSampleMask(uint32_t mask);
@@ -787,6 +789,16 @@ namespace dk
 	inline void CmdBuf::setLineWidth(float width)
 	{
 		::dkCmdBufSetLineWidth(*this, width);
+	}
+
+	inline void CmdBuf::setLineStipple(bool enable, uint32_t factor, uint16_t pattern)
+	{
+		::dkCmdBufSetLineStipple(*this, enable, factor, pattern);
+	}
+
+	inline void CmdBuf::setPolygonStipple(uint32_t const pattern[32])
+	{
+		::dkCmdBufSetPolygonStipple(*this, pattern);
 	}
 
 	inline void CmdBuf::setConservativeRasterEnable(bool enable)
