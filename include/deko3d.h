@@ -1219,6 +1219,8 @@ void dkCmdBufSetScissors(DkCmdBuf obj, uint32_t firstId, DkScissor const scissor
 void dkCmdBufSetDepthBias(DkCmdBuf obj, float constantFactor, float clamp, float slopeFactor);
 void dkCmdBufSetPointSize(DkCmdBuf obj, float size);
 void dkCmdBufSetLineWidth(DkCmdBuf obj, float width);
+void dkCmdBufSetLineStipple(DkCmdBuf obj, bool enable, uint32_t factor, uint16_t pattern);
+void dkCmdBufSetPolygonStipple(DkCmdBuf obj, uint32_t const pattern[32]);
 void dkCmdBufSetConservativeRasterEnable(DkCmdBuf obj, bool enable);
 void dkCmdBufSetConservativeRasterDilate(DkCmdBuf obj, float dilate);
 void dkCmdBufSetSampleMask(DkCmdBuf obj, uint32_t mask);

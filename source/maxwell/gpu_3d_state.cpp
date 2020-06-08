@@ -175,6 +175,38 @@ void dkCmdBufSetLineWidth(DkCmdBuf obj, float width)
 	w << Cmd(3D, LineWidthSmooth{}, width, width);
 }
 
+void dkCmdBufSetLineStipple(DkCmdBuf obj, bool enable, uint32_t factor, uint16_t pattern)
+{
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(factor < 1 || factor > 256);
+
+	CmdBufWriter w{obj};
+	w.reserve(3);
+
+	w << CmdInline(3D, LineStippleEnable{}, enable);
+	if (enable)
+	{
+		uint32_t packed = (pattern << 8) | ((uint8_t)factor - 1);
+		w << Cmd(3D, LineStipplePattern{}, packed);
+	}
+}
+
+void dkCmdBufSetPolygonStipple(DkCmdBuf obj, uint32_t const pattern[32])
+{
+	DK_ENTRYPOINT(obj);
+
+	CmdBufWriter w{obj};
+	w.reserve(34);
+
+	if (!pattern)
+		w << CmdInline(3D, PolygonStippleEnable{}, 0);
+	else
+	{
+		w << CmdList<1>{ MakeCmdHeader(Increasing, 32, Subchannel3D, Engine3D::PolygonStipplePattern{}) };
+		w.addRawData(pattern, 32 * sizeof(u32));
+	}
+}
+
 void dkCmdBufSetConservativeRasterEnable(DkCmdBuf obj, bool enable)
 {
 	DK_ENTRYPOINT(obj);

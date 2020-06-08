@@ -673,6 +673,7 @@ Special features:
 
 - Fill rectangle
 - Legacy smoothing
+- Polygon and line stipples
 - Depth bias
 - Multisampling
 - Conservative rasterization
@@ -684,6 +685,8 @@ struct DkSampleLocation;
 void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state);
 void dkCmdBufSetPointSize(DkCmdBuf obj, float size);
 void dkCmdBufSetLineWidth(DkCmdBuf obj, float width);
+void dkCmdBufSetLineStipple(DkCmdBuf obj, bool enable, uint32_t factor, uint16_t pattern);
+void dkCmdBufSetPolygonStipple(DkCmdBuf obj, uint32_t const pattern[32]);
 void dkCmdBufSetConservativeRasterEnable(DkCmdBuf obj, bool enable);
 void dkCmdBufSetConservativeRasterDilate(DkCmdBuf obj, float dilate);
 void dkCmdBufSetSubpixelPrecisionBias(DkCmdBuf obj, uint32_t xbits, uint32_t ybits);
@@ -699,6 +702,8 @@ void dkMultisampleStateSetLocations(DkMultisampleState* obj, DkSampleLocation co
 - [VkPipelineRasterizationStateCreateInfo](https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkPipelineRasterizationStateCreateInfo.html)
 - [NV_fill_rectangle](https://www.khronos.org/registry/OpenGL/extensions/NV/NV_fill_rectangle.txt)
 - [vkCmdSetDepthBias](https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/vkCmdSetDepthBias.html)
+- [glLineStipple](https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glLineStipple.xml)
+- [glPolygonStipple](https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glPolygonStipple.xml)
 - [Multisampling](https://www.khronos.org/opengl/wiki/Multisampling)
 	- [EXT_raster_multisample](https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_raster_multisample.txt) (General target-independent rasterization)
 	- [NV_framebuffer_mixed_samples](https://www.khronos.org/registry/OpenGL/extensions/NV/NV_framebuffer_mixed_samples.txt) (Higher MSAA mode for depth buffer, which afterwards results in coverage reduction)

@@ -551,11 +551,17 @@ engine _3D 0xB197;
 	2 High;
 );
 
+0x59B LineStippleEnable bool;
+0x5A0 LineStipplePattern;
 0x5A1 ProvokingVertexLast bool;
+
+0x5A3 PolygonStippleEnable bool;
 
 0x5AA Unknown5aa;
 
 0x5AD Unknown5ad;
+
+0x5C0 PolygonStipplePattern array[32];
 
 0x5E5 Unknown5e5;
 
