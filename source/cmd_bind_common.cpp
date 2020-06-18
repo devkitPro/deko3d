@@ -264,7 +264,7 @@ void dkCmdBufBindImages(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHand
 {
 	DK_ENTRYPOINT(obj);
 	DK_DEBUG_BAD_INPUT(stage < DkStage_Vertex || stage > DkStage_Compute, "invalid stage");
-	DK_DEBUG_NON_NULL_ARRAY(!handles, numHandles);
+	DK_DEBUG_NON_NULL_ARRAY(handles, numHandles);
 	DK_DEBUG_BAD_INPUT(!checkInRange(firstId, numHandles, DK_NUM_IMAGE_BINDINGS));
 	CmdBufWriter w{obj};
 
