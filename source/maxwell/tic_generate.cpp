@@ -141,7 +141,7 @@ void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view
 		}
 		else if (type == DkImageType_Cubemap)
 			depth = usesLoadOrStore ? 6 : 1;
-		else
+		else if (type != DkImageType_3D)
 			depth = 1;
 
 		obj->width_minus_one = width - 1;
