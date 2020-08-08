@@ -31,7 +31,8 @@ void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view
 	memset(obj, 0, sizeof(*obj));
 
 	DkImage const* image = view->pImage;
-	DkImageType type = view->type ? view->type : image->m_type;
+	DkImageType origType = image->m_type;
+	DkImageType type = view->type ? view->type : origType;
 	DkImageFormat format = view->format ? view->format : image->m_format;
 	FormatTraits const& traits = formatTraits[format];
 
@@ -110,6 +111,9 @@ void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view
 	uint32_t height = image->m_dimensions[1];
 	uint32_t depth = image->m_dimensions[2];
 
+	if (origType == DkImageType_1DArray || origType == DkImageType_2DArray || origType == DkImageType_2DMSArray || origType == DkImageType_CubemapArray)
+		iova += view->layerOffset * image->m_layerSize;
+
 	if (decayMS)
 	{
 		width *= image->m_samplesX;
@@ -128,7 +132,6 @@ void dkImageDescriptorInitialize(DkImageDescriptor* obj, DkImageView const* view
 
 		if (type == DkImageType_1DArray || type == DkImageType_2DArray || type == DkImageType_2DMSArray || type == DkImageType_CubemapArray)
 		{
-			iova += view->layerOffset * image->m_layerSize;
 			uint32_t layerCount;
 			if (view->layerCount)
 				layerCount = view->layerCount;
