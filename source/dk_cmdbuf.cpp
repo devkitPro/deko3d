@@ -123,7 +123,7 @@ CmdWord* CmdBuf::requestCmdMem(uint32_t size)
 		return nullptr;
 	}
 	m_cbAddMem(m_userData, this, (size+m_numReservedWords)*sizeof(CmdWord));
-	if ((m_cmdPos + size) >= m_cmdEnd)
+	if ((m_cmdPos + size) > m_cmdEnd)
 	{
 		DK_ERROR(DkResult_OutOfMemory, "add-mem callback did not add enough command memory");
 		return nullptr;
