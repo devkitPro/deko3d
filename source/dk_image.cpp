@@ -53,6 +53,23 @@ namespace
 	{
 		return adjustBlockSize(adjustMipSize(size, level), blockSize);
 	}
+
+	constexpr uint64_t alignLayerSize(uint64_t layerSize, uint32_t height, uint32_t depth, uint32_t blockH, uint32_t log2TileH, uint32_t log2TileD)
+	{
+		height = adjustBlockSize(height, blockH);
+		while (log2TileH != 0 && height <= 8U << (log2TileH - 1))
+			--log2TileH;
+
+		while (log2TileD != 0 && depth <= 1U << (log2TileD - 1))
+			--log2TileD;
+
+		uint32_t gobsShift = log2TileH + log2TileD + 9;
+		uint64_t sizeInGobs = layerSize >> gobsShift;
+
+		if (layerSize != sizeInGobs << gobsShift)
+			return (sizeInGobs + 1) << gobsShift;
+		return layerSize;
+	}
 }
 
 uint64_t DkImageLayout::calcLevelOffset(unsigned level) const
@@ -441,6 +458,9 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 		(obj->m_flags & DkImageFlags_Z16EnableZbc) != 0);
 
 	obj->m_layerSize = obj->calcLevelOffset(obj->m_mipLevels);
+	if (obj->m_hasLayers)
+		obj->m_layerSize = alignLayerSize(obj->m_layerSize, obj->m_dimensions[1], obj->m_dimensions[2], obj->m_blockH, obj->m_tileH, obj->m_tileD);
+
 	if (obj->m_hasLayers)
 		obj->m_storageSize = obj->m_dimensions[2] * obj->m_layerSize;
 	else
