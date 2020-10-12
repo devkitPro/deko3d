@@ -150,7 +150,7 @@ void ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 	DK_DEBUG_BAD_INPUT(usage == DepthRenderTarget && (type == DkImageType_3D || (image->m_flags & DkImageFlags_PitchLinear)),
 		"depth render targets cannot be DkImageType_3D or DkImageFlags_PitchLinear");
 	DK_DEBUG_BAD_INPUT(view->mipLevelOffset >= image->m_mipLevels, "mip level out of bounds");
-	DK_DEBUG_BAD_INPUT(type == DkImageType_3D && (view->layerOffset || view->layerCount),
+	DK_DEBUG_BAD_INPUT(usage != ColorRenderTarget && type == DkImageType_3D && (view->layerOffset || view->layerCount),
 		"cannot use layerOffset/layerCount in DkImageView with DkImageType_3D images");
 
 	bool layered;
@@ -205,13 +205,45 @@ void ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 
 		if (view->layerOffset)
 		{
-			DK_DEBUG_BAD_INPUT(view->layerOffset >= image->m_dimensions[2],
-				"DkImageView layerOffset out of bounds");
-			m_iova += view->layerOffset * image->m_layerSize;
+			if (type != DkImageType_3D)
+			{
+				DK_DEBUG_BAD_INPUT(view->layerOffset >= image->m_dimensions[2],
+					"DkImageView layerOffset out of bounds");
+
+				m_iova += view->layerOffset * image->m_layerSize;
+			}
+			else
+			{
+				DK_DEBUG_BAD_INPUT(view->layerOffset >= m_depth,
+					"DkImageView layerOffset out of bounds");
+
+				uint32_t blocksInY = (m_height + 7) / 8;
+				blocksInY = (blocksInY + (1U << tileHShift) - 1) >> tileHShift;
+
+				uint32_t widthInGobs = (m_width * m_bytesPerBlock + 63) / 64;
+				uint32_t gobSizeShift = tileHShift + 9;
+
+				uint32_t sliceSize = (blocksInY * widthInGobs) << gobSizeShift;
+
+				uint32_t mask = (1U << tileDShift) - 1;
+				uint32_t zLow = view->layerOffset & mask;
+				uint32_t zHigh = view->layerOffset & ~mask;
+
+				m_iova += (zLow << gobSizeShift) + (zHigh * sliceSize);
+			}
 		}
 
 		if (type == DkImageType_3D)
-			m_arrayMode = m_depth;
+		{
+			if (view->layerCount)
+			{
+				DK_DEBUG_BAD_INPUT(view->layerOffset + view->layerCount > m_depth,
+					"DkImageView layerOffset+layerCount out of bounds");
+				m_arrayMode = view->layerCount;
+			}
+			else
+				m_arrayMode = m_depth - view->layerOffset;
+		}
 		else if (layered)
 		{
 			if (view->layerCount)
