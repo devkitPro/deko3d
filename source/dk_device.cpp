@@ -236,7 +236,7 @@ void dk::detail::WarningMsg(const char* fmt, ...)
 
 void dk::detail::RaiseError(DkResult result)
 {
-	fatalThrow(MAKERESULT(359, result));
+	diagAbortWithResult(MAKERESULT(359, result));
 }
 
 #endif
