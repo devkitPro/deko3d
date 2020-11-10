@@ -6,11 +6,32 @@ engine Gpfifo 0xB06F;
 0x006 SemaphorePayload;
 0x007 Semaphore bits (
 	0..4 Operation enum (
-		1 Acquire;
-		2 Release;
-		4 AcqGeq;  // acquire greater-or-equal
+		1  Acquire;
+		2  Release;
+		4  AcqGeq;    // acquire greater-or-equal
+		8  AcqAnd;    // acquire with bitwise and?
+		16 Reduction;
 	);
-	12 AcquireSwitch;
+	12 AcquireSwitch bool;
+	20 ReleaseWfiDisable bool;
+	24 ReleaseSize enum (
+		0 _16;
+		1 _4;
+	);
+	27..30 Reduction enum (
+		0 Min;
+		1 Max;
+		2 Xor;
+		3 And;
+		4 Or;
+		5 Add;
+		6 Inc;
+		7 Dec;
+	);
+	31 Format enum (
+		0 Signed;
+		1 Unsigned;
+	);
 );
 
 0x00B MemOpB bits (
@@ -35,10 +56,12 @@ engine Gpfifo 0xB06F;
 
 0x014 SetReference;
 
-0x01C FenceValue;
-0x01D FenceAction bits (
-	4..7 Operation enum (
-		1 Acquire;
+0x01C SyncpointPayload;
+0x01D Syncpoint bits (
+	0 Operation enum (
+		0 Wait;
+		1 Incr;
 	);
-	8..15 Id;
+	4 WaitSwitch bool;
+	8..15 SyncptIndex;
 );

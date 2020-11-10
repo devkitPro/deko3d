@@ -194,7 +194,7 @@ void Queue::waitFence(DkFence& fence)
 		return;
 
 	using S = EngineGpfifo::Semaphore;
-	using F = EngineGpfifo::FenceAction;
+	using F = EngineGpfifo::Syncpoint;
 	CmdBufWriterChecked w{&m_cmdBuf};
 
 	switch (fence.m_type)
@@ -213,9 +213,9 @@ void Queue::waitFence(DkFence& fence)
 			{
 				NvFence const& f = fence.m_external.m_fence.fences[i];
 				if ((s32)f.id < 0) continue;
-				w << Cmd(Gpfifo, FenceValue{},
+				w << Cmd(Gpfifo, SyncpointPayload{},
 					f.value,
-					F::Operation::Acquire | F::Id{f.id}
+					F::Operation::Wait | F::WaitSwitch{} | F::SyncptIndex{f.id}
 				);
 			}
 			break;
