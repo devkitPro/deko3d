@@ -2,46 +2,78 @@
 // FERMI_TWOD_A
 engine _2D 0x902D;
 
-0x080 DestFormat;
-0x081 DestIsLinear bool;
-0x082 DestTileMode bits (
-	0..3  Width;
-	4..7  Height;
-	8..11 Depth;
+0x080 SetDstFormat;
+0x081 SetDstMemoryLayout enum (
+	0 BlockLinear;
+	1 Pitch;
 );
-0x083 DestArrayMode;
-
-0x085 DestPitch;
-0x086 DestHorizontal;
-0x087 DestVertical;
-0x088 DestAddr iova;
-
-0x08c SrcFormat;
-0x08d SrcIsLinear bool;
-0x08e SrcTileMode bits (
-	0..3  Width;
-	4..7  Height;
-	8..11 Depth;
+0x082 SetDstBlockSize bits (
+	4..6  Height enum (
+		0 OneGob;
+		1 TwoGobs;
+		2 FourGobs;
+		3 EightGobs;
+		4 SixteenGobs;
+		5 ThirtyTwoGobs;
+	);
+	8..10 Depth enum (
+		0 OneGob;
+		1 TwoGobs;
+		2 FourGobs;
+		3 EightGobs;
+		4 SixteenGobs;
+		5 ThirtyTwoGobs;
+	);
 );
-0x08f SrcArrayMode;
+0x083 SetDstDepth;
+0x084 SetDstLayer;
+0x085 SetDstPitch;
+0x086 SetDstWidth;
+0x087 SetDstHeight;
+0x088 SetDstOffset iova;
 
-0x091 SrcPitch;
-0x092 SrcHorizontal;
-0x093 SrcVertical;
-0x094 SrcAddr iova;
+0x08c SetSrcFormat;
+0x08d SetSrcMemoryLayout enum (
+	0 BlockLinear;
+	1 Pitch;
+);
+0x08e SetSrcBlockSize bits (
+	4..6  Height enum (
+		0 OneGob;
+		1 TwoGobs;
+		2 FourGobs;
+		3 EightGobs;
+		4 SixteenGobs;
+		5 ThirtyTwoGobs;
+	);
+	8..10 Depth enum (
+		0 OneGob;
+		1 TwoGobs;
+		2 FourGobs;
+		3 EightGobs;
+		4 SixteenGobs;
+		5 ThirtyTwoGobs;
+	);
+);
+0x08f SetSrcDepth;
+// 0x090 is TwodInvalidateTextureDataCache, there's no "SetSrcLayer" method
+0x091 SetSrcPitch;
+0x092 SetSrcWidth;
+0x093 SetSrcHeight;
+0x094 SetSrcOffset iova;
 
-0x0a4 ClipEnable bool;
+0x0a4 SetClipEnable bool;
 
-0x0a9 BlendAlphaFactor bits ( // aka BETA1; 1.31 fixed point (<0 clamped to 0; only 8 fract bits used)
+0x0a9 SetBeta1 bits ( // blend alpha factor; 1.31 fixed point (<0 clamped to 0; only 8 fract bits used)
 	23..30 Value;
 );
-0x0aa BlendPremultFactor bits ( // aka BETA4
+0x0aa SetBeta4 bits ( // blend premult factor
 	0..7   Red;
 	8..15  Green;
 	16..23 Blue;
 	24..31 Alpha;
 );
-0x0ab Operation enum (
+0x0ab SetOperation enum (
 	0 SrcCopyAnd;     // if (SRC.A) DST = SRC;
 	1 RopAnd;         // R = ROP(DST, SRC, PATTERN); if (R.A) DST = R;
 	2 Blend;          // DST = (1 - SRC.A * BETA1) * DST + SRC * SRC.A * BETA1;
@@ -51,30 +83,30 @@ engine _2D 0x902D;
 	6 BlendPremult;   // DST = (1 - SRC.A * BETA4.A) * DST + SRC * BETA4;
 );
 
-0x0b5 Unknown0b5;
+0x0b5 SetCompressionEnable bool;
 
-0x221 Unknown221;
+0x221 SetPixelsFromMemoryCorralSize;
 
-0x223 BlitControl bits (
+0x223 SetPixelsFromMemorySampleMode bits (
 	0 Origin enum (
 		0 Center;
 		1 Corner;
 	);
 	4 Filter enum (
-		0 Nearest;
-		1 Linear;
+		0 Point;
+		1 Bilinear;
 	);
 );
 
-0x22c BlitDestX;
-0x22d BlitDestY;
-0x22e BlitDestW;
-0x22f BlitDestH;
-0x230 BlitDuDxFract;
-0x231 BlitDuDxInt;
-0x232 BlitDvDyFract;
-0x233 BlitDvDyInt;
-0x234 BlitSrcXFract;
-0x235 BlitSrcXInt;
-0x236 BlitSrcYFract;
-0x237 BlitSrcYInt;
+0x22c SetPixelsFromMemoryDstX0;
+0x22d SetPixelsFromMemoryDstY0;
+0x22e SetPixelsFromMemoryDstWidth;
+0x22f SetPixelsFromMemoryDstHeight;
+0x230 SetPixelsFromMemoryDuDxFrac;
+0x231 SetPixelsFromMemoryDuDxInt;
+0x232 SetPixelsFromMemoryDvDyFrac;
+0x233 SetPixelsFromMemoryDvDyInt;
+0x234 SetPixelsFromMemorySrcX0Frac;
+0x235 SetPixelsFromMemorySrcX0Int;
+0x236 SetPixelsFromMemorySrcY0Frac;
+0x237 PixelsFromMemorySrcY0Int; // writing to this register triggers the operation

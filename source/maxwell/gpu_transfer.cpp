@@ -20,9 +20,9 @@ void Queue::setupTransfer()
 {
 	CmdBufWriter w{&m_cmdBuf};
 
-	w << Cmd(2D, BlendAlphaFactor{}, E2D::BlendAlphaFactor::Value{0xFF});
-	w << CmdInline(2D, ClipEnable{}, 0);
-	w << CmdInline(2D, Unknown221{}, 0x3f);
+	w << Cmd(2D, SetBeta1{}, E2D::SetBeta1::Value{0xFF}); // alpha blend factor
+	w << CmdInline(2D, SetClipEnable{}, 0);
+	w << CmdInline(2D, SetPixelsFromMemoryCorralSize{}, 0x3f);
 }
 
 void dk::detail::BlitCopyEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo const& dst, BlitParams const& params, uint32_t srcZ, uint32_t dstZ)
@@ -123,7 +123,8 @@ void dk::detail::Blit2DEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo cons
 
 	if (flags & Blit2D_SetupEngine)
 	{
-		using BO = E2D::Operation;
+		using ML = E2D::SetDstMemoryLayout;
+		using BO = E2D::SetOperation;
 		uint32_t blitOp;
 		bool hasFactor = false;
 		switch (flags & DkBlitFlag_Mode_Mask)
@@ -148,49 +149,49 @@ void dk::detail::Blit2DEngine(DkCmdBuf obj, ImageInfo const& src, ImageInfo cons
 				break;
 		}
 
-		w << CmdInline(2D, Operation{}, blitOp);
+		w << CmdInline(2D, SetOperation{}, blitOp);
 		if (hasFactor)
-			w << Cmd(2D, BlendPremultFactor{}, factor);
+			w << Cmd(2D, SetBeta4{}, factor); // premult blend factor
 
 		if (!src.m_isLinear)
 		{
-			w << Cmd(2D, SrcFormat{}, src.m_format, 0, src.m_tileMode, src.m_arrayMode);
-			w << Cmd(2D, SrcHorizontal{}, src.m_horizontal, src.m_vertical, Iova(src.m_iova));
+			w << Cmd(2D, SetSrcFormat{}, src.m_format, ML::BlockLinear, src.m_tileMode, src.m_arrayMode);
+			w << Cmd(2D, SetSrcWidth{}, src.m_horizontal, src.m_vertical, Iova(src.m_iova));
 		}
 		else
 		{
-			w << Cmd(2D, SrcFormat{}, src.m_format, 1);
-			w << Cmd(2D, SrcPitch{}, src.m_horizontal, src.m_width, src.m_height, Iova(src.m_iova));
+			w << Cmd(2D, SetSrcFormat{}, src.m_format, ML::Pitch);
+			w << Cmd(2D, SetSrcPitch{}, src.m_horizontal, src.m_width, src.m_height, Iova(src.m_iova));
 		}
 
 		if (!dst.m_isLinear)
 		{
-			w << Cmd(2D, DestFormat{}, dst.m_format, 0, dst.m_tileMode, dst.m_arrayMode);
-			w << Cmd(2D, DestHorizontal{}, dst.m_horizontal, dst.m_vertical, Iova(dst.m_iova));
+			w << Cmd(2D, SetDstFormat{}, dst.m_format, ML::BlockLinear, dst.m_tileMode, dst.m_arrayMode, 0);
+			w << Cmd(2D, SetDstWidth{}, dst.m_horizontal, dst.m_vertical, Iova(dst.m_iova));
 		}
 		else
 		{
-			w << Cmd(2D, DestFormat{}, dst.m_format, 1);
-			w << Cmd(2D, DestPitch{}, dst.m_horizontal, dst.m_width, dst.m_height, Iova(dst.m_iova));
+			w << Cmd(2D, SetDstFormat{}, dst.m_format, ML::Pitch);
+			w << Cmd(2D, SetDstPitch{}, dst.m_horizontal, dst.m_width, dst.m_height, Iova(dst.m_iova));
 		}
 
-		w << CmdInline(2D, Unknown0b5{}, 1);
+		w << CmdInline(2D, SetCompressionEnable{}, 1);
 	}
 	else
 	{
-		w << Cmd(2D, SrcAddr{}, Iova(src.m_iova));
-		w << Cmd(2D, DestAddr{}, Iova(dst.m_iova));
+		w << Cmd(2D, SetSrcOffset{}, Iova(src.m_iova));
+		w << Cmd(2D, SetDstOffset{}, Iova(dst.m_iova));
 	}
 
-	uint32_t blitCtrlFlags = 0;
-	using BC = E2D::BlitControl;
+	uint32_t sampleMode = 0;
+	using SM = E2D::SetPixelsFromMemorySampleMode;
 	if (flags & Blit2D_OriginCorner)
-		blitCtrlFlags |= BC::Origin::Corner;
+		sampleMode |= SM::Origin::Corner;
 	if (flags & Blit2D_UseFilter)
-		blitCtrlFlags |= BC::Filter::Linear;
+		sampleMode |= SM::Filter::Bilinear;
 
-	w << CmdInline(2D, BlitControl{}, blitCtrlFlags);
-	w << Cmd(2D, BlitDestX{},
+	w << CmdInline(2D, SetPixelsFromMemorySampleMode{}, sampleMode);
+	w << Cmd(2D, SetPixelsFromMemoryDstX0{},
 		params.dstX,
 		params.dstY,
 		params.width,

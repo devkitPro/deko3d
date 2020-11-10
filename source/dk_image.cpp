@@ -187,8 +187,7 @@ void ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 	m_bytesPerBlock = traits.bytesPerBlock;
 	m_isLayered = layered;
 
-	using TM   = Engine3D::RenderTarget::TileMode;
-	using TM2D = Engine2D::SrcTileMode;
+	using TM = Engine3D::RenderTarget::TileMode;
 	if (!(image->m_flags & DkImageFlags_PitchLinear))
 	{
 		unsigned tileWShift = image->m_tileW;
@@ -229,10 +228,9 @@ void ImageInfo::fromImageView(DkImageView const* view, unsigned usage)
 		uint32_t tileWidth = (64 / traits.bytesPerBlock) << tileWShift;
 		m_horizontal  = (m_widthMs + tileWidth - 1) &~ (tileWidth - 1);
 		m_vertical    = m_heightMs;
+		m_tileMode    = TM::Width{tileWShift} | TM::Height{tileHShift} | TM::Depth{tileDShift};
 		if (isRenderTarget)
-			m_tileMode = TM::Width{tileWShift} | TM::Height{tileHShift} | TM::Depth{tileDShift} | TM::Is3D{type==DkImageType_3D};
-		else
-			m_tileMode = TM2D::Width{tileWShift} | TM2D::Height{tileHShift} | TM2D::Depth{tileDShift};
+			m_tileMode |= TM::Is3D{type==DkImageType_3D};
 		m_layerStride = image->m_layerSize;
 		if (isRenderTarget)
 			m_layerStride >>= 2;
