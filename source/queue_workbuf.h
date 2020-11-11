@@ -43,6 +43,8 @@ namespace dk::detail
 
 		DkResult initialize() noexcept
 		{
+			if (m_totalSize == 0)
+				return DkResult_Success; // we have no need to allocate any memory
 			return MemBlock::initialize(
 				DkMemBlockFlags_GpuCached | DkMemBlockFlags_ZeroFillInit,
 				nullptr,
