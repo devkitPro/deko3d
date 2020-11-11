@@ -199,7 +199,7 @@ void Queue::waitFence(DkFence& fence)
 
 	switch (fence.m_type)
 	{
-		case DkFence::Type::Invalid:
+		case DkFence::Type::Empty:
 			break;
 		case DkFence::Type::Internal:
 			w << Cmd(Gpfifo, SemaphoreOffset{},

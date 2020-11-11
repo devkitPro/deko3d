@@ -7,8 +7,9 @@ DkResult DkFence::wait(s32 timeout_us)
 	switch (m_type)
 	{
 		default:
-		case DkFence::Invalid:
-			return DkResult_Fail;
+		case DkFence::Empty:
+			// If the fence is empty, immediately succeed - we don't need to do anything.
+			return DkResult_Success;
 		case DkFence::Internal:
 		{
 			// Succeed early if the semaphore is signaled

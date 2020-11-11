@@ -8,7 +8,7 @@ struct Fence
 {
 	enum Type
 	{
-		Invalid,
+		Empty,
 		Internal,
 		External,
 	};
