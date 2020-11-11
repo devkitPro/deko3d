@@ -207,10 +207,22 @@ void dkQueuePresentImage(DkQueue obj, DkSwapchain swapchain, int imageSlot)
 
 	DkImage const* image = swapchain->getImage(imageSlot);
 	if (image->m_flags & DkImageFlags_HwCompression)
+	{
+		DK_DEBUG_BAD_STATE(!obj->hasGraphics(), "attempted to present image with hardware compression using a non-Graphics-capable queue");
 		obj->decompressSurface(image);
+	}
 
 	DkFence fence;
 	obj->signalFence(fence, true);
 	obj->flush();
 	swapchain->presentImage(imageSlot, fence);
+}
+
+//-----------------------------------------------------------------------------
+// Shims for conditionally linked features
+//-----------------------------------------------------------------------------
+
+DK_WEAK void Queue::decompressSurface(DkImage const* image)
+{
+	DK_WARNING("attempted to present image with hardware compression, but no graphics command was ever issued");
 }
