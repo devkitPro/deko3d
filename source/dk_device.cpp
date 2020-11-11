@@ -127,6 +127,13 @@ Device::~Device()
 
 	m_semaphoreMem.destroy(); // must do this before NvLib is wound down
 	m_codeSeg.cleanup();
+
+#ifdef DEBUG
+	// Ensure there are no outstanding unfreed memory blocks
+	if (m_nvMapCount != 0)
+		DK_ERROR(DkResult_BadState, "unfreed memory blocks");
+#endif
+
 	nvAddressSpaceClose(&m_addrSpace); // does nothing if uninitialized
 	nvLibExit();
 }

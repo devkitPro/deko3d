@@ -56,6 +56,8 @@ DkResult MemBlock::initialize(uint32_t flags, void* storage, uint32_t size)
 	if (R_FAILED(nvMapCreate(&m_mapObj, storage, size, bigPageSize, NvKind_Pitch, isCpuCached())))
 		return DkResult_Fail;
 
+	getDevice()->incrNvMapCount();
+
 	// Map the block into the GPU address space, if the GPU is to have access to this memory block
 	if (!isGpuNoAccess())
 	{
@@ -126,7 +128,12 @@ void MemBlock::destroy()
 		m_gpuAddrPitch = DK_GPU_ADDR_INVALID;
 	}
 
-	nvMapClose(&m_mapObj); // does nothing if uninitialized
+	if (m_mapObj.has_init)
+	{
+		nvMapClose(&m_mapObj);
+		getDevice()->decrNvMapCount();
+	}
+
 	if (m_ownedMem)
 	{
 		freeMem(m_ownedMem);

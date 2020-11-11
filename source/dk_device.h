@@ -61,6 +61,10 @@ class Device
 	GpuInfo m_gpuInfo;
 	bool m_didLibInit;
 
+#ifdef DEBUG
+	uint32_t m_nvMapCount;
+#endif
+
 	Mutex m_queueTableMutex;
 	DkQueue m_queueTable[s_numQueues];
 	uint32_t m_usedQueues[s_usedQueueBitmapSize];
@@ -74,6 +78,9 @@ public:
 
 	constexpr Device(DkDeviceMaker const& m) noexcept :
 		m_maker{m}, m_addrSpace{}, m_gpuInfo{}, m_didLibInit{},
+#ifdef DEBUG
+		m_nvMapCount{},
+#endif
 		m_queueTableMutex{}, m_queueTable{}, m_usedQueues{},
 		m_semaphoreMem{this}, m_semaphores{},
 		m_codeSeg{this} { }
@@ -117,6 +124,20 @@ public:
 
 	void checkQueueErrors() noexcept;
 	void calcZcullStorageInfo(ZcullStorageInfo& out, uint32_t width, uint32_t height, uint32_t depth, DkImageFormat format, DkMsMode msMode);
+
+	void incrNvMapCount() noexcept
+	{
+#ifdef DEBUG
+		__atomic_add_fetch(&m_nvMapCount, 1, __ATOMIC_SEQ_CST);
+#endif
+	}
+
+	void decrNvMapCount() noexcept
+	{
+#ifdef DEBUG
+		__atomic_sub_fetch(&m_nvMapCount, 1, __ATOMIC_SEQ_CST);
+#endif
+	}
 
 	void* allocMem(size_t size, size_t alignment = __STDCPP_DEFAULT_NEW_ALIGNMENT__) const noexcept;
 	void freeMem(void* mem) const noexcept;
