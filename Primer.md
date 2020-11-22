@@ -24,6 +24,7 @@ deko3d is written in the C++ language, however its API is accessible from both p
 	- `DkSwapchain`
 - **Opaque objects**: these are structs containing no publicly visible fields, but whose memory the user is responsible for managing. Opaque objects typically hold internal pre-calculated book-keeping information about resources, and they do not need to be destroyed since they do not actually own the resources they describe.
 	- `DkFence`
+	- `DkVariable`
 	- `DkShader`
 	- `DkImageLayout`
 	- `DkImage`
@@ -330,6 +331,15 @@ Usually fences will be used in a signaling command prior to being waited on. If 
 
 > **Warning**: Fence wait/signal commands recorded to a command list keep a pointer to the fence struct in the command buffer's bookkeeping memory. Please make sure the struct remains at the same valid memory address for the lifetime of the command list handle; otherwise submitting the command list handle to a queue will result in undefined behavior.
 
+### Variables (`DkVariable`)
+
+```c
+struct DkVariable;
+void dkVariableInitialize(DkVariable* obj, DkMemBlock mem, uint32_t offset);
+uint32_t dkVariableRead(DkVariable const* obj);
+void dkVariableSignal(DkVariable const* obj, DkVarOp op, uint32_t value);
+```
+
 ### Queues (`DkQueue`)
 
 ```c
@@ -503,6 +513,8 @@ In order to do this users need to parse a tiny bit of the DKSH format. The follo
 ```c
 void dkCmdBufWaitFence(DkCmdBuf obj, DkFence* fence);
 void dkCmdBufSignalFence(DkCmdBuf obj, DkFence* fence, bool flush);
+void dkCmdBufWaitVariable(DkCmdBuf obj, DkVariable const* var, DkVarCompareOp op, uint32_t value);
+void dkCmdBufSignalVariable(DkCmdBuf obj, DkVariable const* var, DkVarOp op, uint32_t value, DkPipelinePos pos);
 void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags);
 ```
 

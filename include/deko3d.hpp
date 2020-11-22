@@ -166,6 +166,14 @@ namespace dk
 		DkResult wait(int64_t timeout_ns = -1);
 	};
 
+	struct Variable : public detail::Opaque<::DkVariable>
+	{
+		DK_OPAQUE_COMMON_MEMBERS(Variable);
+		void initialize(DkMemBlock mem, uint32_t offset);
+		uint32_t read() const;
+		void signal(DkVarOp op, uint32_t value) const;
+	};
+
 	struct CmdBuf : public detail::Handle<::DkCmdBuf>
 	{
 		DK_HANDLE_COMMON_MEMBERS(CmdBuf);
@@ -178,6 +186,8 @@ namespace dk
 		void callList(DkCmdList list);
 		void waitFence(DkFence& fence);
 		void signalFence(DkFence& fence, bool flush = false);
+		void waitVariable(DkVariable const& var, DkVarCompareOp op, uint32_t value);
+		void signalVariable(DkVariable const& var, DkVarOp op, uint32_t value, DkPipelinePos pos = DkPipelinePos_Bottom);
 		void barrier(DkBarrier mode, uint32_t invalidateFlags);
 		void bindShaders(uint32_t stageMask, detail::ArrayProxy<DkShader const* const> shaders);
 		void bindUniformBuffer(DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize);
@@ -590,6 +600,21 @@ namespace dk
 		return ::dkFenceWait(this, timeout_ns);
 	}
 
+	inline void Variable::initialize(DkMemBlock mem, uint32_t offset)
+	{
+		::dkVariableInitialize(this, mem, offset);
+	}
+
+	inline uint32_t Variable::read() const
+	{
+		return ::dkVariableRead(this);
+	}
+
+	inline void Variable::signal(DkVarOp op, uint32_t value) const
+	{
+		::dkVariableSignal(this, op, value);
+	}
+
 	inline CmdBuf CmdBufMaker::create() const
 	{
 		return CmdBuf{::dkCmdBufCreate(this)};
@@ -644,6 +669,16 @@ namespace dk
 	inline void CmdBuf::signalFence(DkFence& fence, bool flush)
 	{
 		return ::dkCmdBufSignalFence(*this, &fence, flush);
+	}
+
+	inline void CmdBuf::waitVariable(DkVariable const& var, DkVarCompareOp op, uint32_t value)
+	{
+		::dkCmdBufWaitVariable(*this, &var, op, value);
+	}
+
+	inline void CmdBuf::signalVariable(DkVariable const& var, DkVarOp op, uint32_t value, DkPipelinePos pos)
+	{
+		::dkCmdBufSignalVariable(*this, &var, op, value, pos);
 	}
 
 	inline void CmdBuf::barrier(DkBarrier mode, uint32_t invalidateFlags)

@@ -74,6 +74,7 @@
 DK_DECL_HANDLE(Device);
 DK_DECL_HANDLE(MemBlock);
 DK_DECL_OPAQUE(Fence, 8, 64);
+DK_DECL_OPAQUE(Variable, 8, 16);
 DK_DECL_HANDLE(CmdBuf);
 DK_DECL_HANDLE(Queue);
 DK_DECL_OPAQUE(Shader, 8, 128);
@@ -196,6 +197,29 @@ DK_CONSTEXPR void dkMemBlockMakerDefaults(DkMemBlockMaker* maker, DkDevice devic
 	maker->flags = DkMemBlockFlags_CpuUncached | DkMemBlockFlags_GpuCached;
 	maker->storage = NULL;
 }
+
+typedef enum DkVarOp
+{
+	DkVarOp_Set = 0,
+	DkVarOp_Add = 1,
+	DkVarOp_Sub = 2,
+	DkVarOp_And = 3,
+	DkVarOp_Or  = 4,
+	DkVarOp_Xor = 5,
+} DkVarOp;
+
+typedef enum DkVarCompareOp
+{
+	DkVarCompareOp_Equal      = 0,
+	DkVarCompareOp_Sequential = 1,
+} DkVarCompareOp;
+
+typedef enum DkPipelinePos
+{
+	DkPipelinePos_Top        = 0,
+	DkPipelinePos_Rasterizer = 1,
+	DkPipelinePos_Bottom     = 2,
+} DkPipelinePos;
 
 typedef struct DkCmdBufMaker
 {
@@ -1182,6 +1206,10 @@ DkResult dkMemBlockFlushCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size)
 
 DkResult dkFenceWait(DkFence* obj, int64_t timeout_ns);
 
+void dkVariableInitialize(DkVariable* obj, DkMemBlock mem, uint32_t offset);
+uint32_t dkVariableRead(DkVariable const* obj);
+void dkVariableSignal(DkVariable const* obj, DkVarOp op, uint32_t value);
+
 DkCmdBuf dkCmdBufCreate(DkCmdBufMaker const* maker);
 void dkCmdBufDestroy(DkCmdBuf obj);
 void dkCmdBufAddMemory(DkCmdBuf obj, DkMemBlock mem, uint32_t offset, uint32_t size);
@@ -1193,6 +1221,8 @@ void dkCmdBufReplayCmds(DkCmdBuf obj, const uint32_t* words, uint32_t num_words)
 void dkCmdBufCallList(DkCmdBuf obj, DkCmdList list);
 void dkCmdBufWaitFence(DkCmdBuf obj, DkFence* fence);
 void dkCmdBufSignalFence(DkCmdBuf obj, DkFence* fence, bool flush);
+void dkCmdBufWaitVariable(DkCmdBuf obj, DkVariable const* var, DkVarCompareOp op, uint32_t value);
+void dkCmdBufSignalVariable(DkCmdBuf obj, DkVariable const* var, DkVarOp op, uint32_t value, DkPipelinePos pos);
 void dkCmdBufBarrier(DkCmdBuf obj, DkBarrier mode, uint32_t invalidateFlags);
 void dkCmdBufBindShaders(DkCmdBuf obj, uint32_t stageMask, DkShader const* const shaders[], uint32_t numShaders);
 void dkCmdBufBindUniformBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkBufExtents const buffers[], uint32_t numBuffers);
