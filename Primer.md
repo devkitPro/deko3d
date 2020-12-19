@@ -647,7 +647,7 @@ void dkCmdBufSetTessInnerLevels(DkCmdBuf obj, float level0, float level1);
 ### Vertex post-processing
 
 - ~~*(Transform feedback)*~~ - not supported in deko3d, use compute shaders instead (feature under consideration but its inclusion in future versions is not guaranteed)
-- Viewport routing and mask selection (gl_ViewportIndex and gl_ViewportMask[], latter not yet supported in the shader compiler)
+- Viewport routing and mask selection (gl_ViewportIndex and gl_ViewportMask[])
 - Viewport swizzling
 - Clipping and depth clamping
 - User-defined clipping
