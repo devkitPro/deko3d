@@ -10,6 +10,9 @@
 using namespace dk::detail;
 using namespace maxwell;
 
+#define offsetof_nonconst(_Cls, _Memb) \
+	reinterpret_cast<uintptr_t>(&static_cast<_Cls volatile*>(nullptr)->_Memb)
+
 namespace
 {
 #ifdef DEBUG
@@ -35,6 +38,7 @@ namespace
 	}
 
 #endif
+
 }
 
 void dkCmdBufBindShaders(DkCmdBuf obj, uint32_t stageMask, DkShader const* const shaders[], uint32_t numShaders)
@@ -227,7 +231,7 @@ void dkCmdBufBindStorageBuffers(DkCmdBuf obj, DkStage stage, uint32_t firstId, D
 	static_assert(offsetof(DkBufExtents,size) == offsetof(BufDescriptor,size),    "Bad definition for DkBufExtents");
 
 	w.reserve(2 + numBuffers*4);
-	w << MacroInline(SelectDriverConstbuf, offsetof(GraphicsDriverCbuf, data[stage].storageBufs[firstId])/4);
+	w << MacroInline(SelectDriverConstbuf, offsetof_nonconst(GraphicsDriverCbuf, data[stage].storageBufs[firstId])/4);
 	w << CmdList<1>{ MakeCmdHeader(NonIncreasing, numBuffers*4, Subchannel3D, Engine3D::LoadConstbufData{}) };
 	w.addRawData(buffers, numBuffers*sizeof(DkBufExtents));
 }
@@ -254,7 +258,7 @@ void dkCmdBufBindTextures(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHa
 	}
 
 	w.reserve(3 + numHandles);
-	w << MacroInline(SelectDriverConstbuf, offsetof(GraphicsDriverCbuf, data[stage].textures[firstId])/4);
+	w << MacroInline(SelectDriverConstbuf, offsetof_nonconst(GraphicsDriverCbuf, data[stage].textures[firstId])/4);
 	w << CmdInline(3D, PipeNop{}, 0);
 	w << CmdList<1>{ MakeCmdHeader(NonIncreasing, numHandles, Subchannel3D, Engine3D::LoadConstbufData{}) };
 	w.addRawData(handles, numHandles*sizeof(DkResHandle));
@@ -282,7 +286,7 @@ void dkCmdBufBindImages(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHand
 	}
 
 	w.reserve(3 + numHandles);
-	w << MacroInline(SelectDriverConstbuf, offsetof(GraphicsDriverCbuf, data[stage].images[firstId])/4);
+	w << MacroInline(SelectDriverConstbuf, offsetof_nonconst(GraphicsDriverCbuf, data[stage].images[firstId])/4);
 	w << CmdInline(3D, PipeNop{}, 0);
 	w << CmdList<1>{ MakeCmdHeader(NonIncreasing, numHandles, Subchannel3D, Engine3D::LoadConstbufData{}) };
 	w.addRawData(handles, numHandles*sizeof(DkResHandle));
