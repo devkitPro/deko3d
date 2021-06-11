@@ -33,7 +33,7 @@ void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state)
 	DK_ENTRYPOINT(obj);
 	DK_DEBUG_NON_NULL(state);
 	CmdBufWriter w{obj};
-	w.reserve(14);
+	w.reserve(15);
 
 	w << CmdInline(3D, RasterizerEnable{}, state->rasterizerEnable);
 	if (!state->rasterizerEnable)
@@ -63,6 +63,8 @@ void dkCmdBufBindRasterizerState(DkCmdBuf obj, DkRasterizerState const* state)
 
 	static const uint16_t frontFaces[] = { E::SetFrontFace::CW, E::SetFrontFace::CCW };
 	w << CmdInline(3D, SetFrontFace{}, frontFaces[state->frontFace]);
+
+	w << CmdInline(3D, ProvokingVertexLast{}, state->provokingVertex == DkProvokingVertex_First ? 0 : 1);
 
 	w << CmdInline(3D, PointSmoothEnable{},        (state->polygonSmoothEnableMask & DkPolygonFlag_Point) != 0);
 	w << CmdInline(3D, LineSmoothEnable{},         (state->polygonSmoothEnableMask & DkPolygonFlag_Line) != 0);

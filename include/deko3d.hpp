@@ -478,6 +478,7 @@ namespace dk
 		RasterizerState& setPolygonModeBack(DkPolygonMode mode) { this->polygonModeBack = mode; return *this; }
 		RasterizerState& setCullMode(DkFace cullMode) { this->cullMode = cullMode; return *this; }
 		RasterizerState& setFrontFace(DkFrontFace frontFace) { this->frontFace = frontFace; return *this; }
+		RasterizerState& setProvokingVertex(DkProvokingVertex provokingVertex) { this->provokingVertex = provokingVertex; return *this; }
 		RasterizerState& setPolygonSmoothEnable(bool enable) { this->polygonSmoothEnableMask = enable ? DkPolygonFlag_All : 0; return *this; }
 		RasterizerState& setPolygonSmoothEnableMask(uint32_t mask) { this->polygonSmoothEnableMask = mask; return *this; }
 		RasterizerState& setDepthBiasEnable(bool enable) { this->depthBiasEnableMask = enable ? DkPolygonFlag_All : 0; return *this; }
