@@ -764,6 +764,12 @@ typedef enum DkFrontFace
 	DkFrontFace_CCW = 1,
 } DkFrontFace;
 
+typedef enum DkProvokingVertex
+{
+	DkProvokingVertex_First = 0,
+	DkProvokingVertex_Last = 1,
+} DkProvokingVertex;
+
 typedef struct DkRasterizerState
 {
 	uint32_t rasterizerEnable : 1;
@@ -773,6 +779,7 @@ typedef struct DkRasterizerState
 	DkPolygonMode polygonModeBack : 2;
 	DkFace cullMode : 2;
 	DkFrontFace frontFace : 1;
+	DkProvokingVertex provokingVertex : 1;
 	uint32_t polygonSmoothEnableMask : 3;
 	uint32_t depthBiasEnableMask : 3;
 } DkRasterizerState;
@@ -786,6 +793,7 @@ DK_CONSTEXPR void dkRasterizerStateDefaults(DkRasterizerState* state)
 	state->polygonModeBack = DkPolygonMode_Fill;
 	state->cullMode = DkFace_Back;
 	state->frontFace = DkFrontFace_CCW;
+	state->provokingVertex = DkProvokingVertex_Last;
 	state->polygonSmoothEnableMask = 0;
 	state->depthBiasEnableMask = 0;
 }
