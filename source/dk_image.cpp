@@ -505,7 +505,47 @@ DkGpuAddr dkImageGetGpuAddr(DkImage const* obj)
 
 void dkCmdBufCopyImage(DkCmdBuf obj, DkImageView const* srcView, DkImageRect const* srcRect, DkImageView const* dstView, DkImageRect const* dstRect, uint32_t flags)
 {
-	DK_ENTRYPOINT_NOT_IMPLEMENTED(obj);
+	DK_ENTRYPOINT(obj);
+
+	ImageInfo srcInfo, dstInfo;
+	srcInfo.fromImageView(srcView, ImageInfo::TransferCopy);
+	dstInfo.fromImageView(dstView, ImageInfo::TransferCopy);
+
+	[[maybe_unused]] const bool isSrcTexCompressed = srcView->pImage->m_blockW > 1;
+	[[maybe_unused]] const bool isDstTexCompressed = dstView->pImage->m_blockW > 1;
+	DK_DEBUG_BAD_INPUT(isSrcTexCompressed != isDstTexCompressed, "mismatched compression attributes");
+	DK_DEBUG_BAD_INPUT(isSrcTexCompressed && srcInfo.m_format != dstInfo.m_format, "compression formats must match");
+
+	DK_DEBUG_BAD_INPUT(!srcRect || !srcRect->width || !srcRect->height || !srcRect->depth, "invalid srcRect");
+	DK_DEBUG_BAD_INPUT(srcRect->x + srcRect->width > srcView->pImage->m_dimensions[0], "srcRect x/width out of bounds");
+	DK_DEBUG_BAD_INPUT(srcRect->y + srcRect->height > srcView->pImage->m_dimensions[1], "srcRect y/height out of bounds");
+	DK_DEBUG_BAD_INPUT(srcRect->z + srcRect->depth > srcInfo.m_arrayMode, "srcRect z/depth out of bounds");
+
+	DK_DEBUG_BAD_INPUT(!dstRect || !dstRect->width || !dstRect->height || !dstRect->depth, "invalid dstRect");
+	DK_DEBUG_BAD_INPUT(dstRect->x + dstRect->width > dstView->pImage->m_dimensions[0], "dstRect x/width out of bounds");
+	DK_DEBUG_BAD_INPUT(dstRect->y + dstRect->height > dstView->pImage->m_dimensions[1], "dstRect y/height out of bounds");
+	DK_DEBUG_BAD_INPUT(dstRect->z + dstRect->depth > dstInfo.m_arrayMode, "dstRect z/depth out of bounds");
+
+	DK_DEBUG_BAD_INPUT(srcRect->width != dstRect->width, "srcRect/dstRect width must match");
+	DK_DEBUG_BAD_INPUT(srcRect->height != dstRect->height, "srcRect/dstRect height must match");
+	DK_DEBUG_BAD_INPUT(srcRect->depth != dstRect->depth, "srcRect/dstRect depth must match");
+
+	BlitParams params;
+	params.srcX = srcRect->x;
+	params.srcY = srcRect->y;
+	params.dstX = dstRect->x;
+	params.dstY = dstRect->y;
+	params.width = srcRect->width;
+	params.height = srcRect->height;
+
+	for (uint32_t z = 0; z < dstRect->depth; z ++)
+	{
+		uint32_t srcZ = z;
+		uint32_t dstZ = dstRect->z + z;
+		if (flags & DkBlitFlag_FlipZ)
+			srcZ = dstRect->depth - z - 1;
+		BlitCopyEngine(obj, srcInfo, dstInfo, params, srcZ, dstZ);
+	}
 }
 
 void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkImageRect const* srcRect, DkImageView const* dstView, DkImageRect const* dstRect, uint32_t flags, uint32_t factor)
@@ -769,5 +809,118 @@ void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView c
 
 void dkCmdBufCopyImageToBuffer(DkCmdBuf obj, DkImageView const* srcView, DkImageRect const* srcRect, DkCopyBuf const* dst, uint32_t flags)
 {
-	DK_ENTRYPOINT_NOT_IMPLEMENTED(obj);
+	DK_ENTRYPOINT(obj);
+
+	ImageInfo srcInfo;
+	srcInfo.fromImageView(srcView, ImageInfo::TransferCopy);
+
+	DK_DEBUG_BAD_INPUT(!dst || dst->addr == DK_GPU_ADDR_INVALID, "invalid dst");
+	DK_DEBUG_BAD_INPUT(!srcRect || !srcRect->width || !srcRect->height || !srcRect->depth, "invalid dstView");
+	DK_DEBUG_BAD_INPUT(srcRect->x + srcRect->width > srcView->pImage->m_dimensions[0], "srcRect x/width out of bounds");
+	DK_DEBUG_BAD_INPUT(srcRect->y + srcRect->height > srcView->pImage->m_dimensions[1], "srcRect y/height out of bounds");
+	DK_DEBUG_BAD_INPUT(srcRect->z + srcRect->depth > srcInfo.m_arrayMode, "srcRect z/depth out of bounds");
+
+	BlitParams params;
+	params.srcX = srcRect->x;
+	params.srcY = srcRect->y;
+	params.dstX = 0;
+	params.dstY = 0;
+	params.width = srcRect->width;
+	params.height = srcRect->height;
+
+	auto& traits = formatTraits[srcView->format ? srcView->format : srcView->pImage->m_format];
+	const bool isCompressed = traits.blockWidth > 1 || traits.blockHeight > 1;
+
+	if (isCompressed)
+	{
+		// Horizontal/vertical flips can't be used with compressed formats for obvious reasons
+		DK_DEBUG_BAD_FLAGS(flags & (DkBlitFlag_FlipX|DkBlitFlag_FlipY), "cannot use DkBlitFlag_FlipX/FlipY with compressed formats");
+
+		params.srcX = adjustBlockSize(params.srcX, traits.blockWidth);
+		params.srcY = adjustBlockSize(params.srcY, traits.blockHeight);
+		params.width = adjustBlockSize(params.width, traits.blockWidth);
+		params.height = adjustBlockSize(params.height, traits.blockHeight);
+	}
+
+	ImageInfo dstInfo = {};
+	dstInfo.m_iova = dst->addr;
+	dstInfo.m_horizontal = dst->rowLength ? dst->rowLength : params.width*srcInfo.m_bytesPerBlock;
+	dstInfo.m_vertical = srcRect->height;
+	dstInfo.m_format = srcInfo.m_format;
+	dstInfo.m_arrayMode = srcRect->depth;
+	dstInfo.m_layerStride = dst->imageHeight ? dst->imageHeight : params.height*dstInfo.m_horizontal;
+	dstInfo.m_width = srcRect->width;
+	dstInfo.m_height = srcRect->height;
+	dstInfo.m_widthMs = dstInfo.m_width;
+	dstInfo.m_heightMs = dstInfo.m_height;
+	dstInfo.m_bytesPerBlock = srcInfo.m_bytesPerBlock;
+	dstInfo.m_isLinear = true;
+	dstInfo.m_isLayered = true;
+
+	bool needs2D = false;
+	if (flags & (DkBlitFlag_FlipX))
+		needs2D = true;
+
+	if (needs2D)
+	{
+		// Check whether we can really use the 2D engine
+		DK_DEBUG_BAD_FLAGS(!(srcView->pImage->m_flags & DkImageFlags_Usage2DEngine), "DkImageFlags_Usage2DEngine required in destination image");
+		DK_DEBUG_BAD_FLAGS(!(traits.flags & FormatTraitFlags_CanUse2DEngine), "specified format does not support DkImageFlags_Usage2DEngine");
+		DK_DEBUG_DATA_ALIGN(dstInfo.m_iova, DK_IMAGE_LINEAR_STRIDE_ALIGNMENT); // Technically there are ways to work around this by extending width a bit, but w/e
+		DK_DEBUG_SIZE_ALIGN(dstInfo.m_horizontal, DK_IMAGE_LINEAR_STRIDE_ALIGNMENT);
+		DK_DEBUG_BAD_INPUT(isCompressed, "cannot use 2D engine with compressed formats"); // Technically the 2D engine *can* be used with compressed formats, but there isn't really any point in doing so
+
+		int dudx = 1, dvdy = 1;
+
+		if (flags & DkBlitFlag_FlipX)
+		{
+			params.srcX = params.width;
+			dudx = -1;
+		}
+
+		if (flags & DkBlitFlag_FlipY)
+		{
+			params.srcY = params.height;
+			dvdy = -1;
+		}
+
+		params.srcX = (params.srcX<<SrcFractBits) + (dudx<<(SrcFractBits-1));
+		params.srcY = (params.srcY<<SrcFractBits) + (dvdy<<(SrcFractBits-1));
+		uint32_t blitFlags = Blit2D_SetupEngine | Blit2D_OriginCorner;
+
+		if (srcRect->z)
+			srcInfo.m_iova += srcRect->z * srcInfo.m_layerStride;
+
+		int64_t srcLayerStride = dstInfo.m_layerStride;
+		if (flags & DkBlitFlag_FlipZ)
+		{
+			srcInfo.m_iova += (srcRect->depth - 1) * srcInfo.m_layerStride;
+			srcLayerStride = -srcInfo.m_layerStride;
+		}
+
+		for (uint32_t z = 0; z < srcRect->depth; z ++)
+		{
+			Blit2DEngine(obj, srcInfo, dstInfo, params, dudx<<DiffFractBits, dvdy<<DiffFractBits, blitFlags, 0);
+			srcInfo.m_iova += srcLayerStride;
+			dstInfo.m_iova += srcInfo.m_layerStride;
+			blitFlags &= ~Blit2D_SetupEngine;
+		}
+	}
+	else
+	{
+		if (flags & DkBlitFlag_FlipY)
+		{
+			dstInfo.m_iova += (params.height-1)*dstInfo.m_horizontal;
+			dstInfo.m_horizontal = -dstInfo.m_horizontal;
+		}
+
+		for (uint32_t z = 0; z < srcRect->depth; z ++)
+		{
+			uint32_t srcZ = srcRect->z + z;
+			uint32_t dstZ = z;
+			if (flags & DkBlitFlag_FlipZ)
+				srcZ = srcRect->depth - z - 1;
+			BlitCopyEngine(obj, srcInfo, dstInfo, params, srcZ, dstZ);
+		}
+	}
 }
