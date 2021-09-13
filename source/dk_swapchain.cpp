@@ -53,6 +53,10 @@ DkResult Swapchain::initialize(void* nativeWindow, DkImage const* const images[]
 		return DkResult_BadState;
 #endif
 
+	// Configure NWindow dimensions
+	if (R_FAILED(nwindowSetDimensions(m_nwin, width, height)))
+		return DkResult_Fail;
+
 	// Set up NvGraphicBuffer template
 	NvGraphicBuffer grbuf = {};
 	grbuf.header.num_ints = (sizeof(NvGraphicBuffer) - sizeof(NativeHandle)) / 4;
