@@ -80,7 +80,7 @@ namespace dk
 			}
 			UniqueHandle& operator=(std::nullptr_t) { if (*this) T::destroy(); return *this; }
 			UniqueHandle& operator=(UniqueHandle const&) = delete;
-			UniqueHandle& operator=(UniqueHandle&& rhs) { T::_set(rhs); rhs._clear(); return *this; }
+			UniqueHandle& operator=(UniqueHandle&& rhs) { *this = nullptr; T::_set(rhs); rhs._clear(); return *this; }
 		};
 
 		template <typename T>
