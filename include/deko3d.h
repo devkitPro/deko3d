@@ -32,6 +32,10 @@
 #include <stdbool.h>
 #include <stdalign.h>
 
+#define DK_VERSION_MAJOR 0
+#define DK_VERSION_MINOR 4
+#define DK_VERSION_PATCH 0
+
 #if __cplusplus >= 201402L
 #define DK_CONSTEXPR constexpr
 #else
