@@ -221,6 +221,27 @@ typedef enum DkPipelinePos
 	DkPipelinePos_Bottom     = 2,
 } DkPipelinePos;
 
+typedef enum DkCounter
+{
+    DkCounter_TimestampPipelineTop               = 0,
+    DkCounter_Timestamp                          = 1,
+    DkCounter_SamplesPassed                      = 2,
+    DkCounter_ZcullStats                         = 3,
+    DkCounter_InputVertices                      = 4,
+    DkCounter_InputPrimitives                    = 5,
+    DkCounter_VertexShaderInvocations            = 6,
+    DkCounter_TessControlShaderInvocations       = 7,
+    DkCounter_TessEvaluationShaderInvocations    = 8,
+    DkCounter_GeometryShaderInvocations          = 9,
+    DkCounter_FragmentShaderInvocations          = 10,
+    DkCounter_TessEvaluationShaderPrimitives     = 11,
+    DkCounter_GeometryShaderPrimitives           = 12,
+    DkCounter_ClipperInputPrimitives             = 13,
+    DkCounter_ClipperOutputPrimitives            = 14,
+    DkCounter_PrimitivesGenerated                = 15,
+    DkCounter_TransformFeedbackPrimitivesWritten = 16,
+} DkCounter;
+
 typedef struct DkCmdBufMaker
 {
 	DkDevice device;
@@ -1292,6 +1313,9 @@ void dkCmdBufBlitImage(DkCmdBuf obj, DkImageView const* srcView, DkImageRect con
 void dkCmdBufResolveImage(DkCmdBuf obj, DkImageView const* srcView, DkImageView const* dstView);
 void dkCmdBufCopyBufferToImage(DkCmdBuf obj, DkCopyBuf const* src, DkImageView const* dstView, DkImageRect const* dstRect, uint32_t flags);
 void dkCmdBufCopyImageToBuffer(DkCmdBuf obj, DkImageView const* srcView, DkImageRect const* srcRect, DkCopyBuf const* dst, uint32_t flags);
+void dkCmdBufReportCounter(DkCmdBuf obj, DkCounter type, DkGpuAddr addr);
+void dkCmdBufReportValue(DkCmdBuf obj, uint32_t value, DkGpuAddr addr);
+void dkCmdBufResetCounter(DkCmdBuf obj, DkCounter type);
 
 DkQueue dkQueueCreate(DkQueueMaker const* maker);
 void dkQueueDestroy(DkQueue obj);

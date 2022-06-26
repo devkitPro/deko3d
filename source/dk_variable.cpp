@@ -8,6 +8,7 @@
 using namespace maxwell;
 using namespace dk::detail;
 
+using E = Engine3D;
 using S = EngineGpfifo::Semaphore;
 using R = Engine3D::SetReportSemaphore;
 
@@ -177,4 +178,127 @@ void dkCmdBufSignalVariable(DkCmdBuf obj, DkVariable const* var, DkVarOp op, uin
 		w << Cmd(3D, SetReportSemaphoreOffset{}, Iova(var->m_gpuAddr), value, get3dSignalAction(op, pos));
 		w << CmdInline(3D, TiledCacheFlush{}, Engine3D::TiledCacheFlush::Flush);
 	}
+}
+
+void dkCmdBufReportCounter(DkCmdBuf obj, DkCounter type, DkGpuAddr addr)
+{
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(addr == DK_GPU_ADDR_INVALID);
+	DK_DEBUG_DATA_ALIGN(addr, 16);
+	CmdBufWriter w{obj};
+	w.reserve((type == DkCounter_ZcullStats ? 4 : 1) * 5 + 1);
+
+	switch (type) {
+		default:
+			static const uint32_t dkTypeToMaxwell[] =
+			{
+				[DkCounter_TimestampPipelineTop]               =                     R::Counter::Payload,
+				[DkCounter_Timestamp]                          = R::Unit::Crop     | R::Counter::Payload,
+				[DkCounter_SamplesPassed]                      = R::Unit::Crop     | R::Counter::SamplesPassed,
+				[DkCounter_ZcullStats]                         = R::Unit::Crop     | R::Counter::Payload,
+				[DkCounter_InputVertices]                      = R::Unit::VFetch   | R::Counter::InputVertices,
+				[DkCounter_InputPrimitives]                    = R::Unit::VFetch   | R::Counter::InputPrimitives,
+				[DkCounter_VertexShaderInvocations]            = R::Unit::VP       | R::Counter::VertexShaderInvocations,
+				[DkCounter_TessControlShaderInvocations]       = R::Unit::TessCtrl | R::Counter::TessControlShaderInvocations,
+				[DkCounter_TessEvaluationShaderInvocations]    = R::Unit::TessEval | R::Counter::TessEvaluationShaderInvocations,
+				[DkCounter_GeometryShaderInvocations]          = R::Unit::GP       | R::Counter::GeometryShaderInvocations,
+				[DkCounter_FragmentShaderInvocations]          = R::Unit::Prop     | R::Counter::FragmentShaderInvocations,
+				[DkCounter_TessEvaluationShaderPrimitives]     = R::Unit::TessEval | R::Counter::TessEvaluationShaderPrimitives,
+				[DkCounter_GeometryShaderPrimitives]           = R::Unit::GP       | R::Counter::GeometryShaderPrimitives,
+				[DkCounter_ClipperInputPrimitives]             = R::Unit::Rast     | R::Counter::ClipperInputPrimitives,
+				[DkCounter_ClipperOutputPrimitives]            = R::Unit::Rast     | R::Counter::ClipperOutputPrimitives,
+				[DkCounter_PrimitivesGenerated]                = R::Unit::StrmOut  | R::Counter::PrimitivesGenerated,
+				[DkCounter_TransformFeedbackPrimitivesWritten] = R::Unit::StrmOut  | R::Counter::TransformFeedbackPrimitivesWritten,
+			};
+
+			w << Cmd(3D, SetReportSemaphoreOffset{}, Iova(addr), 0,
+				R::Operation::Counter |
+				dkTypeToMaxwell[type] |
+				R::StructureSize::FourWords
+			);
+			break;
+		case DkCounter_ZcullStats:
+			w << Cmd(3D, SetReportSemaphoreOffset{}, Iova(addr), 0,
+				R::Operation::Counter |
+				R::Unit::ZCull |
+				R::Counter::ZcullStats0 |
+				R::StructureSize::OneWord
+			);
+			w << Cmd(3D, SetReportSemaphoreOffset{}, Iova(addr + 4), 0,
+				R::Operation::Counter |
+				R::Unit::ZCull |
+				R::Counter::ZcullStats1 |
+				R::StructureSize::OneWord
+			);
+			w << Cmd(3D, SetReportSemaphoreOffset{}, Iova(addr + 8), 0,
+				R::Operation::Counter |
+				R::Unit::ZCull |
+				R::Counter::ZcullStats2 |
+				R::StructureSize::OneWord
+			);
+			w << Cmd(3D, SetReportSemaphoreOffset{}, Iova(addr + 12), 0,
+				R::Operation::Counter |
+				R::Unit::ZCull |
+				R::Counter::ZcullStats3 |
+				R::StructureSize::OneWord
+			);
+			break;
+		case DkCounter_TimestampPipelineTop:
+			using S = EngineGpfifo::Semaphore;
+			w << Cmd(Gpfifo, SemaphoreOffset{}, Iova(addr), 0,
+				S::ReleaseWfiDisable{} |
+				S::Operation::Release |
+				S::ReleaseSize::_16
+			);
+			break;
+	}
+
+	w << CmdInline(3D, TiledCacheFlush{}, 0);
+}
+
+void dkCmdBufReportValue(DkCmdBuf obj, uint32_t value, DkGpuAddr addr)
+{
+	DK_ENTRYPOINT(obj);
+	DK_DEBUG_BAD_INPUT(addr == DK_GPU_ADDR_INVALID);
+	DK_DEBUG_DATA_ALIGN(addr, 16);
+	CmdBufWriter w{obj};
+	w.reserve(7);
+
+	w << CmdInline(3D, UnknownFlush{}, 0);
+	w << Cmd(3D, SetReportSemaphoreOffset{}, Iova(addr), value,
+		R::Operation::Counter |
+		R::Unit::Crop |
+		R::StructureSize::FourWords
+	);
+	w << CmdInline(3D, TiledCacheFlush{}, 0);
+}
+
+void dkCmdBufResetCounter(DkCmdBuf obj, DkCounter type)
+{
+	DK_ENTRYPOINT(obj);
+	CmdBufWriter w{obj};
+	w.reserve(2);
+
+	static const uint8_t dkTypeToMaxwell[] =
+	{
+		[DkCounter_TimestampPipelineTop]               = E::ResetCounter::SamplesPassed,
+		[DkCounter_Timestamp]                          = E::ResetCounter::SamplesPassed,
+		[DkCounter_SamplesPassed]                      = E::ResetCounter::SamplesPassed,
+		[DkCounter_ZcullStats]                         = E::ResetCounter::ZcullStats,
+		[DkCounter_InputVertices]                      = E::ResetCounter::InputVertices,
+		[DkCounter_InputPrimitives]                    = E::ResetCounter::InputPrimitives,
+		[DkCounter_VertexShaderInvocations]            = E::ResetCounter::VertexShaderInvocations,
+		[DkCounter_TessControlShaderInvocations]       = E::ResetCounter::TessControlShaderInvocations,
+		[DkCounter_TessEvaluationShaderInvocations]    = E::ResetCounter::TessEvaluationShaderInvocations,
+		[DkCounter_GeometryShaderInvocations]          = E::ResetCounter::GeometryShaderInvocations,
+		[DkCounter_FragmentShaderInvocations]          = E::ResetCounter::FragmentShaderInvocations,
+		[DkCounter_TessEvaluationShaderPrimitives]     = E::ResetCounter::TessEvaluationShaderPrimitives,
+		[DkCounter_GeometryShaderPrimitives]           = E::ResetCounter::GeometryShaderPrimitives,
+		[DkCounter_ClipperInputPrimitives]             = E::ResetCounter::ClipperInputPrimitives,
+		[DkCounter_ClipperOutputPrimitives]            = E::ResetCounter::ClipperOutputPrimitives,
+		[DkCounter_PrimitivesGenerated]                = E::ResetCounter::PrimitivesGenerated,
+		[DkCounter_TransformFeedbackPrimitivesWritten] = E::ResetCounter::TransformFeedbackPrimitivesWritten,
+	};
+
+	w << Cmd(3D, ResetCounter{}, dkTypeToMaxwell[type]);
 }

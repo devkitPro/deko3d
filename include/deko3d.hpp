@@ -253,6 +253,9 @@ namespace dk
 		void resolveImage(DkImageView const& srcView, DkImageView const& dstView);
 		void copyBufferToImage(DkCopyBuf const& src, DkImageView const& dstView, DkImageRect const& dstRect, uint32_t flags = 0);
 		void copyImageToBuffer(DkImageView const& srcView, DkImageRect const& srcRect, DkCopyBuf const& dst, uint32_t flags = 0);
+		void reportCounter(DkCounter type, DkGpuAddr addr);
+		void reportValue(uint32_t value, DkGpuAddr addr);
+		void resetCounter(DkCounter type);
 	};
 
 	struct Queue : public detail::Handle<::DkQueue>
@@ -1008,6 +1011,21 @@ namespace dk
 	inline void CmdBuf::copyImageToBuffer(DkImageView const& srcView, DkImageRect const& srcRect, DkCopyBuf const& dst, uint32_t flags)
 	{
 		::dkCmdBufCopyImageToBuffer(*this, &srcView, &srcRect, &dst, flags);
+	}
+
+	inline void CmdBuf::reportCounter(DkCounter type, DkGpuAddr addr)
+	{
+		return ::dkCmdBufReportCounter(*this, type, addr);
+	}
+
+	inline void CmdBuf::reportValue(uint32_t value, DkGpuAddr addr)
+	{
+		return ::dkCmdBufReportValue(*this, value, addr);
+	}
+
+	inline void CmdBuf::resetCounter(DkCounter type)
+	{
+		return ::dkCmdBufResetCounter(*this, type);
 	}
 
 	inline Queue QueueMaker::create() const

@@ -558,6 +558,20 @@ void dkCmdBufTiledCacheOp(DkCmdBuf obj, DkTiledCacheOp op);
 void dkCmdBufSetTileSize(DkCmdBuf obj, uint32_t width, uint32_t height);
 ```
 
+### Counters
+
+```c
+void dkCmdBufReportCounter(DkCmdBuf obj, DkCounter type, DkGpuAddr addr);
+void dkCmdBufReportValue(DkCmdBuf obj, uint32_t value, DkGpuAddr addr);
+void dkCmdBufResetCounter(DkCmdBuf obj, DkCounter type);
+```
+
+For all counter types except `DkCounter_ZcullStats`, a report consists of two consecutive 64-bit values, the first one being the specified counter, and the second the timestamp at which the report was done.
+`dkCmdBufReportValue` will write the specified value as well as the timestamp.
+In the case of `DkCounter_ZcullStats`, it reports four 32-bit values relating to ZCull operations. `dkCmdBufResetCounter` resets the specified counter to 0. Some counters cannot be reset.
+
+Note that all three functions entail a tiled cache flush.
+
 ### Command capture and replay
 
 ```c

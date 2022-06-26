@@ -459,6 +459,24 @@ engine _3D 0xB197;
 
 0x54A SetShaderExceptions bool;
 
+0x54C ResetCounter enum (
+	0x01 SamplesPassed;
+	0x02 ZcullStats;
+	0x10 TransformFeedbackPrimitivesWritten;
+	0x12 InputVertices;
+	0x13 InputPrimitives;
+	0x15 VertexShaderInvocations;
+	0x16 TessControlShaderInvocations;
+	0x17 TessEvaluationShaderInvocations;
+	0x18 TessEvaluationShaderPrimitives;
+	0x1A GeometryShaderInvocations;
+	0x1B GeometryShaderPrimitives;
+	0x1C ClipperInputPrimitives;
+	0x1D ClipperOutputPrimitives;
+	0x1E FragmentShaderInvocations;
+	0x1F PrimitivesGenerated;
+);
+
 0x54D MultisampleEnable bool;
 0x54E DepthTargetEnable bool;
 0x54F MultisampleControl bits (
@@ -646,7 +664,7 @@ engine _3D 0xB197;
 	0..1 Operation enum (
 		0 Release;
 		1 Acquire;
-		2 Unknown;
+		2 Counter;
 		3 Trap;
 	);
 	2 FlushDisable;
@@ -669,6 +687,8 @@ engine _3D 0xB197;
 		5 StrmOut;
 		6 GP;
 		7 ZCull;
+		8 TessCtrl;
+		9 TessEval;
 		10 Prop;
 		15 Crop;
 	);
@@ -681,6 +701,28 @@ engine _3D 0xB197;
 		1 Signed32;
 	);
 	20 AwakenEnable;
+	23..27 Counter enum (
+		0x00 Payload;
+		0x01 InputVertices;
+		0x03 InputPrimitives;
+		0x05 VertexShaderInvocations;
+		0x07 GeometryShaderInvocations;
+		0x09 GeometryShaderPrimitives;
+		0x0A ZcullStats0;
+		0x0B TransformFeedbackPrimitivesWritten;
+		0x0C ZcullStats1;
+		0x0E ZcullStats2;
+		0x0F ClipperInputPrimitives;
+		0x10 ZcullStats3;
+		0x11 ClipperOutputPrimitives;
+		0x12 PrimitivesGenerated;
+		0x13 FragmentShaderInvocations;
+		0x15 SamplesPassed;
+		0x1A TransformFeedbackOffset;
+		0x1B TessControlShaderInvocations;
+		0x1D TessEvaluationShaderInvocations;
+		0x1F TessEvaluationShaderPrimitives;
+	);
 	28 StructureSize enum (
 		0 FourWords;
 		1 OneWord;
