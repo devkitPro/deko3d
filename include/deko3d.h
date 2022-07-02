@@ -1225,6 +1225,10 @@ extern "C" {
 
 DkDevice dkDeviceCreate(DkDeviceMaker const* maker);
 void dkDeviceDestroy(DkDevice obj);
+uint64_t dkDeviceGetCurrentTimestamp(DkDevice obj);
+uint64_t dkDeviceGetCurrentTimestampInNs(DkDevice obj);
+DK_CONSTEXPR uint64_t dkTimestampToNs(uint64_t ts);
+DK_CONSTEXPR uint64_t dkNsToTimestamp(uint64_t ns);
 
 DkMemBlock dkMemBlockCreate(DkMemBlockMaker const* maker);
 void dkMemBlockDestroy(DkMemBlock obj);
@@ -1350,6 +1354,14 @@ void dkSwapchainDestroy(DkSwapchain obj);
 void dkSwapchainAcquireImage(DkSwapchain obj, int* imageSlot, DkFence* fence);
 void dkSwapchainSetCrop(DkSwapchain obj, int32_t left, int32_t top, int32_t right, int32_t bottom);
 void dkSwapchainSetSwapInterval(DkSwapchain obj, uint32_t interval);
+
+DK_CONSTEXPR uint64_t dkTimestampToNs(uint64_t ts) {
+	return (ts * 625) / 384;
+}
+
+DK_CONSTEXPR uint64_t dkNsToTimestamp(uint64_t ns) {
+	return (ns * 384) / 625;
+}
 
 static inline void dkCmdBufBindUniformBuffer(DkCmdBuf obj, DkStage stage, uint32_t id, DkGpuAddr bufAddr, uint32_t bufSize)
 {

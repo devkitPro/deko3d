@@ -149,6 +149,8 @@ namespace dk
 	struct Device : public detail::Handle<::DkDevice>
 	{
 		DK_HANDLE_COMMON_MEMBERS(Device);
+		uint64_t getCurrentTimestamp();
+		uint64_t getCurrentTimestampInNs();
 	};
 
 	struct MemBlock : public detail::Handle<::DkMemBlock>
@@ -566,6 +568,16 @@ namespace dk
 	{
 		::dkDeviceDestroy(*this);
 		_clear();
+	}
+
+	inline uint64_t Device::getCurrentTimestamp()
+	{
+		return ::dkDeviceGetCurrentTimestamp(*this);
+	}
+
+	inline uint64_t Device::getCurrentTimestampInNs()
+	{
+		return ::dkDeviceGetCurrentTimestampInNs(*this);
 	}
 
 	inline MemBlock MemBlockMaker::create() const

@@ -257,3 +257,13 @@ void ObjBase::freeMem(void* mem) const noexcept
 {
 	return m_device->freeMem(mem);
 }
+
+uint64_t dkDeviceGetCurrentTimestamp([[maybe_unused]] DkDevice obj) {
+	u64 ts;
+	Result rc = nvGpuGetTimestamp(&ts);
+	return R_SUCCEEDED(rc) ? ts : 0;
+}
+
+uint64_t dkDeviceGetCurrentTimestampInNs(DkDevice obj) {
+	return dkTimestampToNs(dkDeviceGetCurrentTimestamp(obj));
+}

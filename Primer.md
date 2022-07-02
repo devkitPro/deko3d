@@ -183,6 +183,8 @@ struct DkDeviceMaker
 void dkDeviceMakerDefaults(DkDeviceMaker* maker);
 DkDevice dkDeviceCreate(DkDeviceMaker const* maker);
 void dkDeviceDestroy(DkDevice obj);
+uint64_t dkDeviceGetCurrentTimestamp(DkDevice obj);
+uint64_t dkDeviceGetCurrentTimestampInNs(DkDevice obj);
 ```
 
 `DkDevice` is the root object from which most other deko3d objects can be traced back. It represents the GPU device with a private virtual GPU address space, and provides optional mechanisms for customizing the error handling or memory allocation behavior.
@@ -217,6 +219,8 @@ By default if memory allocation callbacks are not provided, deko3d uses the stan
 
 `gl_FragCoord` in fragment shaders obeys the device origin mode when it comes to the Y axis and has pixel centers at half-integers, *with GLSL layout qualifiers having absolutely no effect*.
 Please note that regardless of the Origin setting, the clip space Y axis points *up* like in OpenGL. Clip space X and Y are both in the range [-1, 1] as well.
+
+The current GPU tick can be queried without queuing a command buffer with `dkDeviceGetCurrentTimestamp`, and converted back and forth to nanoseconds using `dkNsToTimestamp`/`dkTimestampToNs`. See also [counters](#counters).
 
 ### Memory Blocks (`DkMemBlock`)
 
