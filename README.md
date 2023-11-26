@@ -74,7 +74,7 @@ In its current form, deko3d provides support for around 80% of most common hardw
 - Conservative raster
 - Zcull state save/restore
 - Calling command lists from other command lists
-- dkCmdBufCopyImage and dkCmdBufCopyImageToBuffer
+- Add support for X/Y flip and the 2D engine to dkCmdBufCopyImage
 - Registering custom zero-bandwidth-clear color/depth values
 - Transform feedback
 - Multidraw
