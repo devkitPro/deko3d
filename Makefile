@@ -9,7 +9,7 @@ endif
 include $(DEVKITPRO)/libnx/switch_rules
 
 export DEKO3D_MAJOR	:= 0
-export DEKO3D_MINOR	:= 4
+export DEKO3D_MINOR	:= 5
 export DEKO3D_PATCH	:= 0
 
 
