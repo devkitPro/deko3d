@@ -70,7 +70,6 @@ In its current form, deko3d provides support for around 80% of most common hardw
 - A texture conversion tool
 - Event synchronization primitives
 - Conditional render
-- GPU reports and counters
 - Conservative raster
 - Zcull state save/restore
 - Calling command lists from other command lists
