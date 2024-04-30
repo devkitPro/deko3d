@@ -148,6 +148,7 @@ void dkCmdBufPushConstants(DkCmdBuf obj, DkGpuAddr uboAddr, uint32_t uboSize, ui
 	DK_DEBUG_BAD_INPUT(uboSize > DK_UNIFORM_BUF_MAX_SIZE);
 	DK_DEBUG_DATA_ALIGN(offset, 4);
 	DK_DEBUG_SIZE_ALIGN(size, 4);
+	DK_DEBUG_BAD_INPUT(size > 0x7FFC);
 	DK_DEBUG_BAD_INPUT((offset >= uboSize) || (size > uboSize));
 	DK_DEBUG_BAD_INPUT((offset + size) > uboSize);
 	DK_DEBUG_NON_NULL(data);
