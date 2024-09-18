@@ -117,6 +117,8 @@ enum
 	DkDeviceFlags_DepthMinusOneToOne = 1U << 8,
 	DkDeviceFlags_OriginUpperLeft    = 0U << 9,
 	DkDeviceFlags_OriginLowerLeft    = 1U << 9,
+	DkDeviceFlags_YAxisPointsUp      = 0U << 10,
+	DkDeviceFlags_YAxisPointsDown    = 1U << 10,
 };
 
 typedef struct DkDeviceMaker

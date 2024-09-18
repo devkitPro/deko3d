@@ -90,7 +90,16 @@ public:
 	constexpr GpuInfo const& getGpuInfo() const noexcept { return m_gpuInfo; }
 
 	bool isDepthModeOpenGL() const noexcept { return (m_maker.flags & DkDeviceFlags_DepthMinusOneToOne) != 0; }
-	bool isOriginModeOpenGL() const noexcept { return (m_maker.flags & DkDeviceFlags_OriginLowerLeft) != 0; }
+	bool isOriginLowerLeft() const noexcept { return (m_maker.flags & DkDeviceFlags_OriginLowerLeft) != 0; }
+	bool isYAxisPointsDown() const noexcept { return (m_maker.flags & DkDeviceFlags_YAxisPointsDown) != 0; }
+
+	// Rasterizer uses framebuffer coordinates (with +Y = down) to calculate winding direction.
+	// In LowerLeft mode images are stored upside down, so triangle winding must be flipped.
+	bool windingFlip() const noexcept { return isOriginLowerLeft(); }
+
+	// Rasterizer expects clip space +Y to point down. In UpperLeft mode with Y pointing up
+	// (or LowerLeft mode with Y pointing down) we need to flip the incoming Y coordinate.
+	bool viewportFlipY() const noexcept { return !isYAxisPointsDown() ^ !isOriginLowerLeft(); }
 
 	DkResult initialize() noexcept;
 	~Device();

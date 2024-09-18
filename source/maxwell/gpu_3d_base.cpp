@@ -147,14 +147,9 @@ void Queue::setup3DEngine()
 	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::TranslateZ{}, isDepthOpenGL ? 0.5f : 0.0f);
 
 	// Configure viewport transform XY to convert [-1,1] into [0,1]: newXY = 0.5*oldXY + 0.5
-	// Additionally, for UpperLeft origin mode, the Y value needs to be reversed since the incoming Y coordinate points up,
-	// and that needs to be fixed to point down.
-	// Also, SetWindowOriginMode seems to affect how the hardware treats polygons as front-facing or back-facing,
-	// but it doesn't actually flip rendering.
-	bool isOriginOpenGL = getDevice()->isOriginModeOpenGL();
-	w << CmdInline(3D, SetWindowOriginMode{}, isOriginOpenGL ? E::SetWindowOriginMode::Mode::LowerLeft : E::SetWindowOriginMode::Mode::UpperLeft);
+	w << CmdInline(3D, SetWindowOrigin{}, E::SetWindowOrigin::FlipY{getDevice()->windingFlip()});
 	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::ScaleX{}, +0.5f);
-	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::ScaleY{}, isOriginOpenGL ? +0.5f : -0.5f);
+	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::ScaleY{}, getDevice()->viewportFlipY() ? -0.5f : +0.5f);
 	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::TranslateX{}, +0.5f);
 	w << MacroSetRegisterInArray<E::ViewportTransform>(E::ViewportTransform::TranslateY{}, +0.5f);
 	w << MacroSetRegisterInArray<E::Viewport>(E::Viewport::Horizontal{}, 0U | (1U << 16)); // x=0 w=1
@@ -323,8 +318,8 @@ void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewp
 	DK_DEBUG_BAD_INPUT(firstId > DK_NUM_VIEWPORTS || numViewports > DK_NUM_VIEWPORTS || (firstId+numViewports) > DK_NUM_VIEWPORTS, "viewport range out of bounds");
 	DK_DEBUG_NON_NULL_ARRAY(viewports, numViewports);
 
-	bool isOriginOpenGL = obj->getDevice()->isOriginModeOpenGL();
-	bool isDepthOpenGL  = obj->getDevice()->isDepthModeOpenGL();
+	bool viewportFlipY = obj->getDevice()->viewportFlipY();
+	bool isDepthOpenGL = obj->getDevice()->isDepthModeOpenGL();
 
 	CmdBufWriter w{obj};
 	w.reserve(12*numViewports);
@@ -339,7 +334,7 @@ void dkCmdBufSetViewports(DkCmdBuf obj, uint32_t firstId, DkViewport const viewp
 		float depthRange = v.far - v.near;
 
 		float scaleX = halfWidth;
-		float scaleY = isOriginOpenGL ? halfHeight : (-halfHeight);
+		float scaleY = viewportFlipY ? (-halfHeight) : halfHeight;
 		float scaleZ = isDepthOpenGL ? 0.5f*depthRange : depthRange;
 
 		float offsetX = v.x + halfWidth;
@@ -431,7 +426,7 @@ void Queue::decompressSurface(DkImage const* image)
 	w << ColorTargetBindCmds(rt, 0);
 	w << CmdInline(3D, MultisampleMode{}, DkMsMode_1x);
 	w << Cmd(3D, ScreenScissorHorizontal{}, rt.m_width<<16, rt.m_height<<16);
-	w << CmdInline(3D, SetWindowOriginMode{}, E::SetWindowOriginMode::Mode::LowerLeft); // ??
+	w << CmdInline(3D, SetWindowOrigin{}, E::SetWindowOrigin::FlipY{}); // ??
 	w << CmdInline(3D, SetMultisampleRasterEnable{}, 0);
 
 	w << CmdInline(3D, SurfaceDecompress{}, 0);
@@ -440,7 +435,7 @@ void Queue::decompressSurface(DkImage const* image)
 	w << ColorTargetBindCmds(rt, 0);
 	w << CmdInline(3D, MultisampleMode{}, DkMsMode_1x);
 	w << Cmd(3D, ScreenScissorHorizontal{}, rt.m_width<<16, rt.m_height<<16);
-	w << CmdInline(3D, SetWindowOriginMode{}, E::SetWindowOriginMode::Mode::LowerLeft); // ??
+	w << CmdInline(3D, SetWindowOrigin{}, E::SetWindowOrigin::FlipY{}); // ??
 	w << CmdInline(3D, SetMultisampleRasterEnable{}, 0);
 
 	w << SetShadowRamControl(SRC::MethodTrackWithFilter);

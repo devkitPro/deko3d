@@ -199,10 +199,12 @@ Field      | Default   | Description
 
 `DkDeviceFlags_*`    | Default | Description
 ---------------------|---------|--------------------------------------------------
-`DepthZeroToOne`     | ✓       | Clip space Z is [0, 1] like Vulkan
+`DepthZeroToOne`     | ✓       | Clip space Z is [0, 1] like Vulkan/Direct3D/Metal
 `DepthMinusOneToOne` |         | Clip space Z is [-1, 1] like OpenGL
 `OriginUpperLeft`    | ✓       | Image rows are stored sequentially from top to bottom, with 0.0 corresponding to the top edge of the image and 1.0 (or the image height if non-normalized) corresponding to the bottom
 `OriginLowerLeft`    |         | Image rows are stored sequentially from bottom to top, with 0.0 corresponding to the bottom edge of the image and 1.0 (or the image height if non-normalized) corresponding to the top
+`YAxisPointsUp`      | ✓       | Clip space Y axis points up like OpenGL/Direct3D/Metal
+`YAxisPointsDown`    |         | Clip space Y axis points down like Vulkan
 
 The debugging version of the library can use an optional callback (`cbDebug`). There are two situations in which deko3d makes usage of the debug callback:
 
@@ -218,7 +220,7 @@ In the release version of deko3d, warnings and parameter/state validation don't 
 By default if memory allocation callbacks are not provided, deko3d uses the standard heap (i.e. malloc/free) for dynamic memory allocations.
 
 `gl_FragCoord` in fragment shaders obeys the device origin mode when it comes to the Y axis and has pixel centers at half-integers, *with GLSL layout qualifiers having absolutely no effect*.
-Please note that regardless of the Origin setting, the clip space Y axis points *up* like in OpenGL. Clip space X and Y are both in the range [-1, 1] as well.
+Please also note that the origin mode and clip space Y axis orientation can be configured independently of each other. Clip space X and Y are both in the range [-1, 1] as well.
 
 The current GPU tick can be queried without queuing a command buffer with `dkDeviceGetCurrentTimestamp`, and converted back and forth to nanoseconds using `dkNsToTimestamp`/`dkTimestampToNs`. See also [counters](#counters).
 

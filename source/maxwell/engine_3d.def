@@ -419,12 +419,15 @@ engine _3D 0xB197;
 0x4E6 StencilFrontFuncMask;
 0x4E7 StencilFrontMask;
 
-0x4EB SetWindowOriginMode bits (
-	0 NegateY; // wtf
-	4 Mode enum ( // nouveau calls this TriangleRastFlip
-		0 UpperLeft; // as in Direct3D/Vulkan
-		1 LowerLeft; // as in OpenGL
+0x4EB SetWindowOrigin bits (
+	// Value of special register 0x12 (SR_Y_DIRECTION)
+	0 Mode enum (
+		0 UpperLeft; // SR_Y_DIRECTION = +1.0
+		1 LowerLeft; // SR_Y_DIRECTION = -1.0
 	);
+
+	// Framebuffer orientation for the purposes of calculating polygon winding (CW/CCW)
+	4 FlipY bool; // 0=normal, 1=upside down
 );
 0x4EC LineWidthSmooth;
 0x4ED LineWidthAliased;

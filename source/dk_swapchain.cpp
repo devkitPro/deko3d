@@ -98,7 +98,7 @@ DkResult Swapchain::initialize(void* nativeWindow, DkImage const* const images[]
 	// If the origin mode is lower_left (i.e. OpenGL style), all rendered images are upside down
 	// (as in the BMP format). The compositor, of course, expects images to be stored the normal
 	// way (with Y pointing down), so we must instruct it to vertically flip whatever we feed it.
-	if (getDevice()->isOriginModeOpenGL())
+	if (getDevice()->isOriginLowerLeft())
 		nwindowSetTransform(m_nwin, HAL_TRANSFORM_FLIP_V);
 
 	return DkResult_Success;
