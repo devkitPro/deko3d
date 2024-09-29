@@ -410,13 +410,18 @@ void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker
 		DK_DEBUG_BAD_INPUT(obj->m_mipLevels > 1,
 			"pitch linear images cannot have more than one mipmap level");
 
-		obj->m_stride = maker->pitchStride;
-		obj->m_layerSize = maker->pitchStride * obj->m_dimensions[1];
-		obj->m_storageSize = obj->m_layerSize;
 		if (obj->m_flags & DkImageFlags_UsageRender)
 			obj->m_alignment = 128; // see TRM 20.1 "Tiling Formats", also supported by nouveau
 		else
 			obj->m_alignment = 32; // TRM implies this should be 64, but 32 has been observed instead in official software
+
+		if (maker->pitchStride)
+			obj->m_stride = maker->pitchStride;
+		else
+			obj->m_stride = (obj->m_bytesPerBlock * obj->m_dimensions[0] + obj->m_alignment - 1) &~ (obj->m_alignment - 1);
+
+		obj->m_layerSize = obj->m_stride * obj->m_dimensions[1];
+		obj->m_storageSize = obj->m_layerSize;
 		return;
 	}
 
