@@ -131,3 +131,41 @@ unsigned maxwell::pickImageMemoryKind(FormatTraits const& traits, uint32_t msMod
 	// Otherwise just return Generic
 	return NvKind_Generic_16BX2;
 }
+
+uint32_t dkImageFormatGetFlags(DkImageFormat format)
+{
+	if (format < 0 || format >= DkImageFormat_Count)
+		return 0;
+
+	FormatTraits const& traits = formatTraits[format];
+	uint32_t flags = 0;
+
+	if (traits.flags & FormatTraitFlags_CanRender)
+		flags |= DkImageFlags_UsageRender;
+	if (traits.flags & FormatTraitFlags_CanLoadStore)
+		flags |= DkImageFlags_UsageLoadStore;
+	if (traits.flags & FormatTraitFlags_CanUse2DEngine)
+		flags |= DkImageFlags_Usage2DEngine;
+
+	if (traits.flags & FormatTraitFlags_IsRawInt)
+		flags |= DkImageFormatFlags_IsInt;
+	if (traits.depthBits || traits.stencilBits)
+		flags |= DkImageFormatFlags_IsDepth;
+
+	switch (format)
+	{
+		default: break;
+
+		case DkImageFormat_RGBA8_Unorm:
+		case DkImageFormat_RGBX8_Unorm_sRGB:
+		case DkImageFormat_RGBA8_Unorm_sRGB:
+		case DkImageFormat_RGBX8_Unorm:
+		case DkImageFormat_BGR565_Unorm:
+		case DkImageFormat_BGRA8_Unorm:
+		case DkImageFormat_BGRA8_Unorm_sRGB:
+			flags |= DkImageFlags_UsagePresent;
+			break;
+	}
+
+	return flags;
+}

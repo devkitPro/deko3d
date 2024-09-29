@@ -379,6 +379,10 @@ enum
 	DkImageFlags_UsagePresent   = 1U << 10, // Specifies that the image will be used with a DkSwapchain.
 	DkImageFlags_Usage2DEngine  = 1U << 11, // Specifies that the image will be used with the 2D Engine (e.g. for transfers between images)
 	DkImageFlags_UsageVideo     = 1U << 12, // Specifies that the image will be used with hardware video encoding/decoding engines
+
+	// Informational flags only (for dkImageFormatGetFlags)
+	DkImageFormatFlags_IsInt    = 1U << 16, // Specifies that the image format is pure integer
+	DkImageFormatFlags_IsDepth  = 1U << 17, // Specifies that the image format is for depth/stencil
 };
 
 typedef enum DkImageFormat
@@ -498,7 +502,7 @@ typedef enum DkImageFormat
 	DkImageFormat_BGR565_Unorm,
 	DkImageFormat_BGR5_Unorm,
 	DkImageFormat_BGR5A1_Unorm,
-	DkImageFormat_A5BGR5_Unorm,
+	DkImageFormat_A1BGR5_Unorm,
 	DkImageFormat_BGRX8_Unorm,
 	DkImageFormat_BGRA8_Unorm,
 	DkImageFormat_BGRX8_Unorm_sRGB,
@@ -1337,6 +1341,8 @@ void dkQueuePresentImage(DkQueue obj, DkSwapchain swapchain, int imageSlot);
 void dkShaderInitialize(DkShader* obj, DkShaderMaker const* maker);
 bool dkShaderIsValid(DkShader const* obj);
 DkStage dkShaderGetStage(DkShader const* obj);
+
+uint32_t dkImageFormatGetFlags(DkImageFormat format);
 
 void dkImageLayoutInitialize(DkImageLayout* obj, DkImageLayoutMaker const* maker);
 uint64_t dkImageLayoutGetSize(DkImageLayout const* obj);
