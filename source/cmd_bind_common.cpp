@@ -19,9 +19,8 @@ namespace
 
 	constexpr bool checkInRange(uint32_t base, uint32_t size, uint32_t max)
 	{
-		uint32_t end = base + size;
 		// Avoid ( ͡° ͜ʖ ͡°) overflows and underflows
-		return end >= base && end <= max;
+		return base <= max && (max - base) >= size;
 	}
 
 	DkResult checkBuffers(DkBufExtents const buffers[], uint32_t numBuffers, uint32_t bufAlign, uint32_t maxSize)
@@ -241,7 +240,7 @@ void dkCmdBufBindTextures(DkCmdBuf obj, DkStage stage, uint32_t firstId, DkResHa
 	DK_ENTRYPOINT(obj);
 	DK_DEBUG_BAD_INPUT(stage < DkStage_Vertex || stage > DkStage_Compute, "invalid stage");
 	DK_DEBUG_NON_NULL_ARRAY(handles, numHandles);
-	DK_DEBUG_BAD_INPUT(!checkInRange(firstId, numHandles, DK_NUM_TEXTURE_BINDINGS));
+	DK_DEBUG_BAD_INPUT(!checkInRange(firstId, numHandles, DK_NUM_TEXTURE_BINDINGS+DK_NUM_IMAGE_BINDINGS));
 	CmdBufWriter w{obj};
 
 	if (stage == DkStage_Compute)
