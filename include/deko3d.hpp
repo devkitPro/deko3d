@@ -166,7 +166,7 @@ namespace dk
 	{
 		DK_OPAQUE_COMMON_MEMBERS(Fence);
 		DkResult wait(int64_t timeout_ns = -1);
-		static DkFence import(uint32_t id, uint32_t value);
+		void import(uint32_t id, uint32_t value);
 	};
 
 	struct Variable : public detail::Opaque<::DkVariable>
@@ -617,9 +617,9 @@ namespace dk
 		return ::dkFenceWait(this, timeout_ns);
 	}
 
-	inline DkFence Fence::import(uint32_t id, uint32_t value)
+	inline void Fence::import(uint32_t id, uint32_t value)
 	{
-		return ::dkFenceImport(id, value);
+		::dkFenceImport(this, id, value);
 	}
 
 	inline void Variable::initialize(DkMemBlock mem, uint32_t offset)

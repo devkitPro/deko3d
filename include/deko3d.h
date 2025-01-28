@@ -1238,7 +1238,7 @@ uint32_t dkMemBlockGetSize(DkMemBlock obj);
 DkResult dkMemBlockFlushCpuCache(DkMemBlock obj, uint32_t offset, uint32_t size);
 
 DkResult dkFenceWait(DkFence* obj, int64_t timeout_ns);
-DkFence dkFenceImport(uint32_t id, uint32_t value);
+void dkFenceImport(DkFence* obj, uint32_t id, uint32_t value);
 
 void dkVariableInitialize(DkVariable* obj, DkMemBlock mem, uint32_t offset);
 uint32_t dkVariableRead(DkVariable const* obj);

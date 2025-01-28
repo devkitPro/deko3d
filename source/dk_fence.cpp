@@ -70,10 +70,9 @@ DkResult dkFenceWait(DkFence* obj, int64_t timeout_ns)
 	return obj->wait(timeout_us);
 }
 
-DkFence dkFenceImport(uint32_t id, uint32_t value) {
-	DkFence fence;
-	fence.m_type = DkFence::External;
-	fence.m_external.m_fence = {
+void dkFenceImport(DkFence* obj, uint32_t id, uint32_t value) {
+	obj->m_type = DkFence::External;
+	obj->m_external.m_fence = {
 		.num_fences = 1,
 		.fences = {
 			{
@@ -82,5 +81,4 @@ DkFence dkFenceImport(uint32_t id, uint32_t value) {
 			},
 		},
 	};
-	return fence;
 }
