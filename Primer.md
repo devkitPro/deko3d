@@ -329,11 +329,14 @@ Command lists can be reused by other command lists as well. When `dkCmdBufCallLi
 ```c
 struct DkFence;
 DkResult dkFenceWait(DkFence* obj, int64_t timeout_ns);
+void dkFenceImport(DkFence* obj, uint32_t id, uint32_t value);
 ```
 
 Fences (`DkFence`) are opaque structs that contain GPU synchronization information, used to determine when work submitted to the GPU has finished executing. Each time they're scheduled to be signaled in a queue (`DkQueue`), either directly or indirectly through a command list, their contents are updated. Fences can be waited on by the GPU or CPU (using the `dkFenceWait` function). When a fence is waited on, the waiter (CPU or GPU) will be kept blocked until the point in which it's signaled (hence marking the completion of dependent work).
 
 Usually fences will be used in a signaling command prior to being waited on. If fences are to be potentially waited on before they're signaled (e.g. if they're used to wait on previous work, with no previous work having been submitted yet), they should be initialized to zero in order to ensure that any initial waits will correctly have no effect.
+
+Synchronization between the GPU and external engines (video processing, display, etc) can be achieved through the `dkFenceImport` function, which provides a way of integrating Host1x syncpoint functionality within deko3d. The `id` and `value` parameters respectively represent the syncpt index, and the threshold at which the work associated with the fence can be considered as completed. Note that those values are usually allocated and managed by the driver. More information on syncpoints can be found in the Tegra TRM, chapter 14 ("Host Subsystem").
 
 > **Warning**: Fence wait/signal commands recorded to a command list keep a pointer to the fence struct in the command buffer's bookkeeping memory. Please make sure the struct remains at the same valid memory address for the lifetime of the command list handle; otherwise submitting the command list handle to a queue will result in undefined behavior.
 
