@@ -136,7 +136,7 @@ DK_CONSTEXPR void dkDeviceMakerDefaults(DkDeviceMaker* maker)
 	maker->cbDebug = NULL;
 	maker->cbAlloc = NULL;
 	maker->cbFree = NULL;
-	maker->flags = DkDeviceFlags_DepthZeroToOne | DkDeviceFlags_OriginUpperLeft;
+	maker->flags = DkDeviceFlags_DepthZeroToOne | DkDeviceFlags_OriginUpperLeft | DkDeviceFlags_YAxisPointsDown;
 }
 
 #define DK_MEMBLOCK_ALIGNMENT 0x1000

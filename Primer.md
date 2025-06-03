@@ -68,7 +68,7 @@ In order to create a handle, a code section like the following will be used:
 // Describe the device we're about to make
 DkDeviceMaker maker;
 dkDeviceMakerDefaults(&maker);
-maker.flags = DkDeviceFlags_OriginLowerLeft;
+maker.flags = DkDeviceFlags_OriginLowerLeft | DkDeviceFlags_YAxisPointsUp;
 
 // Create the device
 DkDevice device = dkDeviceCreate(&maker);
@@ -79,7 +79,7 @@ DkDevice device = dkDeviceCreate(&maker);
 // Create the device in one go
 // In the C++ wrapper, Maker objects follow the factory pattern
 dk::Device device = dk::DeviceMaker{}
-	.setFlags(DkDeviceFlags_OriginLowerLeft)
+	.setFlags(DkDeviceFlags_OriginLowerLeft | DkDeviceFlags_YAxisPointsUp)
 	.create();
 ```
 
@@ -103,7 +103,7 @@ In C++, an additional series of handle holder types exist (marked with `Unique` 
 // Create the device
 // dk::UniqueDevice contains a destructor which will automatically call destroy()
 dk::UniqueDevice device = dk::DeviceMaker{}
-	.setFlags(DkDeviceFlags_OriginLowerLeft)
+	.setFlags(DkDeviceFlags_OriginLowerLeft | DkDeviceFlags_YAxisPointsUp)
 	.create();
 ```
 
@@ -203,8 +203,8 @@ Field      | Default   | Description
 `DepthMinusOneToOne` |         | Clip space Z is [-1, 1] like OpenGL
 `OriginUpperLeft`    | ✓       | Image rows are stored sequentially from top to bottom, with 0.0 corresponding to the top edge of the image and 1.0 (or the image height if non-normalized) corresponding to the bottom
 `OriginLowerLeft`    |         | Image rows are stored sequentially from bottom to top, with 0.0 corresponding to the bottom edge of the image and 1.0 (or the image height if non-normalized) corresponding to the top
-`YAxisPointsUp`      | ✓       | Clip space Y axis points up like OpenGL/Direct3D/Metal
-`YAxisPointsDown`    |         | Clip space Y axis points down like Vulkan
+`YAxisPointsUp`      |         | Clip space Y axis points up like OpenGL/Direct3D/Metal
+`YAxisPointsDown`    | ✓       | Clip space Y axis points down like Vulkan
 
 The debugging version of the library can use an optional callback (`cbDebug`). There are two situations in which deko3d makes usage of the debug callback:
 
