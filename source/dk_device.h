@@ -99,7 +99,7 @@ public:
 
 	// Rasterizer expects clip space +Y to point down. In UpperLeft mode with Y pointing up
 	// (or LowerLeft mode with Y pointing down) we need to flip the incoming Y coordinate.
-	bool viewportFlipY() const noexcept { return !isYAxisPointsDown() ^ !isOriginLowerLeft(); }
+	bool viewportFlipY() const noexcept { return isYAxisPointsDown() ^ !isOriginLowerLeft(); }
 
 	DkResult initialize() noexcept;
 	~Device();
